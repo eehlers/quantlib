@@ -1,52 +1,62 @@
 
-        QuantLib --- the free/open-source library for quantitative finance
-        ------------------------------------------------------------------
-                        <http://quantlib.org>
+QuantLib: the free/open-source library for quantitative finance
+===============================================================
 
-The QuantLib project is aimed at providing a comprehensive software
-framework for quantitative finance. QuantLib is a free/open-source
-library for modeling, trading, and risk management in real-life.
+The QuantLib project (<http://quantlib.org>) is aimed at providing a
+comprehensive software framework for quantitative finance. QuantLib is
+a free/open-source library for modeling, trading, and risk management
+in real-life.
 
-Documentation for the QuantLib library is both online and downloadable
-in a number of formats from <http://quantlib.org>.
-
-QuantLib depends on Boost <http://www.boost.org>. You will need to
-download, build, and install Boost before compiling and using
-QuantLib. Boost 1.39 or later is required.
-
-Please report bugs using the Bug Tracker at
-<http://sourceforge.net/tracker/?group_id=12740&atid=112740>,
-submit patches using the Patch Tracker at
-<http://sourceforge.net/tracker/?group_id=12740&atid=312740>, and
-request features using the Feature Request Tracker at
-<http://sourceforge.net/tracker/?group_id=12740&atid=362740>.
-
-You can also use the mailing lists <quantlib-users@lists.sourceforge.net> and
-<quantlib-dev@lists.sourceforge.net> for feedback, questions, etc. The mailing
-lists are for subscribers only, so please subscribe before posting.
+QuantLib is Non-Copylefted Free Software and OSI Certified Open Source
+Software.
 
 
-============= ADDITIONAL INFORMATION =================
+Download and usage
+------------------
 
-Installation instructions are available at
-<http://quantlib.org/install.shtml>.
+QuantLib can be downloaded from <http://quantlib.org/download.shtml>;
+installation instructions are available at
+<http://quantlib.org/install.shtml> for most platforms.
 
-A list of changes since the previous release is available in News.txt
-(included in this distribution) while a list of past changes can be
+Documentation for the usage and the design of the QuantLib library is
+available from <http://quantlib.org/docs.shtml>.
+
+A list of changes for each past versions of the library can be
 browsed at <http://quantlib.org/reference/history.html>.
 
-Known bugs are listed at <http://quantlib.org/reference/bug.html>;
-a list of caveats (which are not bugs, but rather issues that might be
-misleading) is available at <http://quantlib.org/reference/caveats.html>.
 
-A (hopefully growing) list of frequently-asked questions is available at
-<http://quantlib.org/faq.shtml>.
+Questions and feedback
+----------------------
 
-If you are willing to contribute, see <http://quantlib.org/newdeveloper.shtml>.
+Bugs can be reported as a GitHub issue at
+<https://github.com/lballabio/QuantLib/issues>; if you have a patch
+available, you can open a pull request instead (see "Contributing"
+below).
+
+You can also use the `quantlib-users` and `quantlib-dev` mailing lists
+for feedback, questions, etc.  More information and instructions for
+subscribing are at <http://quantlib.org/mailinglists.shtml>.
 
 
-=============== LICENSE INFORMATION ==================
+Contributing
+------------
 
-QuantLib is Non-Copylefted Free Software.
-QuantLib is OSI Certified Open Source Software.
-OSI Certified is a certification mark of the Open Source Initiative.
+The easiest way to contribute is through pull requests on GitHub.  Get
+a GitHub account if you don't have it already and clone the repository
+at <https://github.com/lballabio/QuantLib> with the "Fork" button in the
+top right corner of the page. Check out your clone to your machine,
+code away, push your changes to your clone and submit a pull request;
+instructions are available at
+<https://help.github.com/articles/fork-a-repo>.  (In case you need
+them, more detailed instructions for creating pull requests are at
+<https://help.github.com/articles/using-pull-requests>, and a basic
+guide to GitHub is at
+<https://guides.github.com/activities/hello-world/>.
+
+It's likely that we won't merge your code right away, and we'll ask
+for some changes instead. Don't be discouraged! That's normal; the
+library is complex, and thus it might take some time to become
+familiar with it and to use it in an idiomatic way.
+
+We're looking forward to your contributions.
+

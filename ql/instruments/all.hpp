@@ -59,3 +59,5 @@
 #include <ql/instruments/zerocouponinflationswap.hpp>
 
 #include <ql/instruments/bonds/all.hpp>
+#include <ql/qle/instruments/all.hpp>
+#include <ql/qle/pricingengines/all.hpp>
