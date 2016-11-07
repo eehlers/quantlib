@@ -135,6 +135,8 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release (static runtime)|x64'">QuantLib-$(qlCompilerTag)-x64-mt-s</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">QuantLib-$(qlCompilerTag)-mt</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">QuantLib-$(qlCompilerTag)-x64-mt</TargetName>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">d:\boost\boost_1_59;$(IncludePath)</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">d:\boost\boost_1_59\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -499,6 +501,16 @@
     <ClInclude Include="ql\experimental\models\hestonslvmcmodel.hpp" />
     <ClInclude Include="ql\math\polynomialmathfunction.hpp" />
     <ClInclude Include="ql\math\pascaltriangle.hpp" />
+    <ClInclude Include="ql\qle\instruments\all.hpp" />
+    <ClInclude Include="ql\qle\instruments\crossccybasisswap.hpp" />
+    <ClInclude Include="ql\qle\instruments\crossccyswap.hpp" />
+    <ClInclude Include="ql\qle\instruments\currencyswap.hpp" />
+    <ClInclude Include="ql\qle\instruments\fxforward.hpp" />
+    <ClInclude Include="ql\qle\pricingengines\all.hpp" />
+    <ClInclude Include="ql\qle\pricingengines\crossccyswapengine.hpp" />
+    <ClInclude Include="ql\qle\pricingengines\discountingcurrencyswapengine.hpp" />
+    <ClInclude Include="ql\qle\pricingengines\discountingfxforwardengine.hpp" />
+    <ClInclude Include="ql\qle\pricingengines\discountingswapenginemulticurve.hpp" />
     <ClInclude Include="ql\rebatedexercise.hpp" />
     <ClInclude Include="ql\experimental\finitedifferences\dynprogvppintrinsicvalueengine.hpp" />
     <ClInclude Include="ql\experimental\finitedifferences\fdextoujumpvanillaengine.hpp" />
@@ -1775,6 +1787,14 @@
     <ClCompile Include="ql\math\polynomialmathfunction.cpp" />
     <ClCompile Include="ql\math\pascaltriangle.cpp" />
     <ClCompile Include="ql\patterns\observable.cpp" />
+    <ClCompile Include="ql\qle\instruments\crossccybasisswap.cpp" />
+    <ClCompile Include="ql\qle\instruments\crossccyswap.cpp" />
+    <ClCompile Include="ql\qle\instruments\currencyswap.cpp" />
+    <ClCompile Include="ql\qle\instruments\fxforward.cpp" />
+    <ClCompile Include="ql\qle\pricingengines\crossccyswapengine.cpp" />
+    <ClCompile Include="ql\qle\pricingengines\discountingcurrencyswapengine.cpp" />
+    <ClCompile Include="ql\qle\pricingengines\discountingfxforwardengine.cpp" />
+    <ClCompile Include="ql\qle\pricingengines\discountingswapenginemulticurve.cpp" />
     <ClCompile Include="ql\rebatedexercise.cpp" />
     <ClInclude Include="ql\experimental\finitedifferences\all.hpp" />
     <ClCompile Include="ql\experimental\finitedifferences\dynprogvppintrinsicvalueengine.cpp" />

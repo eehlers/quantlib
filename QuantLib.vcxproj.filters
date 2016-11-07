@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="methods">
@@ -324,6 +324,15 @@
     </Filter>
     <Filter Include="experimental\models">
       <UniqueIdentifier>{9eeb0683-3147-4850-9eba-645af86b58e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qle">
+      <UniqueIdentifier>{6a52ef9e-68e3-4180-946f-fb6e4eb61647}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qle\instruments">
+      <UniqueIdentifier>{29d7da69-7afb-433b-ba19-360d86e3b8fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qle\pricingengines">
+      <UniqueIdentifier>{284c5817-acf6-4fd9-a961-10ca5cdc46c7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -4090,6 +4099,36 @@
     <ClInclude Include="ql\termstructures\volatility\equityfx\hestonblackvolsurface.hpp">
       <Filter>termstructures\volatility\equityfx</Filter>
     </ClInclude>
+    <ClInclude Include="ql\qle\instruments\all.hpp">
+      <Filter>qle\instruments</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\qle\instruments\crossccybasisswap.hpp">
+      <Filter>qle\instruments</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\qle\instruments\crossccyswap.hpp">
+      <Filter>qle\instruments</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\qle\instruments\currencyswap.hpp">
+      <Filter>qle\instruments</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\qle\instruments\fxforward.hpp">
+      <Filter>qle\instruments</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\qle\pricingengines\all.hpp">
+      <Filter>qle\pricingengines</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\qle\pricingengines\crossccyswapengine.hpp">
+      <Filter>qle\pricingengines</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\qle\pricingengines\discountingcurrencyswapengine.hpp">
+      <Filter>qle\pricingengines</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\qle\pricingengines\discountingfxforwardengine.hpp">
+      <Filter>qle\pricingengines</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\qle\pricingengines\discountingswapenginemulticurve.hpp">
+      <Filter>qle\pricingengines</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ql\methods\montecarlo\brownianbridge.cpp">
@@ -6598,6 +6637,30 @@
     </ClCompile>
     <ClCompile Include="ql\experimental\math\particleswarmoptimization.cpp">
       <Filter>experimental\math</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\qle\instruments\crossccybasisswap.cpp">
+      <Filter>qle\instruments</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\qle\instruments\crossccyswap.cpp">
+      <Filter>qle\instruments</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\qle\instruments\currencyswap.cpp">
+      <Filter>qle\instruments</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\qle\instruments\fxforward.cpp">
+      <Filter>qle\instruments</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\qle\pricingengines\crossccyswapengine.cpp">
+      <Filter>qle\pricingengines</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\qle\pricingengines\discountingcurrencyswapengine.cpp">
+      <Filter>qle\pricingengines</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\qle\pricingengines\discountingfxforwardengine.cpp">
+      <Filter>qle\pricingengines</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\qle\pricingengines\discountingswapenginemulticurve.cpp">
+      <Filter>qle\pricingengines</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
