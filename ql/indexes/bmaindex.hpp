@@ -39,13 +39,18 @@ namespace QuantLib {
     */
     class BMAIndex : public InterestRateIndex {
       public:
-        BMAIndex(const Handle<YieldTermStructure>& h =
-                                                Handle<YieldTermStructure>());
+        explicit BMAIndex(const Handle<YieldTermStructure>& h =
+                                    Handle<YieldTermStructure>());
+        /*! \deprecated Use the other constructor instead.
+                        Deprecated in version 1.19.
+        */
+        QL_DEPRECATED
+        BMAIndex(const Handle<YieldTermStructure>& h,
+                 const Calendar& fixingCalendar);
         //! \name Index interface
         //@{
         /*! BMA is fixed weekly on Wednesdays.
         */
-        std::string name() const { return "BMA"; }
         bool isValidFixingDate(const Date& fixingDate) const;
         //@}
         //! \name Inspectors

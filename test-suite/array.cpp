@@ -25,14 +25,18 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-class FSquared : std::unary_function<Real,Real> {
-  public:
-    Real operator()(Real x) const { return x*x; }
-};
+namespace array_test {
+    class FSquared {
+      public:
+        Real operator()(Real x) const { return x*x; }
+    };
+}
 
 void ArrayTest::testConstruction() {
 
     BOOST_TEST_MESSAGE("Testing array construction...");
+
+    using namespace array_test;
 
     // empty array
     Array a1;
@@ -78,7 +82,7 @@ void ArrayTest::testConstruction() {
     }
 
     // copy constructor
-    Array a5(a1);
+    Array a5(a1);  // NOLINT(performance-unnecessary-copy-initialization)
     if (a5.size() != a1.size())
         BOOST_ERROR("copy not of the same size as original"
                     << "\n    original:  " << a1.size()
@@ -205,13 +209,43 @@ void ArrayTest::testArrayFunctions() {
             BOOST_FAIL("Array function test Sqrt failed");
         }
     }
-
 }
+
+void ArrayTest::testArrayResize() {
+    BOOST_TEST_MESSAGE("Testing array resize...");
+
+    Array a(10,1.0,1.0);
+
+    for (Size i=0; i < 10; ++i)
+        BOOST_CHECK_CLOSE(a[i], Real(1+i), 10*QL_EPSILON);
+
+    a.resize(5);
+    BOOST_CHECK(a.size() == 5);
+
+    for (Size i=0; i < 5; ++i)
+        BOOST_CHECK_CLOSE(a[i], Real(1+i), 10*QL_EPSILON);
+
+    a.resize(15);
+    BOOST_CHECK(a.size() == 15);
+
+    for (Size i=0; i < 5; ++i)
+        BOOST_CHECK_CLOSE(a[i], Real(1+i), 10*QL_EPSILON);
+
+    const Array::const_iterator iter = a.begin();
+    a.resize(a.size());
+    BOOST_CHECK(iter == a.begin());
+
+    a.resize(10);
+    BOOST_CHECK(a.size() == 10);
+    BOOST_CHECK(iter == a.begin());
+}
+
 
 test_suite* ArrayTest::suite() {
     test_suite* suite = BOOST_TEST_SUITE("array tests");
     suite->add(QUANTLIB_TEST_CASE(&ArrayTest::testConstruction));
     suite->add(QUANTLIB_TEST_CASE(&ArrayTest::testArrayFunctions));
+    suite->add(QUANTLIB_TEST_CASE(&ArrayTest::testArrayResize));
     return suite;
 }
 

@@ -21,21 +21,16 @@
     forward-rate agreement.
 */
 
-// the only header you need to use QuantLib
-#include <ql/quantlib.hpp>
-
+#include <ql/qldefines.hpp>
 #ifdef BOOST_MSVC
-/* Uncomment the following lines to unmask floating-point
-   exceptions. Warning: unpredictable results can arise...
-
-   See http://www.wilmott.com/messageview.cfm?catid=10&threadid=9481
-   Is there anyone with a definitive word about this?
-*/
-// #include <float.h>
-// namespace { unsigned int u = _controlfp(_EM_INEXACT, _MCW_EM); }
+#  include <ql/auto_link.hpp>
 #endif
+#include <ql/instruments/forwardrateagreement.hpp>
+#include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
+#include <ql/termstructures/yield/ratehelpers.hpp>
+#include <ql/indexes/ibor/euribor.hpp>
+#include <ql/time/daycounters/actualactual.hpp>
 
-#include <boost/timer.hpp>
 #include <iostream>
 
 #define LENGTH(a) (sizeof(a)/sizeof(a[0]))
@@ -46,7 +41,7 @@ using namespace QuantLib;
 #if defined(QL_ENABLE_SESSIONS)
 namespace QuantLib {
 
-    Integer sessionId() { return 0; }
+    ThreadKey sessionId() { return 0; }
 
 }
 #endif
@@ -55,7 +50,6 @@ int main(int, char* []) {
 
     try {
 
-        boost::timer timer;
         std::cout << std::endl;
 
         /*********************
@@ -63,7 +57,7 @@ int main(int, char* []) {
          *********************/
 
         RelinkableHandle<YieldTermStructure> euriborTermStructure;
-        boost::shared_ptr<IborIndex> euribor3m(
+        ext::shared_ptr<IborIndex> euribor3m(
                                        new Euribor3M(euriborTermStructure));
 
         Date todaysDate = Date(23, May, 2006);
@@ -99,15 +93,15 @@ int main(int, char* []) {
 
 
         // FRAs
-        boost::shared_ptr<SimpleQuote> fra1x4Rate(
+        ext::shared_ptr<SimpleQuote> fra1x4Rate(
                                       new SimpleQuote(threeMonthFraQuote[1]));
-        boost::shared_ptr<SimpleQuote> fra2x5Rate(
+        ext::shared_ptr<SimpleQuote> fra2x5Rate(
                                       new SimpleQuote(threeMonthFraQuote[2]));
-        boost::shared_ptr<SimpleQuote> fra3x6Rate(
+        ext::shared_ptr<SimpleQuote> fra3x6Rate(
                                       new SimpleQuote(threeMonthFraQuote[3]));
-        boost::shared_ptr<SimpleQuote> fra6x9Rate(
+        ext::shared_ptr<SimpleQuote> fra6x9Rate(
                                       new SimpleQuote(threeMonthFraQuote[6]));
-        boost::shared_ptr<SimpleQuote> fra9x12Rate(
+        ext::shared_ptr<SimpleQuote> fra9x12Rate(
                                       new SimpleQuote(threeMonthFraQuote[9]));
 
         RelinkableHandle<Quote> h1x4;  h1x4.linkTo(fra1x4Rate);
@@ -129,27 +123,27 @@ int main(int, char* []) {
         BusinessDayConvention convention = euribor3m->businessDayConvention();
         bool endOfMonth = euribor3m->endOfMonth();
 
-        boost::shared_ptr<RateHelper> fra1x4(
+        ext::shared_ptr<RateHelper> fra1x4(
                            new FraRateHelper(h1x4, 1, 4,
                                              fixingDays, calendar, convention,
                                              endOfMonth, fraDayCounter));
 
-        boost::shared_ptr<RateHelper> fra2x5(
+        ext::shared_ptr<RateHelper> fra2x5(
                            new FraRateHelper(h2x5, 2, 5,
                                              fixingDays, calendar, convention,
                                              endOfMonth, fraDayCounter));
 
-        boost::shared_ptr<RateHelper> fra3x6(
+        ext::shared_ptr<RateHelper> fra3x6(
                            new FraRateHelper(h3x6, 3, 6,
                                              fixingDays, calendar, convention,
                                              endOfMonth, fraDayCounter));
 
-        boost::shared_ptr<RateHelper> fra6x9(
+        ext::shared_ptr<RateHelper> fra6x9(
                            new FraRateHelper(h6x9, 6, 9,
                                              fixingDays, calendar, convention,
                                              endOfMonth, fraDayCounter));
 
-        boost::shared_ptr<RateHelper> fra9x12(
+        ext::shared_ptr<RateHelper> fra9x12(
                            new FraRateHelper(h9x12, 9, 12,
                                              fixingDays, calendar, convention,
                                              endOfMonth, fraDayCounter));
@@ -164,10 +158,8 @@ int main(int, char* []) {
         DayCounter termStructureDayCounter =
             ActualActual(ActualActual::ISDA);
 
-        double tolerance = 1.0e-15;
-
         // A FRA curve
-        std::vector<boost::shared_ptr<RateHelper> > fraInstruments;
+        std::vector<ext::shared_ptr<RateHelper> > fraInstruments;
 
         fraInstruments.push_back(fra1x4);
         fraInstruments.push_back(fra2x5);
@@ -175,11 +167,10 @@ int main(int, char* []) {
         fraInstruments.push_back(fra6x9);
         fraInstruments.push_back(fra9x12);
 
-        boost::shared_ptr<YieldTermStructure> fraTermStructure(
+        ext::shared_ptr<YieldTermStructure> fraTermStructure(
                      new PiecewiseYieldCurve<Discount,LogLinear>(
                                          settlementDate, fraInstruments,
-                                         termStructureDayCounter,
-                                         tolerance));
+                                         termStructureDayCounter));
 
 
         // Term structures used for pricing/discounting
@@ -339,19 +330,6 @@ int main(int, char* []) {
                  << endl
                  << endl;
         }
-
-        double seconds = timer.elapsed();
-        Integer hours = int(seconds/3600);
-        seconds -= hours * 3600;
-        Integer minutes = int(seconds/60);
-        seconds -= minutes * 60;
-        cout << " \nRun completed in ";
-        if (hours > 0)
-            cout << hours << " h ";
-        if (hours > 0 || minutes > 0)
-            cout << minutes << " m ";
-        cout << fixed << setprecision(0)
-             << seconds << " s\n" << endl;
 
         return 0;
 

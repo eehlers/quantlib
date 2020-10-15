@@ -46,6 +46,7 @@ namespace QuantLib {
       public:
         typedef Traits traits_type;
         typedef Interpolator interpolator_type;
+
         //! \name Constructors
         //@{
         PiecewiseZeroInflationCurve(
@@ -56,8 +57,31 @@ namespace QuantLib {
                Frequency frequency,
                bool indexIsInterpolated,
                Rate baseZeroRate,
+               const std::vector<ext::shared_ptr<typename Traits::helper> >&
+                                                                  instruments,
+               Real accuracy = 1.0e-12,
+               const Interpolator& i = Interpolator())
+        : base_curve(referenceDate, calendar, dayCounter,
+                     lag, frequency, indexIsInterpolated, baseZeroRate, i),
+          instruments_(instruments), accuracy_(accuracy) {
+            bootstrap_.setup(this);
+        }
+
+        /*! \deprecated Use the constructor not taking a yield
+                        term structure.
+                        Deprecated in version 1.19.
+        */
+        QL_DEPRECATED
+        PiecewiseZeroInflationCurve(
+               const Date& referenceDate,
+               const Calendar& calendar,
+               const DayCounter& dayCounter,
+               const Period& lag,
+               Frequency frequency,
+               bool indexIsInterpolated,
+               Rate baseZeroRate,
                const Handle<YieldTermStructure>& nominalTS,
-               const std::vector<boost::shared_ptr<typename Traits::helper> >&
+               const std::vector<ext::shared_ptr<typename Traits::helper> >&
                                                                   instruments,
                Real accuracy = 1.0e-12,
                const Interpolator& i = Interpolator())
@@ -68,6 +92,7 @@ namespace QuantLib {
             bootstrap_.setup(this);
         }
         //@}
+
         //! \name Inflation interface
         //@{
         Date baseDate() const;
@@ -88,17 +113,10 @@ namespace QuantLib {
         // methods
         void performCalculations() const;
         // data members
-        std::vector<boost::shared_ptr<typename Traits::helper> > instruments_;
+        std::vector<ext::shared_ptr<typename Traits::helper> > instruments_;
         Real accuracy_;
 
-        #if !defined(QL_PATCH_MSVC90)
-        // this avoids defining another name...
         friend class Bootstrap<this_curve>;
-        #else
-        // ...but VC++ 9 cannot digest it in some contexts.
-        typedef typename Bootstrap<this_curve> bootstrapper;
-        friend class bootstrapper;
-        #endif
         friend class BootstrapError<this_curve>;
         Bootstrap<this_curve> bootstrap_;
     };

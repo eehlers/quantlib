@@ -29,7 +29,7 @@
 namespace QuantLib {
 
     FwdPeriodAdapter::FwdPeriodAdapter(
-                               const boost::shared_ptr<MarketModel>& largeModel,
+                               const ext::shared_ptr<MarketModel>& largeModel,
                                Size period,
                                Size offset,
                                const std::vector<Spread>& newDisplacements)
@@ -54,7 +54,7 @@ namespace QuantLib {
             std::fill(displacements_.begin(), displacements_.end(), dis);
         }
 
-        if (displacements_.size() ==0) // if not specified use average across rate
+        if (displacements_.empty()) // if not specified use average across rate
         {
             displacements_.reserve(numberOfRates_);
             Size m=0;

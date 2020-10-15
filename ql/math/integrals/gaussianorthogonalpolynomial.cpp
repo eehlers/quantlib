@@ -23,6 +23,7 @@
 
 #include <ql/math/integrals/gaussianorthogonalpolynomial.hpp>
 #include <ql/math/distributions/gammadistribution.hpp>
+#include <ql/math/comparison.hpp>
 #include <ql/errors.hpp>
 #include <cmath>
 
@@ -81,7 +82,7 @@ namespace QuantLib {
     }
 
     Real GaussHermitePolynomial::beta(Size i) const {
-        return (i%2)? i/2.0 + mu_ : i/2.0;
+        return (i % 2) != 0U ? i / 2.0 + mu_ : i / 2.0;
     }
 
     Real GaussHermitePolynomial::w(Real x) const {
@@ -106,8 +107,8 @@ namespace QuantLib {
         Real num = beta_*beta_ - alpha_*alpha_;
         Real denom = (2.0*i+alpha_+beta_)*(2.0*i+alpha_+beta_+2);
 
-        if (!denom) {
-            if (num != 0.0) {
+        if (close_enough(denom,0.0)) {
+            if (!close_enough(num,0.0)) {
                 QL_FAIL("can't compute a_k for jacobi integration\n");
             }
             else {
@@ -115,7 +116,7 @@ namespace QuantLib {
                 num  = 2*beta_;
                 denom= 2*(2.0*i+alpha_+beta_+1);
 
-                QL_ASSERT(denom, "can't compute a_k for jacobi integration\n");
+                QL_ASSERT(!close_enough(denom,0.0), "can't compute a_k for jacobi integration\n");
             }
         }
 
@@ -127,15 +128,15 @@ namespace QuantLib {
         Real denom = (2.0*i+alpha_+beta_)*(2.0*i+alpha_+beta_)
                    * ((2.0*i+alpha_+beta_)*(2.0*i+alpha_+beta_)-1);
 
-        if (!denom) {
-            if (num != 0.0) {
+        if (close_enough(denom,0.0)) {
+            if (!close_enough(num,0.0)) {
                 QL_FAIL("can't compute b_k for jacobi integration\n");
             } else {
                 // l'Hospital
                 num  = 4.0*i*(i+beta_)* (2.0*i+2*alpha_+beta_);
                 denom= 2.0*(2.0*i+alpha_+beta_);
                 denom*=denom-1;
-                QL_ASSERT(denom, "can't compute b_k for jacobi integration\n");
+                QL_ASSERT(!close_enough(denom,0.0), "can't compute b_k for jacobi integration\n");
             }
         }
         return num / denom;
@@ -171,7 +172,7 @@ namespace QuantLib {
     }
 
     Real GaussHyperbolicPolynomial::beta(Size i) const {
-        return i ? M_PI_2*M_PI_2*i*i : M_PI;
+        return i != 0U ? M_PI_2 * M_PI_2 * i * i : M_PI;
     }
 
     Real GaussHyperbolicPolynomial::w(Real x) const {

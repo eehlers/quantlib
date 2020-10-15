@@ -95,10 +95,13 @@ namespace QuantLib {
                     Real pastFixing2 = ts[lim.second+1];
                     QL_REQUIRE(pastFixing2 != Null<Real>(),
                                "Missing " << name() << " fixing for " << lim.second+1);
+
+                    // Use lagged period for interpolation
+                    std::pair<Date, Date> reference_period_lim = inflationPeriod(aFixingDate + zeroInflationTermStructure()->observationLag(), frequency_);
                     // now linearly interpolate
-                    Real daysInPeriod = lim.second+1 - lim.first;
+                    Real daysInPeriod = reference_period_lim.second + 1 - reference_period_lim.first;
                     theFixing = pastFixing
-                        + (pastFixing2-pastFixing)*(aFixingDate-lim.first)/daysInPeriod;
+                        + (pastFixing2 - pastFixing)*(aFixingDate - lim.first) / daysInPeriod;
                 }
             }
             return theFixing;
@@ -176,12 +179,12 @@ namespace QuantLib {
     }
 
 
-    boost::shared_ptr<ZeroInflationIndex> ZeroInflationIndex::clone(
+    ext::shared_ptr<ZeroInflationIndex> ZeroInflationIndex::clone(
                           const Handle<ZeroInflationTermStructure>& h) const {
-        return boost::shared_ptr<ZeroInflationIndex>(
-                      new ZeroInflationIndex(familyName_, region_, revised_,
+        return ext::make_shared<ZeroInflationIndex>(
+                      familyName_, region_, revised_,
                                              interpolated_, frequency_,
-                                             availabilityLag_, currency_, h));
+                                             availabilityLag_, currency_, h);
     }
 
     // these still need to be fixed to latest versions
@@ -328,12 +331,12 @@ namespace QuantLib {
         return yoyInflation_->yoyRate(d,0*Days);
     }
 
-    boost::shared_ptr<YoYInflationIndex> YoYInflationIndex::clone(
+    ext::shared_ptr<YoYInflationIndex> YoYInflationIndex::clone(
                            const Handle<YoYInflationTermStructure>& h) const {
-        return boost::shared_ptr<YoYInflationIndex>(
-                      new YoYInflationIndex(familyName_, region_, revised_,
+        return ext::make_shared<YoYInflationIndex>(
+                      familyName_, region_, revised_,
                                             interpolated_, ratio_, frequency_,
-                                            availabilityLag_, currency_, h));
+                                            availabilityLag_, currency_, h);
     }
 
 }

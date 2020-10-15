@@ -93,12 +93,13 @@ namespace QuantLib {
         return arguments_.swap->type();
     }
 
+    // NOLINTNEXTLINE(readability-const-return-type)
     const Date Gaussian1dNonstandardSwaptionEngine::underlyingLastDate() const {
         return arguments_.fixedPayDates.back();
     }
 
-    const Disposable<Array> Gaussian1dNonstandardSwaptionEngine::initialGuess(
-        const Date &expiry) const {
+    // NOLINTNEXTLINE(readability-const-return-type)
+    const Disposable<Array> Gaussian1dNonstandardSwaptionEngine::initialGuess(const Date &expiry) const {
 
         Size fixedIdx =
             std::upper_bound(arguments_.fixedResetDates.begin(),
@@ -134,8 +135,9 @@ namespace QuantLib {
 
     void Gaussian1dNonstandardSwaptionEngine::calculate() const {
 
-        QL_REQUIRE(arguments_.settlementType == Settlement::Physical,
-                   "cash-settled swaptions not yet implemented ...");
+        QL_REQUIRE(arguments_.settlementMethod != Settlement::ParYieldCurve,
+                   "cash settled (ParYieldCurve) swaptions not priced with "
+                   "Gaussian1dNonstandardSwaptionEngine");
 
         Date settlement = model_->termStructure()->referenceDate();
 
@@ -146,8 +148,8 @@ namespace QuantLib {
             return;
         }
 
-        boost::shared_ptr<RebatedExercise> rebatedExercise =
-            boost::dynamic_pointer_cast<RebatedExercise>(arguments_.exercise);
+        ext::shared_ptr<RebatedExercise> rebatedExercise =
+            ext::dynamic_pointer_cast<RebatedExercise>(arguments_.exercise);
 
         int idx = arguments_.exercise->dates().size() - 1;
         int minIdxAlive = static_cast<int>(
@@ -167,7 +169,7 @@ namespace QuantLib {
         // for probability computation
         std::vector<Array> npvp0, npvp1;
         if (probabilities_ != None) {
-            for (Size i = 0; i < static_cast<Size>(idx - minIdxAlive + 2); ++i) {
+            for (int i = 0; i < idx - minIdxAlive + 2; ++i) {
                 Array npvTmp0(2 * integrationPoints_ + 1, 0.0);
                 Array npvTmp1(2 * integrationPoints_ + 1, 0.0);
                 npvp0.push_back(npvTmp0);

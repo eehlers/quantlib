@@ -3,6 +3,8 @@
 /*
  Copyright (C) 2009 Roland Lichters
  Copyright (C) 2009 Ferdinando Ametrano
+ Copyright (C) 2017 Joseph Jeisman
+ Copyright (C) 2017 Fabrice Lecuyer
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -27,6 +29,8 @@
 
 #include <ql/instruments/swap.hpp>
 #include <ql/time/daycounter.hpp>
+#include <ql/time/businessdayconvention.hpp>
+#include <ql/time/calendar.hpp>
 
 namespace QuantLib {
 
@@ -35,24 +39,32 @@ namespace QuantLib {
 
     //! Overnight indexed swap: fix vs compounded overnight rate
     class OvernightIndexedSwap : public Swap {
-      public:
+    public:
         enum Type { Receiver = -1, Payer = 1 };
-        OvernightIndexedSwap(
-                    Type type,
-                    Real nominal,
-                    const Schedule& schedule,
-                    Rate fixedRate,
-                    const DayCounter& fixedDC,
-                    const boost::shared_ptr<OvernightIndex>& overnightIndex,
-                    Spread spread = 0.0);
-        OvernightIndexedSwap(
-                    Type type,
-                    std::vector<Real> nominals,
-                    const Schedule& schedule,
-                    Rate fixedRate,
-                    const DayCounter& fixedDC,
-                    const boost::shared_ptr<OvernightIndex>& overnightIndex,
-                    Spread spread = 0.0);
+        OvernightIndexedSwap(Type type,
+                             Real nominal,
+                             const Schedule& schedule,
+                             Rate fixedRate,
+                             const DayCounter& fixedDC,
+                             const ext::shared_ptr<OvernightIndex>& overnightIndex,
+                             Spread spread = 0.0,
+                             Natural paymentLag = 0,
+                             BusinessDayConvention paymentAdjustment = Following,
+                             const Calendar& paymentCalendar = Calendar(),
+                             bool telescopicValueDates = false);
+
+        OvernightIndexedSwap(Type type,
+                             const std::vector<Real>& nominals,
+                             const Schedule& schedule,
+                             Rate fixedRate,
+                             const DayCounter& fixedDC,
+                             const ext::shared_ptr<OvernightIndex>& overnightIndex,
+                             Spread spread = 0.0,
+                             Natural paymentLag = 0,
+                             BusinessDayConvention paymentAdjustment = Following,
+                             const Calendar& paymentCalendar = Calendar(),
+                             bool telescopicValueDates = false);
+
         //! \name Inspectors
         //@{
         Type type() const { return type_; }
@@ -65,8 +77,8 @@ namespace QuantLib {
         Rate fixedRate() const { return fixedRate_; }
         const DayCounter& fixedDayCount() { return fixedDC_; }
 
-        const boost::shared_ptr<OvernightIndex>& overnightIndex();
-        Spread spread() { return spread_; }
+        const ext::shared_ptr<OvernightIndex>& overnightIndex() { return overnightIndex_; }
+        Spread spread() const { return spread_; }
 
         const Leg& fixedLeg() const { return legs_[0]; }
         const Leg& overnightLeg() const { return legs_[1]; }
@@ -88,13 +100,18 @@ namespace QuantLib {
         std::vector<Real> nominals_;
 
         Frequency paymentFrequency_;
+        Calendar paymentCalendar_;
+        BusinessDayConvention paymentAdjustment_;
+        Natural paymentLag_;
+
         //Schedule schedule_;
 
         Rate fixedRate_;
         DayCounter fixedDC_;
 
-        boost::shared_ptr<OvernightIndex> overnightIndex_;
+        ext::shared_ptr<OvernightIndex> overnightIndex_;
         Spread spread_;
+        bool telescopicValueDates_;
     };
 
 

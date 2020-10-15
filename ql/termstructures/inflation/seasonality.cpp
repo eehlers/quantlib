@@ -48,6 +48,7 @@ namespace QuantLib {
             case Biweekly:          // etc.
             case Weekly:
             case Daily:
+                QL_REQUIRE(!this->seasonalityFactors().empty(), "no seasonality factors given");
                 QL_REQUIRE( (this->seasonalityFactors().size() %
                              this->frequency()) == 0,
                            "For frequency " << this->frequency()
@@ -90,13 +91,13 @@ namespace QuantLib {
 
 
     MultiplicativePriceSeasonality::MultiplicativePriceSeasonality(const Date& seasonalityBaseDate, const Frequency frequency,
-                                                                   const std::vector<Rate> seasonalityFactors)
+                                                                   const std::vector<Rate>& seasonalityFactors)
     {
         set(seasonalityBaseDate, frequency, seasonalityFactors);
     }
 
     void MultiplicativePriceSeasonality::set(const Date& seasonalityBaseDate, const Frequency frequency,
-                                             const std::vector<Rate> seasonalityFactors)
+                                             const std::vector<Rate>& seasonalityFactors)
     {
         frequency_ = frequency;
         seasonalityFactors_ = std::vector<Rate>(seasonalityFactors.size());
@@ -123,9 +124,14 @@ namespace QuantLib {
     Rate MultiplicativePriceSeasonality::correctZeroRate(const Date &d,
                                                          const Rate r,
                                                          const InflationTermStructure& iTS) const {
-        std::pair<Date,Date> lim = inflationPeriod(iTS.baseDate(), iTS.frequency());
-        Date curveBaseDate = lim.second;
-        return seasonalityCorrection(r, d, iTS.dayCounter(), curveBaseDate, true);
+        // Mimic the logic in ZeroInflationIndex::forecastFixing for choosing the
+        // curveBaseDate and effective fixing date. This means that we should retrieve
+        // the input seasonality adjustments when we look at I_{SA}(t) / I_{NSA}(t).
+        Date curveBaseDate = iTS.baseDate();
+        Date effectiveFixingDate = iTS.indexIsInterpolated() ? d : 
+            inflationPeriod(d, iTS.frequency()).first;
+        
+        return seasonalityCorrection(r, effectiveFixingDate, iTS.dayCounter(), curveBaseDate, true);
     }
 
 
@@ -241,7 +247,7 @@ namespace QuantLib {
 
         }
 
-        if (!dir) // invers Factor required
+        if (dir == 0) // invers Factor required
         {
             seasonalCorrection = 1/seasonalCorrection;
         }

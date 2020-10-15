@@ -22,15 +22,7 @@
 
 #include <ql/experimental/credit/constantlosslatentmodel.hpp>
 #include <ql/experimental/credit/defaultlossmodel.hpp>
-
-#if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8)) || (__GNUC__ > 4))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
-#endif
-#include <boost/bind.hpp>
-#if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8)) || (__GNUC__ > 4))
-#pragma GCC diagnostic pop
-#endif
+#include <ql/functional.hpp>
 #include <map>
 #include <algorithm>
 
@@ -55,35 +47,35 @@ namespace QuantLib {
     template<class copulaPolicy> 
     class RecursiveLossModel : public DefaultLossModel {
     public:
-        RecursiveLossModel(
-            const boost::shared_ptr<ConstantLossLatentmodel<copulaPolicy> >& m,
-// nope! use max common divisor. See O'Kane. Or give both options at least.
-            Size nbuckets  = 1)
-        : copula_(m), nBuckets_(nbuckets), wk_() { }
-      private:
-          /*!
-          @param pDefDate Vector of unconditional default probabilities for each
-          live name (at the current evaluation date). This is passed instead of 
-          the date for performance reasons (if in the future other magnitudes 
-          -e.g. lgd- are contingent on the date they shouldd be passed too).
-          */
-        Disposable<std::map<Real, Probability> > conditionalLossDistrib(
-            const std::vector<Probability>& pDefDate, 
-            const std::vector<Real>& mktFactor) const;
-        Real expectedConditionalLoss(const std::vector<Probability>& pDefDate, //<< never used!!
-            const std::vector<Real>& mktFactor) const;
-        Disposable<std::vector<Real> > conditionalLossProb(
-            const std::vector<Probability>& pDefDate, 
-            //const Date& date,
-            const std::vector<Real>& mktFactor) const;
-        //versions using the P-inverse, deprecate the former
-        Disposable<std::map<Real, Probability> > conditionalLossDistribInvP(
-            const std::vector<Real>& pDefDate, 
-            //const Date& date,
-            const std::vector<Real>& mktFactor) const;
-        Real expectedConditionalLossInvP(const std::vector<Real>& pDefDate, 
-            //const Date& date,
-            const std::vector<Real>& mktFactor) const;
+      explicit RecursiveLossModel(
+          const ext::shared_ptr<ConstantLossLatentmodel<copulaPolicy> >& m,
+          // nope! use max common divisor. See O'Kane. Or give both options at least.
+          Size nbuckets = 1)
+      : copula_(m), nBuckets_(nbuckets) {}
+
+    private:
+      /*!
+      @param pDefDate Vector of unconditional default probabilities for each
+      live name (at the current evaluation date). This is passed instead of
+      the date for performance reasons (if in the future other magnitudes
+      -e.g. lgd- are contingent on the date they shouldd be passed too).
+      */
+      Disposable<std::map<Real, Probability> >
+      conditionalLossDistrib(const std::vector<Probability>& pDefDate,
+                             const std::vector<Real>& mktFactor) const;
+      Real expectedConditionalLoss(const std::vector<Probability>& pDefDate, //<< never used!!
+                                   const std::vector<Real>& mktFactor) const;
+      Disposable<std::vector<Real> > conditionalLossProb(const std::vector<Probability>& pDefDate,
+                                                         // const Date& date,
+                                                         const std::vector<Real>& mktFactor) const;
+      // versions using the P-inverse, deprecate the former
+      Disposable<std::map<Real, Probability> >
+      conditionalLossDistribInvP(const std::vector<Real>& pDefDate,
+                                 // const Date& date,
+                                 const std::vector<Real>& mktFactor) const;
+      Real expectedConditionalLossInvP(const std::vector<Real>& pDefDate,
+                                       // const Date& date,
+                                       const std::vector<Real>& mktFactor) const;
     protected:
         void resetModel();
     public:
@@ -113,7 +105,7 @@ namespace QuantLib {
        Real percentile(const Date& d, Real percentile) const;
        Real expectedShortfall(const Date& d, Real perctl) const;
     protected:
-        const boost::shared_ptr<ConstantLossLatentmodel<copulaPolicy> > copula_;
+        const ext::shared_ptr<ConstantLossLatentmodel<copulaPolicy> > copula_;
     private:
         // loss model descriptor members
         const Size nBuckets_;
@@ -167,28 +159,30 @@ namespace QuantLib {
             basket_->remainingProbabilities(date);
 
         return copula_->integratedExpectedValue(
-            boost::function<Real (const std::vector<Real>& v1)>(
-                boost::bind(
+            ext::function<Real (const std::vector<Real>& v1)>(
+                ext::bind(
                     &RecursiveLossModel::expectedConditionalLoss,
                     this,
-                    boost::cref(uncDefProb),
+                    ext::cref(uncDefProb),
                     _1)
                 )
             );
             */
 /**/
+        using namespace ext::placeholders;
+
         std::vector<Probability> uncDefProb = 
             basket_->remainingProbabilities(date);
         std::vector<Real> invProb;
-        for(Size i=0; i<uncDefProb.size(); i++)
+        for(Size i=0; i<uncDefProb.size(); ++i)
            invProb.push_back(copula_->inverseCumulativeY(uncDefProb[i], i));
            ///  invProb.push_back(CP::inverseCumulativeY(uncDefProb[i], i));//<-static call
         return copula_->integratedExpectedValue(
-            boost::function<Real (const std::vector<Real>& v1)>(
-                boost::bind(
+            ext::function<Real (const std::vector<Real>& v1)>(
+                ext::bind(
                     &RecursiveLossModel::expectedConditionalLossInvP,
                     this,
-                    boost::cref(invProb),
+                    ext::cref(invProb),
                     _1)
                 )
             );
@@ -197,16 +191,18 @@ namespace QuantLib {
 
     template<class CP>
     inline Disposable<std::vector<Real> > 
-        RecursiveLossModel<CP>::lossProbability(const Date& date) const {
+    RecursiveLossModel<CP>::lossProbability(const Date& date) const {
+
+        using namespace ext::placeholders;
 
         std::vector<Probability> uncDefProb = 
             basket_->remainingProbabilities(date);
         return copula_->integratedExpectedValue(
-            boost::function<Disposable<std::vector<Real> > (const std::vector<Real>& v1)>(
-                boost::bind(
+            ext::function<Disposable<std::vector<Real> > (const std::vector<Real>& v1)>(
+                ext::bind(
                     &RecursiveLossModel::conditionalLossProb,
                     this,
-                    boost::cref(uncDefProb),
+                    ext::cref(uncDefProb),
                     _1)
                 )
             );
@@ -227,14 +223,14 @@ namespace QuantLib {
         copula_->resetBasket(basket_.currentLink());
 
         std::vector<Real> lgdsTmp, lgds;
-        for(Size i=0; i<remainingBsktSize_; i++)
+        for(Size i=0; i<remainingBsktSize_; ++i)
             lgds.push_back(notionals_[i]*(1.-copula_->recoveries()[i]));
         lgdsTmp = lgds;
         ///////////////std::remove(lgds.begin(), lgds.end(), 0.);
         lgds.erase(std::remove(lgds.begin(), lgds.end(), 0.), lgds.end());
         lossUnit_ = *(std::min_element(lgds.begin(), lgds.end()))
             / nBuckets_;
-        for(Size i=0; i<remainingBsktSize_; i++)
+        for(Size i=0; i<remainingBsktSize_; ++i)
             wk_.push_back(std::floor(lgdsTmp[i]/lossUnit_ + .5));
     }
 
@@ -246,7 +242,7 @@ namespace QuantLib {
         std::map<Real, Probability> distrib;
         std::vector<Real> values  = lossProbability(d);
         Real sum = 0.;
-        for(Size i=0; i<values.size(); i++) {
+        for(Size i=0; i<values.size(); ++i) {
             distrib.insert(std::make_pair<Real, Probability>(i * lossUnit_, 
                 sum + values[i]));
             sum += values[i];
@@ -271,10 +267,10 @@ namespace QuantLib {
         if(percentile == 1.) return dist.rbegin()->second;
         if(percentile == 0.) return dist.begin()->second;
         std::map<Real, Probability>::const_iterator itdist = dist.begin();
-        while(itdist->second <= percentile) itdist++;
+        while (itdist->second <= percentile) ++itdist;
         Real valPlus = itdist->second;
         Real xPlus   = itdist->first;
-        itdist--;//we r never 1st or last, because of tests above
+        --itdist;  //we're never 1st or last, because of tests above
         Real valMin  = itdist->second;
         Real xMin    = itdist->first;
 
@@ -295,9 +291,10 @@ namespace QuantLib {
 
         std::map<Real, Probability>::iterator itNxt, itDist = 
             distrib.begin();
-        for(; itDist != distrib.end(); itDist++) 
+        for(; itDist != distrib.end(); ++itDist)
             if(itDist->second >= perctl) break;
-        itNxt = itDist; itDist--;// what if we are on the first one?!!!
+        itNxt = itDist;
+        --itDist; // what if we are on the first one?!!!
 
         // One could linearly triangulate the exact point and get extra 
         // precission on the first(broken) period.
@@ -310,7 +307,7 @@ namespace QuantLib {
             Real val =  lossNxt - (itNxt->second - perctl) * 
                 (lossNxt - lossHere) / (itNxt->second - itDist->second); 
             Real suma = (itNxt->second - perctl) * (lossNxt + val) * .5;
-            itDist++;itNxt++;
+            ++itDist; ++itNxt;
             do{
                 lossNxt = std::min(std::max(itNxt->first - attachAmount_, 
                     0.), detachAmount_ - attachAmount_);
@@ -318,7 +315,7 @@ namespace QuantLib {
                     0.), detachAmount_ - attachAmount_);
                 suma += .5 * (lossHere + lossNxt) * (itNxt->second - 
                     itDist->second);
-                itDist++;itNxt++;
+                ++itDist; ++itNxt;
             }while(itNxt != distrib.end());
             return suma / (1.-perctl);
         }
@@ -339,7 +336,7 @@ namespace QuantLib {
         std::map<Real, Probability> pIndepDistrib;
         ////////  K=0
         pIndepDistrib.insert(std::make_pair(0., 1.));
-        for(Size iName=0; iName<remainingBsktSize_; iName++) {
+        for(Size iName=0; iName<remainingBsktSize_; ++iName) {
             Probability pDef =
                 copula_->conditionalDefaultProbability(uncDefProb[iName], iName,
                                                 mktFactor);
@@ -365,7 +362,7 @@ namespace QuantLib {
                     pDistTemp.insert(std::make_pair(
                         distIt->first+wk_[iName], distIt->second * pDef));
                 }
-                distIt++;
+                ++distIt;
             }
            /////  copy back
             pIndepDistrib = pDistTemp;
@@ -389,7 +386,7 @@ namespace QuantLib {
         std::map<Real, Probability> pIndepDistrib;
         // K=0
         pIndepDistrib.insert(std::make_pair(0., 1.));
-        for(Size iName=0; iName<remainingBsktSize_; iName++) {
+        for(Size iName=0; iName<remainingBsktSize_; ++iName) {
             Probability pDef =
                 copula_->conditionalDefaultProbabilityInvP(invpDefDate[iName], 
                     iName, mktFactor);
@@ -416,7 +413,7 @@ namespace QuantLib {
                     pDistTemp.insert(std::make_pair(
                         distIt->first+wk_[iName], distIt->second * pDef));
                 }
-                distIt++;
+                ++distIt;
             }
             // copy back
             pIndepDistrib = pDistTemp;
@@ -462,7 +459,7 @@ namespace QuantLib {
                 detachAmount_ - attachAmount_);
             // MIN MAX BUGS ....??
             expLoss += loss * distIt->second;
-            distIt++;
+            ++distIt;
         }
         return expLoss ;
     }
@@ -495,7 +492,7 @@ namespace QuantLib {
                 detachAmount_ - attachAmount_);
             // MIN MAX BUGS ....???
             expLoss += loss * distIt->second;
-            distIt++;
+            ++distIt;
         }
         return expLoss ;
     }
@@ -519,12 +516,10 @@ namespace QuantLib {
             //expLoss += loss * distIt->second;
 
             results.push_back(distIt->second);
-             distIt++;
-       }
+             ++distIt;
+        }
         return results;
     }
-
-
 
 }
 

@@ -39,7 +39,7 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-namespace {
+namespace swap_test {
 
     struct CommonVars {
         // global data
@@ -50,7 +50,7 @@ namespace {
         BusinessDayConvention fixedConvention, floatingConvention;
         Frequency fixedFrequency, floatingFrequency;
         DayCounter fixedDayCount;
-        boost::shared_ptr<IborIndex> index;
+        ext::shared_ptr<IborIndex> index;
         Natural settlementDays;
         RelinkableHandle<YieldTermStructure> termStructure;
 
@@ -58,8 +58,8 @@ namespace {
         SavedSettings backup;
         
         // utilities
-        boost::shared_ptr<VanillaSwap> makeSwap(Integer length, Rate fixedRate,
-                                                Spread floatingSpread) {
+        ext::shared_ptr<VanillaSwap>
+        makeSwap(Integer length, Rate fixedRate, Spread floatingSpread) const {
             Date maturity = calendar.advance(settlement,length,Years,
                                              floatingConvention);
             Schedule fixedSchedule(settlement,maturity,Period(fixedFrequency),
@@ -70,12 +70,12 @@ namespace {
                                    calendar,floatingConvention,
                                    floatingConvention,
                                    DateGeneration::Forward,false);
-            boost::shared_ptr<VanillaSwap> swap(
+            ext::shared_ptr<VanillaSwap> swap(
                 new VanillaSwap(type, nominal,
                                 fixedSchedule, fixedRate, fixedDayCount,
                                 floatSchedule, index, floatingSpread,
                                 index->dayCounter()));
-            swap->setPricingEngine(boost::shared_ptr<PricingEngine>(
+            swap->setPricingEngine(ext::shared_ptr<PricingEngine>(
                                   new DiscountingSwapEngine(termStructure)));
             return swap;
         }
@@ -89,7 +89,7 @@ namespace {
             fixedFrequency = Annual;
             floatingFrequency = Semiannual;
             fixedDayCount = Thirty360();
-            index = boost::shared_ptr<IborIndex>(new
+            index = ext::shared_ptr<IborIndex>(new
                 Euribor(Period(floatingFrequency), termStructure));
             calendar = index->fixingCalendar();
             today = calendar.adjust(Settings::instance().evaluationDate());
@@ -105,6 +105,8 @@ void SwapTest::testFairRate() {
 
     BOOST_TEST_MESSAGE("Testing vanilla-swap calculation of fair fixed rate...");
 
+    using namespace swap_test;
+
     CommonVars vars;
 
     Integer lengths[] = { 1, 2, 5, 10, 20 };
@@ -113,7 +115,7 @@ void SwapTest::testFairRate() {
     for (Size i=0; i<LENGTH(lengths); i++) {
         for (Size j=0; j<LENGTH(spreads); j++) {
 
-            boost::shared_ptr<VanillaSwap> swap =
+            ext::shared_ptr<VanillaSwap> swap =
                 vars.makeSwap(lengths[i],0.0,spreads[j]);
             swap = vars.makeSwap(lengths[i],swap->fairRate(),spreads[j]);
             if (std::fabs(swap->NPV()) > 1.0e-10) {
@@ -133,6 +135,8 @@ void SwapTest::testFairSpread() {
     BOOST_TEST_MESSAGE("Testing vanilla-swap calculation of "
                        "fair floating spread...");
 
+    using namespace swap_test;
+
     CommonVars vars;
 
     Integer lengths[] = { 1, 2, 5, 10, 20 };
@@ -141,7 +145,7 @@ void SwapTest::testFairSpread() {
     for (Size i=0; i<LENGTH(lengths); i++) {
         for (Size j=0; j<LENGTH(rates); j++) {
 
-            boost::shared_ptr<VanillaSwap> swap =
+            ext::shared_ptr<VanillaSwap> swap =
                 vars.makeSwap(lengths[i],rates[j],0.0);
             swap = vars.makeSwap(lengths[i],rates[j],swap->fairSpread());
             if (std::fabs(swap->NPV()) > 1.0e-10) {
@@ -159,6 +163,8 @@ void SwapTest::testRateDependency() {
 
     BOOST_TEST_MESSAGE("Testing vanilla-swap dependency on fixed rate...");
 
+    using namespace swap_test;
+
     CommonVars vars;
 
     Integer lengths[] = { 1, 2, 5, 10, 20 };
@@ -170,7 +176,7 @@ void SwapTest::testRateDependency() {
             // store the results for different rates...
             std::vector<Real> swap_values;
             for (Size k=0; k<LENGTH(rates); k++) {
-                boost::shared_ptr<VanillaSwap> swap =
+                ext::shared_ptr<VanillaSwap> swap =
                     vars.makeSwap(lengths[i],rates[k],spreads[j]);
                 swap_values.push_back(swap->NPV());
             }
@@ -196,6 +202,8 @@ void SwapTest::testSpreadDependency() {
 
     BOOST_TEST_MESSAGE("Testing vanilla-swap dependency on floating spread...");
 
+    using namespace swap_test;
+
     CommonVars vars;
 
     Integer lengths[] = { 1, 2, 5, 10, 20 };
@@ -207,7 +215,7 @@ void SwapTest::testSpreadDependency() {
             // store the results for different spreads...
             std::vector<Real> swap_values;
             for (Size k=0; k<LENGTH(spreads); k++) {
-                boost::shared_ptr<VanillaSwap> swap =
+                ext::shared_ptr<VanillaSwap> swap =
                     vars.makeSwap(lengths[i],rates[j],spreads[k]);
                 swap_values.push_back(swap->NPV());
             }
@@ -233,6 +241,8 @@ void SwapTest::testInArrears() {
 
     BOOST_TEST_MESSAGE("Testing in-arrears swap calculation...");
 
+    using namespace swap_test;
+
     CommonVars vars;
 
     /* See Hull, 4th ed., page 550
@@ -247,7 +257,7 @@ void SwapTest::testInArrears() {
                       DateGeneration::Forward,false);
     DayCounter dayCounter = SimpleDayCounter();
     std::vector<Real> nominals(1, 100000000.0);
-    boost::shared_ptr<IborIndex> index(new IborIndex("dummy", 1*Years, 0,
+    ext::shared_ptr<IborIndex> index(new IborIndex("dummy", 1*Years, 0,
                                              EURCurrency(), calendar,
                                              Following, false, dayCounter,
                                              vars.termStructure));
@@ -267,10 +277,10 @@ void SwapTest::testInArrears() {
 
     Volatility capletVolatility = 0.22;
     Handle<OptionletVolatilityStructure> vol(
-        boost::shared_ptr<OptionletVolatilityStructure>(new
+        ext::shared_ptr<OptionletVolatilityStructure>(new
             ConstantOptionletVolatility(vars.today, NullCalendar(), Following,
                                         capletVolatility, dayCounter)));
-    boost::shared_ptr<IborCouponPricer> pricer(new
+    ext::shared_ptr<IborCouponPricer> pricer(new
         BlackIborCouponPricer(vol));
 
     Leg floatingLeg = IborLeg(schedule, index)
@@ -283,7 +293,7 @@ void SwapTest::testInArrears() {
     setCouponPricer(floatingLeg, pricer);
 
     Swap swap(floatingLeg,fixedLeg);
-    swap.setPricingEngine(boost::shared_ptr<PricingEngine>(
+    swap.setPricingEngine(ext::shared_ptr<PricingEngine>(
                               new DiscountingSwapEngine(vars.termStructure)));
 
     Decimal storedValue = -144813.0;
@@ -299,6 +309,8 @@ void SwapTest::testCachedValue() {
 
     BOOST_TEST_MESSAGE("Testing vanilla-swap calculation against cached value...");
 
+    using namespace swap_test;
+
     CommonVars vars;
 
     vars.today = Date(17,June,2002);
@@ -307,16 +319,17 @@ void SwapTest::testCachedValue() {
         vars.calendar.advance(vars.today,vars.settlementDays,Days);
     vars.termStructure.linkTo(flatRate(vars.settlement,0.05,Actual365Fixed()));
 
-    boost::shared_ptr<VanillaSwap> swap = vars.makeSwap(10, 0.06, 0.001);
-    #ifndef QL_USE_INDEXED_COUPON
-    Real cachedNPV   = -5.872863313209;
-    #else
-    Real cachedNPV   = -5.872342992212;
-    #endif
+    ext::shared_ptr<VanillaSwap> swap = vars.makeSwap(10, 0.06, 0.001);
+
+    Real cachedNPV;  
+    if (IborCoupon::usingAtParCoupons())
+        cachedNPV = -5.872863313209;
+    else
+        cachedNPV = -5.872342992212;
 
     if (std::fabs(swap->NPV()-cachedNPV) > 1.0e-11)
         BOOST_ERROR("failed to reproduce cached swap value:\n"
-                    << QL_FIXED << std::setprecision(12)
+                    << std::fixed << std::setprecision(12)
                     << "    calculated: " << swap->NPV() << "\n"
                     << "    expected:   " << cachedNPV);
 }

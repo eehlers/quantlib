@@ -25,7 +25,7 @@ namespace QuantLib {
 
     class JamshidianSwaptionEngine::rStarFinder {
       public:
-        rStarFinder(const boost::shared_ptr<OneFactorAffineModel>& model,
+        rStarFinder(const ext::shared_ptr<OneFactorAffineModel>& model,
                     Real nominal,
                     Time maturity,
                     Time valueTime,
@@ -49,13 +49,14 @@ namespace QuantLib {
         Time maturity_,valueTime_;
         std::vector<Time> times_;
         const std::vector<Real>& amounts_;
-        const boost::shared_ptr<OneFactorAffineModel>& model_;
+        const ext::shared_ptr<OneFactorAffineModel>& model_;
     };
 
     void JamshidianSwaptionEngine::calculate() const {
 
-        QL_REQUIRE(arguments_.settlementType==Settlement::Physical,
-                   "cash-settled swaptions not priced by Jamshidian engine");
+        QL_REQUIRE(arguments_.settlementMethod != Settlement::ParYieldCurve,
+                   "cash settled (ParYieldCurve) swaptions not priced with "
+                   "JamshidianSwaptionEngine");
 
         QL_REQUIRE(arguments_.exercise->type() == Exercise::European,
                    "cannot use the Jamshidian decomposition "
@@ -66,9 +67,9 @@ namespace QuantLib {
         Date referenceDate;
         DayCounter dayCounter;
 
-        boost::shared_ptr<TermStructureConsistentModel> tsmodel =
-            boost::dynamic_pointer_cast<TermStructureConsistentModel>(*model_);
-        if (tsmodel) {
+        ext::shared_ptr<TermStructureConsistentModel> tsmodel =
+            ext::dynamic_pointer_cast<TermStructureConsistentModel>(*model_);
+        if (tsmodel != 0) {
             referenceDate = tsmodel->termStructure()->referenceDate();
             dayCounter = tsmodel->termStructure()->dayCounter();
         } else {
@@ -111,6 +112,7 @@ namespace QuantLib {
             Real strike = model_->discountBond(maturity,
                                                fixedPayTime,
                                                rStar) / B;
+            // Looks like the swaption decomposed into individual options adjusted for maturity. Each individual option is valued by Hull-White (or other one-factor model).
             Real dboValue = model_->discountBondOption(
                                                w, strike, maturity, valueTime,
                                                fixedPayTime);

@@ -30,7 +30,7 @@ namespace QuantLib {
                     const Schedule& fixedLegSchedule,
                     Rate fixedRate,
                     const DayCounter& fixedDC,
-                    const boost::shared_ptr<OvernightIndex>& overnightIndex,
+                    const ext::shared_ptr<OvernightIndex>& overnightIndex,
                     const Schedule& overnightLegSchedule,
                     Spread spread,
                     Real meanReversionSpeed,
@@ -50,24 +50,22 @@ namespace QuantLib {
     }
 
     ArithmeticAverageOIS::ArithmeticAverageOIS(
-                    Type type,
-                    std::vector<Real> nominals,
-                    const Schedule& fixedLegSchedule,
-                    Rate fixedRate,
-                    const DayCounter& fixedDC,
-                    const boost::shared_ptr<OvernightIndex>& overnightIndex,
-                    const Schedule& overnightLegSchedule,
-                    Spread spread,
-                    Real meanReversionSpeed,
-                    Real volatility,
-                    bool byApprox)
+        Type type,
+        const std::vector<Real>& nominals,
+        const Schedule& fixedLegSchedule,
+        Rate fixedRate,
+        const DayCounter& fixedDC,
+        const ext::shared_ptr<OvernightIndex>& overnightIndex,
+        const Schedule& overnightLegSchedule,
+        Spread spread,
+        Real meanReversionSpeed,
+        Real volatility,
+        bool byApprox)
     : Swap(2), type_(type), nominals_(nominals),
       fixedLegPaymentFrequency_(fixedLegSchedule.tenor().frequency()),
       overnightLegPaymentFrequency_(overnightLegSchedule.tenor().frequency()),
-      fixedRate_(fixedRate), fixedDC_(fixedDC),
-      overnightIndex_(overnightIndex),
-      spread_(spread), byApprox_(byApprox), mrs_(meanReversionSpeed),
-      vol_(volatility) {
+      fixedRate_(fixedRate), fixedDC_(fixedDC), overnightIndex_(overnightIndex), spread_(spread),
+      byApprox_(byApprox), mrs_(meanReversionSpeed), vol_(volatility) {
 
         initialize(fixedLegSchedule, overnightLegSchedule);
 
@@ -85,12 +83,12 @@ namespace QuantLib {
             .withNotionals(nominals_)
             .withSpreads(spread_);
 
-        boost::shared_ptr<FloatingRateCouponPricer> arithmeticPricer(
+        ext::shared_ptr<FloatingRateCouponPricer> arithmeticPricer(
                 new ArithmeticAveragedOvernightIndexedCouponPricer(mrs_, vol_, byApprox_));
 
         for (Size i = 0; i < legs_[1].size(); i++) {
-            boost::shared_ptr<OvernightIndexedCoupon> 
-                c = boost::dynamic_pointer_cast<OvernightIndexedCoupon> (legs_[1][i]);
+            ext::shared_ptr<OvernightIndexedCoupon> 
+                c = ext::dynamic_pointer_cast<OvernightIndexedCoupon> (legs_[1][i]);
             c->setPricer(arithmeticPricer);
         }
 

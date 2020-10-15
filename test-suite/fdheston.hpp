@@ -22,12 +22,14 @@
 #define quantlib_test_fd_heston_hpp
 
 #include <boost/test/unit_test.hpp>
+#include "speedlevel.hpp"
 
 /* remember to document new and/or updated tests in the Doxygen
    comment block of the corresponding class */
 
 class FdHestonTest {
 public:
+    static void testFdmHestonVarianceMesher();
     static void testFdmHestonBarrier();
     static void testFdmHestonBarrierVsBlackScholes();
     static void testFdmHestonAmerican();
@@ -36,8 +38,10 @@ public:
     static void testFdmHestonConvergence();
     static void testFdmHestonBlackScholes();
     static void testFdmHestonIntradayPricing();
+    static void testMethodOfLinesAndCN();
+    static void testSpuriousOscillations();
 
-    static boost::unit_test_framework::test_suite* suite();
+    static boost::unit_test_framework::test_suite* suite(SpeedLevel);
 };
 
 #endif

@@ -2,6 +2,8 @@
 
 /*
  Copyright (C) 2009 Ferdinando Ametrano
+ Copyright (C) 2017 Joseph Jeisman
+ Copyright (C) 2017 Fabrice Lecuyer
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -37,12 +39,12 @@ namespace QuantLib {
     class MakeOIS {
       public:
         MakeOIS(const Period& swapTenor,
-                const boost::shared_ptr<OvernightIndex>& overnightIndex,
+                const ext::shared_ptr<OvernightIndex>& overnightIndex,
                 Rate fixedRate = Null<Rate>(),
                 const Period& fwdStart = 0*Days);
 
         operator OvernightIndexedSwap() const;
-        operator boost::shared_ptr<OvernightIndexedSwap>() const ;
+        operator ext::shared_ptr<OvernightIndexedSwap>() const ;
 
         MakeOIS& receiveFixed(bool flag = true);
         MakeOIS& withType(OvernightIndexedSwap::Type type);
@@ -54,6 +56,10 @@ namespace QuantLib {
         MakeOIS& withRule(DateGeneration::Rule r);
 
         MakeOIS& withPaymentFrequency(Frequency f);
+        MakeOIS& withPaymentAdjustment(BusinessDayConvention convention);
+        MakeOIS& withPaymentLag(Natural lag);
+        MakeOIS& withPaymentCalendar(const Calendar& cal);
+
         MakeOIS& withEndOfMonth(bool flag = true);
 
         MakeOIS& withFixedLegDayCount(const DayCounter& dc);
@@ -62,11 +68,14 @@ namespace QuantLib {
 
         MakeOIS& withDiscountingTermStructure(
                   const Handle<YieldTermStructure>& discountingTermStructure);
+
+        MakeOIS &withTelescopicValueDates(bool telescopicValueDates);
+
         MakeOIS& withPricingEngine(
-                              const boost::shared_ptr<PricingEngine>& engine);
+                              const ext::shared_ptr<PricingEngine>& engine);
       private:
         Period swapTenor_;
-        boost::shared_ptr<OvernightIndex> overnightIndex_;
+        ext::shared_ptr<OvernightIndex> overnightIndex_;
         Rate fixedRate_;
         Period forwardStart_;
 
@@ -75,6 +84,10 @@ namespace QuantLib {
         Calendar calendar_;
 
         Frequency paymentFrequency_;
+        Calendar paymentCalendar_;
+        BusinessDayConvention paymentAdjustment_;
+        Natural paymentLag_;
+
         DateGeneration::Rule rule_;
         bool endOfMonth_, isDefaultEOM_;
 
@@ -84,7 +97,9 @@ namespace QuantLib {
         Spread overnightSpread_;
         DayCounter fixedDayCount_;
 
-        boost::shared_ptr<PricingEngine> engine_;
+        ext::shared_ptr<PricingEngine> engine_;
+
+        bool telescopicValueDates_;
     };
 
 }

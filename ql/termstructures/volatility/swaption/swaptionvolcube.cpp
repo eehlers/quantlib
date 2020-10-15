@@ -30,8 +30,8 @@ namespace QuantLib {
         const std::vector<Period>& swapTenors,
         const std::vector<Spread>& strikeSpreads,
         const std::vector<std::vector<Handle<Quote> > >& volSpreads,
-        const boost::shared_ptr<SwapIndex>& swapIndexBase,
-        const boost::shared_ptr<SwapIndex>& shortSwapIndexBase,
+        const ext::shared_ptr<SwapIndex>& swapIndexBase,
+        const ext::shared_ptr<SwapIndex>& shortSwapIndexBase,
         bool vegaWeightedSmileFit)
     : SwaptionVolatilityDiscrete(optionTenors, swapTenors, 0,
                                  atmVol->calendar(),
@@ -73,9 +73,9 @@ namespace QuantLib {
         registerWith(swapIndexBase_);
         registerWith(shortSwapIndexBase_);
 
-        QL_REQUIRE(shortSwapIndexBase_->tenor()<swapIndexBase_->tenor(),
+        QL_REQUIRE(shortSwapIndexBase_->tenor()<=swapIndexBase_->tenor(),
                    "short index tenor (" << shortSwapIndexBase_->tenor() <<
-                   ") is not less than index tenor (" <<
+                   ") is not less or equal than index tenor (" <<
                    swapIndexBase_->tenor() << ")");
 
         registerWithVolatilitySpread();

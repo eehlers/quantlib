@@ -23,7 +23,7 @@ namespace QuantLib {
 
     Iceland::Iceland(Market) {
         // all calendar instances share the same implementation instance
-        static boost::shared_ptr<Calendar::Impl> impl(new Iceland::IcexImpl);
+        static ext::shared_ptr<Calendar::Impl> impl(new Iceland::IcexImpl);
         impl_ = impl;
     }
 
@@ -34,9 +34,8 @@ namespace QuantLib {
         Year y = date.year();
         Day em = easterMonday(y);
         if (isWeekend(w)
-            // New Year's Day (possibly moved to Monday)
-            || ((d == 1 || ((d == 2 || d == 3) && w == Monday))
-                && m == January)
+            // New Year's Day
+            || (d == 1 && m == January)
             // Holy Thursday
             || (dd == em-4)
             // Good Friday
@@ -59,7 +58,7 @@ namespace QuantLib {
             || (d == 25 && m == December)
             // Boxing Day
             || (d == 26 && m == December))
-            return false;
+            return false; // NOLINT(readability-simplify-boolean-expr)
         return true;
     }
 

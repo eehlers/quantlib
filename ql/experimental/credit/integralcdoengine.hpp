@@ -22,6 +22,10 @@
 #ifndef quantlib_integral_cdo_engine_hpp
 #define quantlib_integral_cdo_engine_hpp
 
+#include <ql/qldefines.hpp>
+
+#ifndef QL_PATCH_SOLARIS
+
 #include <ql/experimental/credit/syntheticcdo.hpp>
 
 namespace QuantLib {
@@ -30,8 +34,8 @@ namespace QuantLib {
 
     class IntegralCDOEngine : public SyntheticCDO::engine {
     public:
-        IntegralCDOEngine(const Handle<YieldTermStructure>& discountCurve, 
-                          Period stepSize = 3*Months) 
+        explicit IntegralCDOEngine(const Handle<YieldTermStructure>& discountCurve, 
+                                   Period stepSize = 3*Months) 
         : stepSize_(stepSize), discountCurve_(discountCurve) {}
         void calculate() const;
     protected:
@@ -40,5 +44,7 @@ namespace QuantLib {
     };
 
 }
+
+#endif
 
 #endif

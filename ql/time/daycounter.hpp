@@ -57,11 +57,12 @@ namespace QuantLib {
                                       const Date& refPeriodStart,
                                       const Date& refPeriodEnd) const = 0;
         };
-        boost::shared_ptr<Impl> impl_;
+        ext::shared_ptr<Impl> impl_;
         /*! This constructor can be invoked by derived classes which
             define a given implementation.
         */
-        DayCounter(const boost::shared_ptr<Impl>& impl) : impl_(impl) {}
+        explicit DayCounter(const ext::shared_ptr<Impl>& impl)
+        : impl_(impl) {}
       public:
         /*! The default constructor returns a day counter with a null
             implementation, which is therefore unusable except as a
@@ -113,19 +114,19 @@ namespace QuantLib {
     }
 
     inline std::string DayCounter::name() const {
-        QL_REQUIRE(impl_, "no implementation provided");
+        QL_REQUIRE(impl_, "no day counter implementation provided");
         return impl_->name();
     }
 
     inline Date::serial_type DayCounter::dayCount(const Date& d1,
                                                   const Date& d2) const {
-        QL_REQUIRE(impl_, "no implementation provided");
+        QL_REQUIRE(impl_, "no day counter implementation provided");
         return impl_->dayCount(d1,d2);
     }
 
     inline Time DayCounter::yearFraction(const Date& d1, const Date& d2,
         const Date& refPeriodStart, const Date& refPeriodEnd) const {
-            QL_REQUIRE(impl_, "no implementation provided");
+            QL_REQUIRE(impl_, "no day counter implementation provided");
             return impl_->yearFraction(d1,d2,refPeriodStart,refPeriodEnd);
     }
 

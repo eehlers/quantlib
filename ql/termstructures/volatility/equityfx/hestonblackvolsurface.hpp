@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2015 Johannes Goettker-Schnetmann
+ Copyright (C) 2015 Johannes Göttker-Schnetmann
  Copyright (C) 2015 Klaus Spanderen
 
  This file is part of QuantLib, a free-software/open-source library
@@ -33,7 +33,11 @@
 namespace QuantLib {
     class HestonBlackVolSurface : public BlackVolTermStructure {
       public:
-        HestonBlackVolSurface(const Handle<HestonModel>& hestonModel);
+        explicit HestonBlackVolSurface(
+            const Handle<HestonModel>& hestonModel,
+            AnalyticHestonEngine::ComplexLogFormula cpxLogFormula = AnalyticHestonEngine::Gatheral,
+            const AnalyticHestonEngine::Integration& integration =
+                AnalyticHestonEngine::Integration::gaussLaguerre(164));
 
         DayCounter dayCounter() const;
         Date maxDate() const;
@@ -46,6 +50,7 @@ namespace QuantLib {
 
       private:
         const Handle<HestonModel> hestonModel_;
+        const AnalyticHestonEngine::ComplexLogFormula cpxLogFormula_;
         const AnalyticHestonEngine::Integration integration_;
     };
 }

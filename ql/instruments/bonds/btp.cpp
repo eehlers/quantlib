@@ -39,7 +39,7 @@ namespace QuantLib {
                                 maturityDate, 6*Months,
                                 NullCalendar(), Unadjusted, Unadjusted,
                                 DateGeneration::Backward, true),
-                       boost::shared_ptr<Euribor6M>(new Euribor6M(fwdCurve)),
+                       ext::make_shared<Euribor6M>(fwdCurve),
                        Actual360(),
                        Following,
                        Euribor6M().fixingDays(),
@@ -89,7 +89,7 @@ namespace QuantLib {
 
 
     RendistatoBasket::RendistatoBasket(
-            const std::vector<boost::shared_ptr<BTP> >& btps,
+            const std::vector<ext::shared_ptr<BTP> >& btps,
             const std::vector<Real>& outstandings,
             const std::vector<Handle<Quote> >& cleanPriceQuotes)
     : btps_(btps), outstandings_(outstandings), quotes_(cleanPriceQuotes) {
@@ -133,15 +133,15 @@ namespace QuantLib {
 
 
     RendistatoCalculator::RendistatoCalculator(
-                            const boost::shared_ptr<RendistatoBasket>& basket,
-                            const boost::shared_ptr<Euribor>& euriborIndex,
+                            const ext::shared_ptr<RendistatoBasket>& basket,
+                            const ext::shared_ptr<Euribor>& euriborIndex,
                             const Handle<YieldTermStructure>& discountCurve)
     : basket_(basket),
       euriborIndex_(euriborIndex), discountCurve_(discountCurve),
       yields_(basket_->size(), 0.05), durations_(basket_->size()),
-      nSwaps_(15), // TODO: generalize number of swaps and their lenghts
+      nSwaps_(15), // TODO: generalize number of swaps and their lengths
       swaps_(nSwaps_),
-      swapLenghts_(nSwaps_), swapBondDurations_(nSwaps_, Null<Time>()),
+      swapLengths_(nSwaps_), swapBondDurations_(nSwaps_, Null<Time>()),
       swapBondYields_(nSwaps_, 0.05), swapRates_(nSwaps_, Null<Rate>())
     {
         registerWith(basket_);
@@ -150,16 +150,16 @@ namespace QuantLib {
 
         Rate dummyRate = 0.05;
         for (Size i=0; i<nSwaps_; ++i) {
-            swapLenghts_[i] = static_cast<Real>(i+1);
+            swapLengths_[i] = static_cast<Real>(i+1);
             swaps_[i] = MakeVanillaSwap(
-                swapLenghts_[i]*Years, euriborIndex_, dummyRate, 1*Days)
+                swapLengths_[i]*Years, euriborIndex_, dummyRate, 1*Days)
                                 .withDiscountingTermStructure(discountCurve_);
         }
     }
 
     void RendistatoCalculator::performCalculations() const {
 
-        const std::vector<boost::shared_ptr<BTP> >& btps = basket_->btps();
+        const std::vector<ext::shared_ptr<BTP> >& btps = basket_->btps();
         const std::vector<Handle<Quote> >& quotes = basket_->cleanPriceQuotes();
         Date bondSettlementDate = btps[0]->settlementDate();
         for (Size i=0; i<basket_->size(); ++i) {
@@ -223,12 +223,10 @@ namespace QuantLib {
                 break; // exit the loop
             }
         }
-
-        return;
     }
 
     RendistatoEquivalentSwapLengthQuote::RendistatoEquivalentSwapLengthQuote(
-        const boost::shared_ptr<RendistatoCalculator>& r) : r_(r) {}
+        const ext::shared_ptr<RendistatoCalculator>& r) : r_(r) {}
 
     bool RendistatoEquivalentSwapLengthQuote::isValid() const {
         try {
@@ -240,7 +238,7 @@ namespace QuantLib {
     }
 
     RendistatoEquivalentSwapSpreadQuote::RendistatoEquivalentSwapSpreadQuote(
-        const boost::shared_ptr<RendistatoCalculator>& r) : r_(r) {}
+        const ext::shared_ptr<RendistatoCalculator>& r) : r_(r) {}
 
     bool RendistatoEquivalentSwapSpreadQuote::isValid() const {
         try {

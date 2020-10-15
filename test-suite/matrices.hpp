@@ -40,6 +40,8 @@ class MatricesTest {
     static void testOrthogonalProjection();
     static void testCholeskyDecomposition();
     static void testMoorePenroseInverse();
+    static void testIterativeSolvers();
+    static void testInitializers();
     static boost::unit_test_framework::test_suite* suite();
 };
 

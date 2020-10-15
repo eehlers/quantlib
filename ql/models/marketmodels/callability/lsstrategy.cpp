@@ -22,6 +22,7 @@
 #include <ql/models/marketmodels/utilities.hpp>
 #include <ql/models/marketmodels/evolutiondescription.hpp>
 #include <ql/models/marketmodels/curvestate.hpp>
+#include <ql/auto_ptr.hpp>
 
 namespace QuantLib {
 
@@ -67,7 +68,7 @@ namespace QuantLib {
             }
         }
 
-        std::vector<Time> rateTimes = evolution.rateTimes();
+        const std::vector<Time>& rateTimes = evolution.rateTimes();
         std::vector<Time> rebateTimes = exercise_->possibleCashFlowTimes();
         rebateDiscounters_.reserve(rebateTimes.size());
         for (i=0; i<rebateTimes.size(); ++i)
@@ -156,9 +157,9 @@ namespace QuantLib {
         ++currentIndex_;
     }
 
-    std::auto_ptr<ExerciseStrategy<CurveState> >
+    QL_UNIQUE_OR_AUTO_PTR<ExerciseStrategy<CurveState> >
     LongstaffSchwartzExerciseStrategy::clone() const {
-        return std::auto_ptr<ExerciseStrategy<CurveState> >(
+        return QL_UNIQUE_OR_AUTO_PTR<ExerciseStrategy<CurveState> >(
                                 new LongstaffSchwartzExerciseStrategy(*this));
     }
 

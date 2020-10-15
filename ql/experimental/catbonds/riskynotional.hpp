@@ -26,7 +26,7 @@
 
 #include <ql/time/date.hpp>
 #include <ql/errors.hpp>
-#include <boost/shared_ptr.hpp>
+#include <ql/shared_ptr.hpp>
 #include <vector>
 #include <algorithm>
 
@@ -61,22 +61,22 @@ namespace QuantLib {
 
     class NotionalRisk {
     public:
-        NotionalRisk(boost::shared_ptr<EventPaymentOffset> paymentOffset)
-        : paymentOffset_(paymentOffset) {}
-        virtual ~NotionalRisk() {}
+      explicit NotionalRisk(const ext::shared_ptr<EventPaymentOffset>& paymentOffset)
+      : paymentOffset_(paymentOffset) {}
+      virtual ~NotionalRisk() {}
 
-        virtual void updatePath(const std::vector<std::pair<Date, Real> >  &events, NotionalPath &path) const = 0;
+      virtual void updatePath(const std::vector<std::pair<Date, Real> >& events,
+                              NotionalPath& path) const = 0;
 
-      protected:
-        boost::shared_ptr<EventPaymentOffset> paymentOffset_;       
+    protected:
+      ext::shared_ptr<EventPaymentOffset> paymentOffset_;       
     };
 
     class DigitalNotionalRisk : public NotionalRisk {
       public:
-        DigitalNotionalRisk(boost::shared_ptr<EventPaymentOffset> paymentOffset,
-                           Real threshold)
-        : NotionalRisk(paymentOffset) , threshold_(threshold)
-        {}
+        DigitalNotionalRisk(const ext::shared_ptr<EventPaymentOffset>& paymentOffset,
+                            Real threshold)
+        : NotionalRisk(paymentOffset), threshold_(threshold) {}
 
         virtual void updatePath(const std::vector<std::pair<Date, Real> >  &events, 
                                 NotionalPath &path) const;
@@ -88,11 +88,12 @@ namespace QuantLib {
     class ProportionalNotionalRisk : public NotionalRisk
     {
     public:
-        ProportionalNotionalRisk(boost::shared_ptr<EventPaymentOffset> paymentOffset,
-                           Real attachement, Real exhaustion)
-                           : NotionalRisk(paymentOffset) , attachement_(attachement), exhaustion_(exhaustion)
-        {
-            QL_REQUIRE(attachement<exhaustion, "exhaustion level needs to be greater than attachement");
+      ProportionalNotionalRisk(const ext::shared_ptr<EventPaymentOffset>& paymentOffset,
+                               Real attachement,
+                               Real exhaustion)
+      : NotionalRisk(paymentOffset), attachement_(attachement), exhaustion_(exhaustion) {
+          QL_REQUIRE(attachement < exhaustion,
+                     "exhaustion level needs to be greater than attachement");
         }
 
         virtual void updatePath(const std::vector<std::pair<Date, Real> >  &events, NotionalPath &path) const

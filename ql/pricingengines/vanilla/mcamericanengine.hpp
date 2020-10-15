@@ -51,31 +51,30 @@ namespace QuantLib {
         : public MCLongstaffSchwartzEngine<VanillaOption::engine,
                                            SingleVariate,RNG,S,RNG_Calibration> {
       public:
-        MCAmericanEngine(
-             const boost::shared_ptr<GeneralizedBlackScholesProcess>& process,
-             Size timeSteps,
-             Size timeStepsPerYear,
-             bool antitheticVariate,
-             bool controlVariate,
-             Size requiredSamples,
-             Real requiredTolerance,
-             Size maxSamples,
-             BigNatural seed,
-             Size polynomOrder,
-             LsmBasisSystem::PolynomType polynomType,
-             Size nCalibrationSamples = Null<Size>(),
-             boost::optional<bool> antitheticVariateCalibration = boost::none,
-             BigNatural seedCalibration = Null<Size>());
+        MCAmericanEngine(const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
+                         Size timeSteps,
+                         Size timeStepsPerYear,
+                         bool antitheticVariate,
+                         bool controlVariate,
+                         Size requiredSamples,
+                         Real requiredTolerance,
+                         Size maxSamples,
+                         BigNatural seed,
+                         Size polynomOrder,
+                         LsmBasisSystem::PolynomType polynomType,
+                         Size nCalibrationSamples = Null<Size>(),
+                         const boost::optional<bool>& antitheticVariateCalibration = boost::none,
+                         BigNatural seedCalibration = Null<Size>());
 
         void calculate() const;
         
       protected:
-        boost::shared_ptr<LongstaffSchwartzPathPricer<Path> >
+        ext::shared_ptr<LongstaffSchwartzPathPricer<Path> >
             lsmPathPricer() const;
 
         Real controlVariateValue() const;
-        boost::shared_ptr<PricingEngine> controlPricingEngine() const;
-        boost::shared_ptr<PathPricer<Path> > controlPathPricer() const;
+        ext::shared_ptr<PricingEngine> controlPricingEngine() const;
+        ext::shared_ptr<PathPricer<Path> > controlPathPricer() const;
 
       private:
         const Size polynomOrder_;
@@ -84,21 +83,21 @@ namespace QuantLib {
 
     class AmericanPathPricer : public EarlyExercisePathPricer<Path>  {
       public:
-        AmericanPathPricer(const boost::shared_ptr<Payoff>& payoff,
+        AmericanPathPricer(const ext::shared_ptr<Payoff>& payoff,
                            Size polynomOrder,
                            LsmBasisSystem::PolynomType polynomType);
 
         Real state(const Path& path, Size t) const;
         Real operator()(const Path& path, Size t) const;
 
-        std::vector<boost::function1<Real, Real> > basisSystem() const;
+        std::vector<ext::function<Real(Real)> > basisSystem() const;
 
       protected:
         Real payoff(Real state) const;
 
         Real scalingValue_;
-        const boost::shared_ptr<Payoff> payoff_;
-        std::vector<boost::function1<Real, Real> > v_;
+        const ext::shared_ptr<Payoff> payoff_;
+        std::vector<ext::function<Real(Real)> > v_;
     };
 
 
@@ -108,7 +107,7 @@ namespace QuantLib {
     class MakeMCAmericanEngine {
       public:
         MakeMCAmericanEngine(
-                    const boost::shared_ptr<GeneralizedBlackScholesProcess>&);
+                    const ext::shared_ptr<GeneralizedBlackScholesProcess>&);
         // named parameters
         MakeMCAmericanEngine& withSteps(Size steps);
         MakeMCAmericanEngine& withStepsPerYear(Size steps);
@@ -125,9 +124,9 @@ namespace QuantLib {
         MakeMCAmericanEngine& withSeedCalibration(BigNatural seed);
 
         // conversion to pricing engine
-        operator boost::shared_ptr<PricingEngine>() const;
+        operator ext::shared_ptr<PricingEngine>() const;
       private:
-        boost::shared_ptr<GeneralizedBlackScholesProcess> process_;
+        ext::shared_ptr<GeneralizedBlackScholesProcess> process_;
         bool antithetic_, controlVariate_;
         Size steps_, stepsPerYear_;
         Size samples_, maxSamples_, calibrationSamples_;
@@ -141,20 +140,36 @@ namespace QuantLib {
 
     template <class RNG, class S, class RNG_Calibration>
     inline MCAmericanEngine<RNG, S, RNG_Calibration>::MCAmericanEngine(
-        const boost::shared_ptr<GeneralizedBlackScholesProcess> &process,
-        Size timeSteps, Size timeStepsPerYear, bool antitheticVariate,
-        bool controlVariate, Size requiredSamples, Real requiredTolerance,
-        Size maxSamples, BigNatural seed, Size polynomOrder,
-        LsmBasisSystem::PolynomType polynomType, Size nCalibrationSamples,
-        boost::optional<bool> antitheticVariateCalibration,
+        const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
+        Size timeSteps,
+        Size timeStepsPerYear,
+        bool antitheticVariate,
+        bool controlVariate,
+        Size requiredSamples,
+        Real requiredTolerance,
+        Size maxSamples,
+        BigNatural seed,
+        Size polynomOrder,
+        LsmBasisSystem::PolynomType polynomType,
+        Size nCalibrationSamples,
+        const boost::optional<bool>& antitheticVariateCalibration,
         BigNatural seedCalibration)
-        : MCLongstaffSchwartzEngine<VanillaOption::engine, SingleVariate, RNG,
-                                    S, RNG_Calibration>(
-              process, timeSteps, timeStepsPerYear, false, antitheticVariate,
-              controlVariate, requiredSamples, requiredTolerance, maxSamples,
-              seed, nCalibrationSamples, false, antitheticVariateCalibration,
-              seedCalibration),
-          polynomOrder_(polynomOrder), polynomType_(polynomType) {}
+    : MCLongstaffSchwartzEngine<VanillaOption::engine, SingleVariate, RNG, S, RNG_Calibration>(
+          process,
+          timeSteps,
+          timeStepsPerYear,
+          false,
+          antitheticVariate,
+          controlVariate,
+          requiredSamples,
+          requiredTolerance,
+          maxSamples,
+          seed,
+          nCalibrationSamples,
+          false,
+          antitheticVariateCalibration,
+          seedCalibration),
+      polynomOrder_(polynomOrder), polynomType_(polynomType) {}
 
     template <class RNG, class S, class RNG_Calibration>
     inline void MCAmericanEngine<RNG, S, RNG_Calibration>::calculate() const {
@@ -168,45 +183,45 @@ namespace QuantLib {
     }
 
     template <class RNG, class S, class RNG_Calibration>
-    inline boost::shared_ptr<LongstaffSchwartzPathPricer<Path> >
+    inline ext::shared_ptr<LongstaffSchwartzPathPricer<Path> >
     MCAmericanEngine<RNG, S, RNG_Calibration>::lsmPathPricer() const {
-        boost::shared_ptr<GeneralizedBlackScholesProcess> process =
-            boost::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
+        ext::shared_ptr<GeneralizedBlackScholesProcess> process =
+            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
                                                               this->process_);
         QL_REQUIRE(process, "generalized Black-Scholes process required");
 
-        boost::shared_ptr<EarlyExercise> exercise =
-            boost::dynamic_pointer_cast<EarlyExercise>(
+        ext::shared_ptr<EarlyExercise> exercise =
+            ext::dynamic_pointer_cast<EarlyExercise>(
                 this->arguments_.exercise);
         QL_REQUIRE(exercise, "wrong exercise given");
         QL_REQUIRE(!exercise->payoffAtExpiry(),
                    "payoff at expiry not handled");
 
-        boost::shared_ptr<AmericanPathPricer> earlyExercisePathPricer(
+        ext::shared_ptr<AmericanPathPricer> earlyExercisePathPricer(
             new AmericanPathPricer(this->arguments_.payoff,
                                    polynomOrder_, polynomType_));
 
-        return boost::shared_ptr<LongstaffSchwartzPathPricer<Path> > (
-             new LongstaffSchwartzPathPricer<Path>(
+        return ext::make_shared<LongstaffSchwartzPathPricer<Path> > (
+             
                                       this->timeGrid(),
                                       earlyExercisePathPricer,
-                                      *(process->riskFreeRate())));
+                                      *(process->riskFreeRate()));
     }
 
     template <class RNG, class S, class RNG_Calibration>
-    inline boost::shared_ptr<PathPricer<Path> >
+    inline ext::shared_ptr<PathPricer<Path> >
     MCAmericanEngine<RNG, S, RNG_Calibration>::controlPathPricer() const {
-        boost::shared_ptr<StrikedTypePayoff> payoff =
-            boost::dynamic_pointer_cast<StrikedTypePayoff>(
+        ext::shared_ptr<StrikedTypePayoff> payoff =
+            ext::dynamic_pointer_cast<StrikedTypePayoff>(
                 this->arguments_.payoff);
         QL_REQUIRE(payoff, "StrikedTypePayoff needed for control variate");
 
-        boost::shared_ptr<GeneralizedBlackScholesProcess> process =
-            boost::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
+        ext::shared_ptr<GeneralizedBlackScholesProcess> process =
+            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
                                                               this->process_);
         QL_REQUIRE(process, "generalized Black-Scholes process required");
 
-        return boost::shared_ptr<PathPricer<Path> >(
+        return ext::shared_ptr<PathPricer<Path> >(
             new EuropeanPathPricer(
                 payoff->optionType(),
                 payoff->strike(),
@@ -215,21 +230,21 @@ namespace QuantLib {
     }
 
     template <class RNG, class S, class RNG_Calibration>
-    inline boost::shared_ptr<PricingEngine>
+    inline ext::shared_ptr<PricingEngine>
     MCAmericanEngine<RNG, S, RNG_Calibration>::controlPricingEngine() const {
-        boost::shared_ptr<GeneralizedBlackScholesProcess> process =
-            boost::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
+        ext::shared_ptr<GeneralizedBlackScholesProcess> process =
+            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
                                                               this->process_);
         QL_REQUIRE(process, "generalized Black-Scholes process required");
 
-        return boost::shared_ptr<PricingEngine>(
+        return ext::shared_ptr<PricingEngine>(
                                          new AnalyticEuropeanEngine(process));
     }
 
     template <class RNG, class S, class RNG_Calibration>
     inline Real
     MCAmericanEngine<RNG, S, RNG_Calibration>::controlVariateValue() const {
-        boost::shared_ptr<PricingEngine> controlPE =
+        ext::shared_ptr<PricingEngine> controlPE =
             this->controlPricingEngine();
 
         QL_REQUIRE(controlPE,
@@ -239,7 +254,7 @@ namespace QuantLib {
         VanillaOption::arguments* controlArguments =
             dynamic_cast<VanillaOption::arguments*>(controlPE->getArguments());
         *controlArguments = this->arguments_;
-        controlArguments->exercise = boost::shared_ptr<Exercise>(
+        controlArguments->exercise = ext::shared_ptr<Exercise>(
              new EuropeanExercise(this->arguments_.exercise->lastDate()));
 
         controlPE->calculate();
@@ -253,7 +268,7 @@ namespace QuantLib {
 
     template <class RNG, class S, class RNG_Calibration>
     inline MakeMCAmericanEngine<RNG, S, RNG_Calibration>::MakeMCAmericanEngine(
-        const boost::shared_ptr<GeneralizedBlackScholesProcess> &process)
+        const ext::shared_ptr<GeneralizedBlackScholesProcess> &process)
         : process_(process), antithetic_(false), controlVariate_(false),
           steps_(Null<Size>()), stepsPerYear_(Null<Size>()),
           samples_(Null<Size>()), maxSamples_(Null<Size>()),
@@ -369,12 +384,12 @@ namespace QuantLib {
 
     template <class RNG, class S, class RNG_Calibration>
     inline MakeMCAmericanEngine<RNG, S, RNG_Calibration>::
-    operator boost::shared_ptr<PricingEngine>() const {
+    operator ext::shared_ptr<PricingEngine>() const {
         QL_REQUIRE(steps_ != Null<Size>() || stepsPerYear_ != Null<Size>(),
                    "number of steps not given");
         QL_REQUIRE(steps_ == Null<Size>() || stepsPerYear_ == Null<Size>(),
                    "number of steps overspecified");
-        return boost::shared_ptr<PricingEngine>(new
+        return ext::shared_ptr<PricingEngine>(new
            MCAmericanEngine<RNG, S, RNG_Calibration>(process_,
                                      steps_,
                                      stepsPerYear_,

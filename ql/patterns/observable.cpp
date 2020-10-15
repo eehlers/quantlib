@@ -30,7 +30,7 @@ namespace QuantLib {
         updatesDeferred_ = false;
 
         // if there are outstanding deferred updates, do the notification
-        if (deferredObservers_.size()) {
+        if (!deferredObservers_.empty()) {
             bool successful = true;
             std::string errMsg;
 
@@ -59,8 +59,7 @@ namespace QuantLib {
             // if updates are only deferred, flag this for later notification
             // these are held centrally by the settings singleton
             settings_.registerDeferredObservers(observers_);
-        }
-        else if (observers_.size()) {
+        } else if (!observers_.empty()) {
             bool successful = true;
             std::string errMsg;
             for (iterator i=observers_.begin(); i!=observers_.end(); ++i) {
@@ -89,6 +88,21 @@ namespace QuantLib {
 
 #else
 
+#include <ql/functional.hpp>
+
+#if defined(QL_USE_STD_FUNCTION)
+#if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8)) || (__GNUC__ > 4))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#endif
+
+#include <boost/bind/bind.hpp>
+
+#if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8)) || (__GNUC__ > 4))
+#pragma GCC diagnostic pop
+#endif
+#endif
+
 #include <boost/signals2/signal_type.hpp>
 
 namespace QuantLib {
@@ -112,7 +126,7 @@ namespace QuantLib {
             }
 
             void operator()() const {
-                sig_.operator()();
+                sig_();
             }
           private:
             signal_type sig_;
@@ -121,7 +135,7 @@ namespace QuantLib {
     }
 
     void Observable::registerObserver(
-        const boost::shared_ptr<Observer::Proxy>& observerProxy) {
+        const ext::shared_ptr<Observer::Proxy>& observerProxy) {
         {
             boost::lock_guard<boost::recursive_mutex> lock(mutex_);
             observers_.insert(observerProxy);
@@ -129,11 +143,15 @@ namespace QuantLib {
 
         detail::Signal::signal_type::slot_type slot(&Observer::Proxy::update,
                                     observerProxy.get());
+        #if defined(QL_USE_STD_SHARED_PTR)
+        sig_->connect(slot.track_foreign(observerProxy));
+        #else
         sig_->connect(slot.track(observerProxy));
+        #endif
     }
 
     void Observable::unregisterObserver(
-        const boost::shared_ptr<Observer::Proxy>& observerProxy) {
+        const ext::shared_ptr<Observer::Proxy>& observerProxy) {
         {
             boost::lock_guard<boost::recursive_mutex> lock(mutex_);
             observers_.erase(observerProxy);
@@ -146,18 +164,19 @@ namespace QuantLib {
             }
         }
 
+        // signals2 needs boost::bind, std::bind does not work
         sig_->disconnect(boost::bind(&Observer::Proxy::update,
                              observerProxy.get()));
     }
 
     void Observable::notifyObservers() {
         if (settings_.updatesEnabled()) {
-            return sig_->operator()();
+            return (*sig_)();
         }
 
         boost::lock_guard<boost::mutex> sLock(settings_.mutex_);
         if (settings_.updatesEnabled()) {
-            return sig_->operator()();
+            return (*sig_)();
         }
         else if (settings_.updatesDeferred()) {
             boost::lock_guard<boost::recursive_mutex> lock(mutex_);

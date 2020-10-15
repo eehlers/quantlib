@@ -2,7 +2,7 @@
 
 /*
  Copyright (C) 2006 Ferdinando Ametrano
- Copyright (C) 2006 François du Vignaud
+ Copyright (C) 2006 FranÃ§ois du Vignaud
  Copyright (C) 2000, 2001, 2002, 2003 RiskMap srl
 
  This file is part of QuantLib, a free-software/open-source library
@@ -53,6 +53,13 @@ namespace QuantLib {
         Handle<Quote> element_;
         UnaryFunction f_;
     };
+
+    //! creator method
+    template <class UnaryFunction>
+    DerivedQuote<UnaryFunction> makeDerivedQuote(const Handle<Quote>& element,
+                                                 const UnaryFunction& f) {
+        return DerivedQuote<UnaryFunction>(element, f);
+    }
 
     // inline definitions
     template <class UnaryFunction>

@@ -31,8 +31,6 @@
 #include <ql/instruments/cpiswap.hpp>
 #include <ql/cashflows/cpicoupon.hpp>
 
-#include<iostream>
-
 namespace QuantLib {
 
     // accrual adjustment is already in the schedules, as are calendars
@@ -46,7 +44,7 @@ namespace QuantLib {
             const Schedule& floatSchedule,
             const BusinessDayConvention& floatPaymentRoll,
             Natural fixingDays,
-            const boost::shared_ptr<IborIndex>& floatIndex,
+            const ext::shared_ptr<IborIndex>& floatIndex,
             // fixed x inflation leg
             Rate fixedRate,
             Real baseCPI,
@@ -54,7 +52,7 @@ namespace QuantLib {
             const Schedule& fixedSchedule,
             const BusinessDayConvention& fixedPaymentRoll,
             const Period& observationLag,
-            const boost::shared_ptr<ZeroInflationIndex>& fixedIndex,
+            const ext::shared_ptr<ZeroInflationIndex>& fixedIndex,
             CPI::InterpolationType observationInterpolation,
             Real inflationNominal
             )
@@ -67,8 +65,8 @@ namespace QuantLib {
     observationLag_(observationLag),
     observationInterpolation_(observationInterpolation)
     {
-        QL_REQUIRE(floatSchedule_.size()>0,"empty float schedule");
-        QL_REQUIRE(fixedSchedule_.size()>0,"empty fixed schedule");
+        QL_REQUIRE(!floatSchedule_.empty(), "empty float schedule");
+        QL_REQUIRE(!fixedSchedule_.empty(), "empty fixed schedule");
         // \todo if roll!=unadjusted then need calendars ...
 
         if (inflationNominal==Null<Real>()) inflationNominal_ = nominal_;
@@ -98,7 +96,7 @@ namespace QuantLib {
             }
 
             Real floatAmount = subtractInflationNominal_ ? nominal_ - inflationNominal_ : nominal_;
-            boost::shared_ptr<CashFlow> nf(new SimpleCashFlow(floatAmount, payNotional));
+            ext::shared_ptr<CashFlow> nf(new SimpleCashFlow(floatAmount, payNotional));
             floatingLeg.push_back(nf);
         }
 
@@ -145,7 +143,8 @@ namespace QuantLib {
         CPISwap::arguments* arguments =
         dynamic_cast<CPISwap::arguments*>(args);
 
-        if (!arguments) return; // it's a swap engine...
+        if (arguments == 0)
+            return; // it's a swap engine...
     }
 
 
@@ -191,7 +190,7 @@ namespace QuantLib {
         Swap::fetchResults(r);
 
         const CPISwap::results* results = dynamic_cast<const CPISwap::results*>(r);
-        if (results) { // might be a swap engine, so no error is thrown
+        if (results != 0) { // might be a swap engine, so no error is thrown
             fairRate_ = results->fairRate;
             fairSpread_ = results->fairSpread;
         } else {

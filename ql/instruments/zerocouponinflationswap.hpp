@@ -64,23 +64,23 @@ namespace QuantLib {
               one or two dates only per leg.
     */
     class ZeroCouponInflationSwap : public Swap {
-    public:
+      public:
         enum Type { Receiver = -1, Payer = 1 };
         class arguments;
         class engine;
         ZeroCouponInflationSwap(Type type,
-                                   Real nominal,
-                                   const Date& startDate,   // start date of contract (only)
-                                   const Date& maturity,    // this is pre-adjustment!
-                                   const Calendar& fixCalendar,
-                                   BusinessDayConvention fixConvention,
-                                   const DayCounter& dayCounter,
-                                   Rate fixedRate,
-                                   const boost::shared_ptr<ZeroInflationIndex> &infIndex,
-                                   const Period& observationLag,
-                                   bool adjustInfObsDates = false,
-                                   Calendar infCalendar = Calendar(),
-                                   BusinessDayConvention infConvention = BusinessDayConvention());
+                                Real nominal,
+                                const Date& startDate,   // start date of contract (only)
+                                const Date& maturity,    // this is pre-adjustment!
+                                const Calendar& fixCalendar,
+                                BusinessDayConvention fixConvention,
+                                const DayCounter& dayCounter,
+                                Rate fixedRate,
+                                const ext::shared_ptr<ZeroInflationIndex> &infIndex,
+                                const Period& observationLag,
+                                bool adjustInfObsDates = false,
+                                const Calendar& infCalendar = Calendar(),
+                                BusinessDayConvention infConvention = BusinessDayConvention());
 
         //! \name Inspectors
         //@{
@@ -96,7 +96,7 @@ namespace QuantLib {
         DayCounter dayCounter() const { return dayCounter_; }
         //! \f$ K \f$ in the above formula.
         Rate fixedRate() const { return fixedRate_; }
-        boost::shared_ptr<ZeroInflationIndex> inflationIndex() const {
+        ext::shared_ptr<ZeroInflationIndex> inflationIndex() const {
             return infIndex_;
         }
         Period observationLag() const { return observationLag_; }
@@ -124,14 +124,14 @@ namespace QuantLib {
         Real fairRate() const;
         //@}
 
-    protected:
+      protected:
         Type type_;
         Real nominal_;
         Date startDate_, maturityDate_;
         Calendar fixCalendar_;
         BusinessDayConvention fixConvention_;
         Rate fixedRate_;
-        boost::shared_ptr<ZeroInflationIndex> infIndex_;
+        ext::shared_ptr<ZeroInflationIndex> infIndex_;
         Period observationLag_;
         bool adjustInfObsDates_;
         Calendar infCalendar_;
@@ -142,7 +142,7 @@ namespace QuantLib {
 
 
     class ZeroCouponInflationSwap::arguments : public Swap::arguments {
-    public:
+      public:
         Rate fixedRate;
         void validate() const;
     };

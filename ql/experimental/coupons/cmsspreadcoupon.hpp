@@ -44,16 +44,17 @@ namespace QuantLib {
                   const Date& startDate,
                   const Date& endDate,
                   Natural fixingDays,
-                  const boost::shared_ptr<SwapSpreadIndex>& index,
+                  const ext::shared_ptr<SwapSpreadIndex>& index,
                   Real gearing = 1.0,
                   Spread spread = 0.0,
                   const Date& refPeriodStart = Date(),
                   const Date& refPeriodEnd = Date(),
                   const DayCounter& dayCounter = DayCounter(),
-                  bool isInArrears = false);
+                  bool isInArrears = false,
+                  const Date& exCouponDate = Date());
         //! \name Inspectors
         //@{
-        const boost::shared_ptr<SwapSpreadIndex>& swapSpreadIndex() const {
+        const ext::shared_ptr<SwapSpreadIndex>& swapSpreadIndex() const {
             return index_;
         }
         //@}
@@ -62,7 +63,7 @@ namespace QuantLib {
         virtual void accept(AcyclicVisitor&);
         //@}
       private:
-        boost::shared_ptr<SwapSpreadIndex> index_;
+        ext::shared_ptr<SwapSpreadIndex> index_;
     };
 
     class CappedFlooredCmsSpreadCoupon : public CappedFlooredCoupon {
@@ -73,7 +74,7 @@ namespace QuantLib {
                   const Date& startDate,
                   const Date& endDate,
                   Natural fixingDays,
-                  const boost::shared_ptr<SwapSpreadIndex>& index,
+                  const ext::shared_ptr<SwapSpreadIndex>& index,
                   Real gearing = 1.0,
                   Spread spread= 0.0,
                   const Rate cap = Null<Rate>(),
@@ -81,11 +82,12 @@ namespace QuantLib {
                   const Date& refPeriodStart = Date(),
                   const Date& refPeriodEnd = Date(),
                   const DayCounter& dayCounter = DayCounter(),
-                  bool isInArrears = false)
-        : CappedFlooredCoupon(boost::shared_ptr<FloatingRateCoupon>(new
+                  bool isInArrears = false,
+                  const Date& exCouponDate = Date())
+        : CappedFlooredCoupon(ext::shared_ptr<FloatingRateCoupon>(new
             CmsSpreadCoupon(paymentDate, nominal, startDate, endDate, fixingDays,
                       index, gearing, spread, refPeriodStart, refPeriodEnd,
-                      dayCounter, isInArrears)), cap, floor) {}
+                      dayCounter, isInArrears, exCouponDate)), cap, floor) {}
 
         virtual void accept(AcyclicVisitor& v) {
             Visitor<CappedFlooredCmsSpreadCoupon>* v1 =
@@ -101,7 +103,7 @@ namespace QuantLib {
     class CmsSpreadLeg {
       public:
         CmsSpreadLeg(const Schedule& schedule,
-               const boost::shared_ptr<SwapSpreadIndex>& swapSpreadIndex);
+               const ext::shared_ptr<SwapSpreadIndex>& swapSpreadIndex);
         CmsSpreadLeg& withNotionals(Real notional);
         CmsSpreadLeg& withNotionals(const std::vector<Real>& notionals);
         CmsSpreadLeg& withPaymentDayCounter(const DayCounter&);
@@ -121,7 +123,7 @@ namespace QuantLib {
         operator Leg() const;
       private:
         Schedule schedule_;
-        boost::shared_ptr<SwapSpreadIndex> swapSpreadIndex_;
+        ext::shared_ptr<SwapSpreadIndex> swapSpreadIndex_;
         std::vector<Real> notionals_;
         DayCounter paymentDayCounter_;
         BusinessDayConvention paymentAdjustment_;
@@ -136,7 +138,7 @@ namespace QuantLib {
     //! base pricer for vanilla CMS spread coupons
     class CmsSpreadCouponPricer : public FloatingRateCouponPricer {
       public:
-        CmsSpreadCouponPricer(
+        explicit CmsSpreadCouponPricer(
                            const Handle<Quote> &correlation = Handle<Quote>())
         : correlation_(correlation) {
             registerWith(correlation_);

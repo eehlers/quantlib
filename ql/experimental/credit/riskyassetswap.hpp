@@ -51,9 +51,9 @@ namespace QuantLib {
 
         Real floatAnnuity() const;
 
-        Real nominal() { return nominal_; }
-        Rate spread() { return spread_; }
-        bool fixedPayer() { return fixedPayer_; }
+        Real nominal() const { return nominal_; }
+        Rate spread() const { return spread_; }
+        bool fixedPayer() const { return fixedPayer_; }
 
       private:
         void setupExpired() const;
@@ -122,7 +122,7 @@ namespace QuantLib {
         Period integrationStepSize_;
 
         Date evaluationDate_;
-        boost::shared_ptr<RiskyAssetSwap> asw_;
+        ext::shared_ptr<RiskyAssetSwap> asw_;
         RelinkableHandle<DefaultProbabilityTermStructure> probability_;
     };
 

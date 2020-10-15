@@ -29,48 +29,54 @@
 namespace QuantLib {
 
     Fd2dBlackScholesVanillaEngine::Fd2dBlackScholesVanillaEngine(
-        const boost::shared_ptr<GeneralizedBlackScholesProcess>& p1,
-        const boost::shared_ptr<GeneralizedBlackScholesProcess>& p2,
+        const ext::shared_ptr<GeneralizedBlackScholesProcess>& p1,
+        const ext::shared_ptr<GeneralizedBlackScholesProcess>& p2,
         Real correlation,
         Size xGrid, Size yGrid,
         Size tGrid, Size dampingSteps,
-        const FdmSchemeDesc& schemeDesc)
+        const FdmSchemeDesc& schemeDesc,
+        bool localVol,
+        Real illegalLocalVolOverwrite)
     : p1_(p1),
       p2_(p2),
       correlation_(correlation),
       xGrid_(xGrid), yGrid_(yGrid), tGrid_(tGrid),
       dampingSteps_(dampingSteps),
-      schemeDesc_(schemeDesc) {
+      schemeDesc_(schemeDesc),
+      localVol_(localVol),
+      illegalLocalVolOverwrite_(illegalLocalVolOverwrite) {
+        registerWith(p1);
+        registerWith(p2);
     }
 
     void Fd2dBlackScholesVanillaEngine::calculate() const {
         // 1. Payoff
-        const boost::shared_ptr<BasketPayoff> payoff =
-            boost::dynamic_pointer_cast<BasketPayoff>(arguments_.payoff);
+        const ext::shared_ptr<BasketPayoff> payoff =
+            ext::dynamic_pointer_cast<BasketPayoff>(arguments_.payoff);
 
         // 2. Mesher
         const Time maturity = p1_->time(arguments_.exercise->lastDate());
-        const boost::shared_ptr<Fdm1dMesher> em1(
+        const ext::shared_ptr<Fdm1dMesher> em1(
             new FdmBlackScholesMesher(
                     xGrid_, p1_, maturity, p1_->x0(), 
                     Null<Real>(), Null<Real>(), 0.0001, 1.5, 
                     std::pair<Real, Real>(p1_->x0(), 0.1)));
 
-        const boost::shared_ptr<Fdm1dMesher> em2(
+        const ext::shared_ptr<Fdm1dMesher> em2(
             new FdmBlackScholesMesher(
                     yGrid_, p2_, maturity, p2_->x0(),
                     Null<Real>(), Null<Real>(), 0.0001, 1.5, 
                     std::pair<Real, Real>(p2_->x0(), 0.1)));
 
-        const boost::shared_ptr<FdmMesher> mesher (
+        const ext::shared_ptr<FdmMesher> mesher (
             new FdmMesherComposite(em1, em2));
 
         // 3. Calculator
-        const boost::shared_ptr<FdmInnerValueCalculator> calculator(
+        const ext::shared_ptr<FdmInnerValueCalculator> calculator(
                                 new FdmLogBasketInnerValue(payoff, mesher));
 
         // 4. Step conditions
-        const boost::shared_ptr<FdmStepConditionComposite> conditions =
+        const ext::shared_ptr<FdmStepConditionComposite> conditions =
             FdmStepConditionComposite::vanillaComposite(
                                     DividendSchedule(), arguments_.exercise, 
                                     mesher, calculator, 
@@ -85,16 +91,20 @@ namespace QuantLib {
                                            conditions, calculator,
                                            maturity, tGrid_, dampingSteps_ };
 
-        boost::shared_ptr<Fdm2dBlackScholesSolver> solver(
+        ext::shared_ptr<Fdm2dBlackScholesSolver> solver(
                 new Fdm2dBlackScholesSolver(
                              Handle<GeneralizedBlackScholesProcess>(p1_),
                              Handle<GeneralizedBlackScholesProcess>(p2_),
-                             correlation_, solverDesc, schemeDesc_));
+                             correlation_, solverDesc, schemeDesc_,
+                             localVol_, illegalLocalVolOverwrite_));
 
         const Real x = p1_->x0();
         const Real y = p2_->x0();
 
         results_.value = solver->valueAt(x, y);
+        results_.delta = solver->deltaXat(x, y) + solver->deltaYat(x, y);
+        results_.gamma = solver->gammaXat(x, y) + solver->gammaYat(x, y)
+             + 2*solver->gammaXYat(x, y);
         results_.theta = solver->thetaAt(x, y);
     }
 }

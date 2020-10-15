@@ -25,8 +25,9 @@ namespace QuantLib {
 
     void Gaussian1dSwaptionEngine::calculate() const {
 
-        QL_REQUIRE(arguments_.settlementType == Settlement::Physical,
-                   "cash-settled swaptions not yet implemented ...");
+        QL_REQUIRE(arguments_.settlementMethod != Settlement::ParYieldCurve,
+                   "cash settled (ParYieldCurve) swaptions not priced with "
+                   "Gaussian1dSwaptionEngine");
 
         Date settlement = model_->termStructure()->referenceDate();
 
@@ -46,8 +47,8 @@ namespace QuantLib {
         VanillaSwap swap = *arguments_.swap;
         Option::Type type =
             arguments_.type == VanillaSwap::Payer ? Option::Call : Option::Put;
-        Schedule fixedSchedule = swap.fixedSchedule();
-        Schedule floatSchedule = swap.floatingSchedule();
+        const Schedule& fixedSchedule = swap.fixedSchedule();
+        const Schedule& floatSchedule = swap.floatingSchedule();
 
         Array npv0(2 * integrationPoints_ + 1, 0.0),
             npv1(2 * integrationPoints_ + 1, 0.0);
@@ -57,7 +58,7 @@ namespace QuantLib {
         // for probability computation
         std::vector<Array> npvp0, npvp1;
         if (probabilities_ != None) {
-            for (Size i = 0; i < static_cast<Size>(idx - minIdxAlive + 2); ++i) {
+            for (int i = 0; i < idx - minIdxAlive + 2; ++i) {
                 Array npvTmp0(2 * integrationPoints_ + 1, 0.0);
                 Array npvTmp1(2 * integrationPoints_ + 1, 0.0);
                 npvp0.push_back(npvTmp0);
@@ -115,7 +116,7 @@ namespace QuantLib {
 #endif
 
 #pragma omp parallel for default(shared) firstprivate(p) if(expiry0>settlement)
-            for (Size k = 0; k < (expiry0 > settlement ? npv0.size() : 1);
+            for (long k = 0; k < (expiry0 > settlement ? (long)npv0.size() : 1);
                  k++) {
 
                 Real price = 0.0;

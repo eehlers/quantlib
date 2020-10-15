@@ -23,7 +23,10 @@
 
 #include <ql/experimental/credit/distribution.hpp>
 #include <ql/math/comparison.hpp>
+#include <ql/math/functional.hpp>
 #include <ql/errors.hpp>
+#include <algorithm>
+#include <functional>
 
 namespace QuantLib {
 
@@ -212,14 +215,6 @@ namespace QuantLib {
         int i = locate (a);
         int j = locate (b);
         return cumulativeExcessProbability_[j]-cumulativeExcessProbability_[i];
-
-        Real integral = 0.0;
-        for (int i = 0; i < size_; i++) {
-            if (x_[i] >= b) break;
-            if (x_[i] >= a)
-                integral += dx_[i] * excessProbability_[i];
-        }
-        return integral;
     }
 
     //-------------------------------------------------------------------------
@@ -262,7 +257,7 @@ namespace QuantLib {
         // remove losses over detachment point:
         std::vector<Real>::iterator detachPosit = 
             std::find_if(x_.begin(), x_.end(), 
-                std::bind2nd(std::greater<Real>(), detachmentPoint));
+                         greater_than<Real>(detachmentPoint));
         if(detachPosit != x_.end())
             x_.erase(detachPosit + 1, x_.end());
 

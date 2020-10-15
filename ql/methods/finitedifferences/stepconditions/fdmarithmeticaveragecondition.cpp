@@ -30,7 +30,7 @@ namespace QuantLib {
     FdmArithmeticAverageCondition::FdmArithmeticAverageCondition(
                                     const std::vector<Time> & averageTimes,
                                     Real, Size pastFixings,
-                                    const boost::shared_ptr<FdmMesher> & mesher,
+                                    const ext::shared_ptr<FdmMesher> & mesher,
                                     Size equityDirection)
     : x_(mesher->layout()->dim()[equityDirection]),
       a_(mesher->layout()->dim()[equityDirection == 0 ? 1 : 0]),
@@ -56,6 +56,9 @@ namespace QuantLib {
     }
 
     void FdmArithmeticAverageCondition::applyTo(Array& a, Time t) const {
+        QL_REQUIRE(mesher_->layout()->size() == a.size(),
+                   "inconsistent array dimensions");
+
         const std::vector<Time>::const_iterator iter
             = std::find(averageTimes_.begin(), averageTimes_.end(), t);
         const Size nTimes

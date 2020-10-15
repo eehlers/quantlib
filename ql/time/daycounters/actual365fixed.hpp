@@ -1,8 +1,9 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2004 Ferdinando Ametrano
  Copyright (C) 2000, 2001, 2002, 2003 RiskMap srl
+ Copyright (C) 2004 Ferdinando Ametrano
+ Copyright (C) 2013 BGC Partners L.P.
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -42,6 +43,11 @@ namespace QuantLib {
         \ingroup daycounters
     */
     class Actual365Fixed : public DayCounter {
+      public:
+        enum Convention { Standard, Canadian, NoLeap };
+        explicit Actual365Fixed(Convention c = Actual365Fixed::Standard)
+        : DayCounter(implementation(c)) {}
+
       private:
         class Impl : public DayCounter::Impl {
           public:
@@ -53,10 +59,29 @@ namespace QuantLib {
                 return daysBetween(d1,d2)/365.0;
             }
         };
-      public:
-        Actual365Fixed()
-        : DayCounter(boost::shared_ptr<DayCounter::Impl>(
-                                                 new Actual365Fixed::Impl)) {}
+        class CA_Impl : public DayCounter::Impl {
+          public:
+            std::string name() const {
+                return std::string("Actual/365 (Fixed) Canadian Bond");
+            }
+            Time yearFraction(const Date& d1,
+                              const Date& d2,
+                              const Date& refPeriodStart,
+                              const Date& refPeriodEnd) const;
+        };
+        class NL_Impl : public DayCounter::Impl {
+          public:
+            std::string name() const {
+                return std::string("Actual/365 (No Leap)");
+            }
+            Date::serial_type dayCount(const Date& d1,
+                                       const Date& d2) const;
+            Time yearFraction(const Date& d1,
+                              const Date& d2,
+                              const Date& refPeriodStart,
+                              const Date& refPeriodEnd) const;
+        };
+        static ext::shared_ptr<DayCounter::Impl> implementation(Convention);
     };
 
 }

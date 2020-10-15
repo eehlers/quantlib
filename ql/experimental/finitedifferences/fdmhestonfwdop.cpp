@@ -31,43 +31,48 @@
 #include <ql/experimental/finitedifferences/fdmhestonfwdop.hpp>
 #include <ql/experimental/finitedifferences/modtriplebandlinearop.hpp>
 #include <boost/unordered/unordered_map.hpp>
+#include <cmath>
+
+using std::exp;
 
 namespace QuantLib {
 
     FdmHestonFwdOp::FdmHestonFwdOp(
-            const boost::shared_ptr<FdmMesher>& mesher,
-            const boost::shared_ptr<HestonProcess>& process,
+            const ext::shared_ptr<FdmMesher>& mesher,
+            const ext::shared_ptr<HestonProcess>& process,
             FdmSquareRootFwdOp::TransformationType type,
-            const boost::shared_ptr<LocalVolTermStructure>& leverageFct)
+            const ext::shared_ptr<LocalVolTermStructure>& leverageFct,
+            const Real mixingFactor)
     : type_(type),
       kappa_(process->kappa()),
       theta_(process->theta()),
       sigma_(process->sigma()),
       rho_  (process->rho()),
       v0_   (process->v0()),
+      mixedSigma_ (mixingFactor*sigma_),
       rTS_  (process->riskFreeRate().currentLink()),
       qTS_  (process->dividendYield().currentLink()),
       varianceValues_(0.5*mesher->locations(1)),
-      dxMap_ (new FirstDerivativeOp(0, mesher)),
-      dxxMap_(new ModTripleBandLinearOp(TripleBandLinearOp(
+      dxMap_ (ext::make_shared<FirstDerivativeOp>(0, mesher)),
+      dxxMap_(ext::make_shared<ModTripleBandLinearOp>(TripleBandLinearOp(
           type == FdmSquareRootFwdOp::Log ?
             SecondDerivativeOp(0, mesher).mult(0.5*Exp(mesher->locations(1)))
           : SecondDerivativeOp(0, mesher).mult(0.5*mesher->locations(1))
           ))),
-      boundary_(new ModTripleBandLinearOp(TripleBandLinearOp(SecondDerivativeOp(0, mesher).mult(Array(mesher->locations(0).size(), 0.0))))),
-      mapX_  (new TripleBandLinearOp(0, mesher)),
-      mapY_  (new FdmSquareRootFwdOp(mesher,kappa_,theta_,sigma_, 1, type)),
-      correlation_(new NinePointLinearOp(
+      boundary_(ext::make_shared<ModTripleBandLinearOp>(TripleBandLinearOp(SecondDerivativeOp(0, mesher).mult(Array(mesher->locations(0).size(), 0.0))))),
+      mapX_  (ext::make_shared<TripleBandLinearOp>(0, mesher)),
+      mapY_  (ext::make_shared<FdmSquareRootFwdOp>(mesher,kappa_,theta_,mixedSigma_, 1, type)),
+      correlation_(ext::make_shared<NinePointLinearOp>(
           type == FdmSquareRootFwdOp::Log ?
               SecondOrderMixedDerivativeOp(0, 1, mesher)
-              .mult(Array(mesher->layout()->size(), rho_*sigma_))
+              .mult(Array(mesher->layout()->size(), rho_*mixedSigma_))
             : SecondOrderMixedDerivativeOp(0, 1, mesher)
-              .mult(rho_*sigma_*mesher->locations(1))
+              .mult(rho_*mixedSigma_*mesher->locations(1))
            )),
 	   leverageFct_(leverageFct),
 	   mesher_(mesher)
     {
-        const boost::shared_ptr<FdmLinearOpLayout> layout = mesher->layout();
+        const ext::shared_ptr<FdmLinearOpLayout> layout = mesher->layout();
         // zero flux boundary condition
         const Size n = layout->dim()[1];
         const Real lowerBoundaryFactor = mapY_->lowerBoundaryFactor(type);
@@ -76,8 +81,8 @@ namespace QuantLib {
         const Real logFacLow = type == FdmSquareRootFwdOp::Log ? exp(mapY_->v(0)) : 1.0;
         const Real logFacUpp = type == FdmSquareRootFwdOp::Log ? exp(mapY_->v(n+1)) : 1.0;
 
-        const Real alpha = -2*rho_/sigma_*lowerBoundaryFactor*logFacLow; 
-        const Real beta  = -2*rho_/sigma_*upperBoundaryFactor*logFacUpp; 
+        const Real alpha = -2*rho_/mixedSigma_*lowerBoundaryFactor*logFacLow;
+        const Real beta  = -2*rho_/mixedSigma_*upperBoundaryFactor*logFacUpp;
 
         ModTripleBandLinearOp fDx(FirstDerivativeOp(0, mesher));
 
@@ -116,33 +121,33 @@ namespace QuantLib {
     void FdmHestonFwdOp::setTime(Time t1, Time t2){
         const Rate r = rTS_->forwardRate(t1, t2, Continuous).rate();
         const Rate q = qTS_->forwardRate(t1, t2, Continuous).rate();
-        if (leverageFct_) {
+        if (leverageFct_ != 0) {
             L_ = getLeverageFctSlice(t1, t2);
             Array Lsquare = L_*L_;
-            if (type_ == FdmSquareRootFwdOp::Plain) { 
+            if (type_ == FdmSquareRootFwdOp::Plain) {
                 mapX_->axpyb( Array(1, -r + q), *dxMap_,
                     dxxMap_->multR(Lsquare).add(boundary_->multR(L_))
-                    .add(dxMap_->multR(rho_*sigma_*L_))
-                    .add(dxMap_->mult(varianceValues_).multR(Lsquare)), 
+                    .add(dxMap_->multR(rho_*mixedSigma_*L_))
+                    .add(dxMap_->mult(varianceValues_).multR(Lsquare)),
                               Array());
             } else if (type_ == FdmSquareRootFwdOp::Power) {
                 mapX_->axpyb( Array(1, -r + q), *dxMap_,
                     dxxMap_->multR(Lsquare).add(boundary_->multR(L_))
-                    .add(dxMap_->multR(rho_*2.0*kappa_*theta_/(sigma_)*L_))
+                    .add(dxMap_->multR(rho_*2.0*kappa_*theta_/(mixedSigma_)*L_))
                     .add(dxMap_->mult(varianceValues_).multR(Lsquare)), Array());
             } else if (type_ == FdmSquareRootFwdOp::Log) {
                 mapX_->axpyb( Array(1, -r + q), *dxMap_,
                     dxxMap_->multR(Lsquare).add(boundary_->multR(L_))
-                    .add(dxMap_->mult(0.5*Exp(2.0*varianceValues_)).multR(Lsquare)), 
+                    .add(dxMap_->mult(0.5*Exp(2.0*varianceValues_)).multR(Lsquare)),
                               Array());
             }
         }
         else {
             if (type_ == FdmSquareRootFwdOp::Plain) {
-                mapX_->axpyb( - r + q + rho_*sigma_ + varianceValues_, *dxMap_,
+                mapX_->axpyb( - r + q + rho_*mixedSigma_ + varianceValues_, *dxMap_,
                         *dxxMap_, Array());
             } else if (type_ == FdmSquareRootFwdOp::Power) {
-                mapX_->axpyb( - r + q + rho_*2.0*kappa_*theta_/(sigma_) + varianceValues_, 
+                mapX_->axpyb( - r + q + rho_*2.0*kappa_*theta_/(mixedSigma_) + varianceValues_,
                               *dxMap_, *dxxMap_, Array());
             } else if (type_ == FdmSquareRootFwdOp::Log) {
                 mapX_->axpyb( - r + q + 0.5*Exp(2.0*varianceValues_), *dxMap_,
@@ -152,7 +157,7 @@ namespace QuantLib {
     }
 
     Disposable<Array> FdmHestonFwdOp::apply(const Array& u) const {
-        if (leverageFct_) {
+        if (leverageFct_ != 0) {
             return mapX_->apply(u)
                     + mapY_->apply(u)
                     + correlation_->apply(L_*u);
@@ -165,7 +170,7 @@ namespace QuantLib {
     }
 
     Disposable<Array> FdmHestonFwdOp::apply_mixed(const Array& u) const{
-        if (leverageFct_) {
+        if (leverageFct_ != 0) {
             return correlation_->apply(L_*u);
         }
         else
@@ -199,12 +204,12 @@ namespace QuantLib {
 
     Disposable<Array> FdmHestonFwdOp::preconditioner(
         const Array& u, Real dt) const{
-        return solve_splitting(0, u, dt);
+        return solve_splitting(1, u, dt);
     }
 
     Disposable<Array> FdmHestonFwdOp::getLeverageFctSlice(Time t1, Time t2)
     const {
-        const boost::shared_ptr<FdmLinearOpLayout> layout=mesher_->layout();
+        const ext::shared_ptr<FdmLinearOpLayout> layout=mesher_->layout();
         Array v(layout->size(), 1.0);
 
         if (!leverageFct_)

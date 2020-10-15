@@ -18,27 +18,23 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include <ql/pricingengines/swap/treeswapengine.hpp>
 #include <ql/pricingengines/swap/discretizedswap.hpp>
+#include <ql/pricingengines/swap/treeswapengine.hpp>
 
 namespace QuantLib {
 
-    TreeVanillaSwapEngine::TreeVanillaSwapEngine(
-                               const boost::shared_ptr<ShortRateModel>& model,
-                              Size timeSteps,
-                              const Handle<YieldTermStructure>& termStructure)
-    : LatticeShortRateModelEngine<VanillaSwap::arguments,
-                                  VanillaSwap::results>(model, timeSteps),
+    TreeVanillaSwapEngine::TreeVanillaSwapEngine(const ext::shared_ptr<ShortRateModel>& model,
+                                                 Size timeSteps,
+                                                 const Handle<YieldTermStructure>& termStructure)
+    : LatticeShortRateModelEngine<VanillaSwap::arguments, VanillaSwap::results>(model, timeSteps),
       termStructure_(termStructure) {
         registerWith(termStructure_);
     }
 
-    TreeVanillaSwapEngine::TreeVanillaSwapEngine(
-                               const boost::shared_ptr<ShortRateModel>& model,
-                              const TimeGrid& timeGrid,
-                              const Handle<YieldTermStructure>& termStructure)
-    : LatticeShortRateModelEngine<VanillaSwap::arguments,
-                                  VanillaSwap::results>(model, timeGrid),
+    TreeVanillaSwapEngine::TreeVanillaSwapEngine(const ext::shared_ptr<ShortRateModel>& model,
+                                                 const TimeGrid& timeGrid,
+                                                 const Handle<YieldTermStructure>& termStructure)
+    : LatticeShortRateModelEngine<VanillaSwap::arguments, VanillaSwap::results>(model, timeGrid),
       termStructure_(termStructure) {
         registerWith(termStructure_);
     }
@@ -50,9 +46,9 @@ namespace QuantLib {
         Date referenceDate;
         DayCounter dayCounter;
 
-        boost::shared_ptr<TermStructureConsistentModel> tsmodel =
-            boost::dynamic_pointer_cast<TermStructureConsistentModel>(*model_);
-        if (tsmodel) {
+        ext::shared_ptr<TermStructureConsistentModel> tsmodel =
+            ext::dynamic_pointer_cast<TermStructureConsistentModel>(*model_);
+        if (tsmodel != 0) {
             referenceDate = tsmodel->termStructure()->referenceDate();
             dayCounter = tsmodel->termStructure()->dayCounter();
         } else {
@@ -63,19 +59,19 @@ namespace QuantLib {
         DiscretizedSwap swap(arguments_, referenceDate, dayCounter);
         std::vector<Time> times = swap.mandatoryTimes();
 
-        boost::shared_ptr<Lattice> lattice;
-        if (lattice_) {
+        ext::shared_ptr<Lattice> lattice;
+        if (lattice_ != 0) {
             lattice = lattice_;
         } else {
             TimeGrid timeGrid(times.begin(), times.end(), timeSteps_);
             lattice = model_->tree(timeGrid);
         }
 
-        swap.initialize(lattice, times.back());
+        Time maxTime = *std::max_element(times.begin(), times.end());
+        swap.initialize(lattice, maxTime);
         swap.rollback(0.0);
 
         results_.value = swap.presentValue();
     }
 
 }
-

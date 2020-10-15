@@ -26,8 +26,8 @@
 namespace QuantLib {
 
     PathMultiAssetOption::PathMultiAssetOption(
-                            const boost::shared_ptr<PricingEngine>& engine) {
-        if (engine)
+                            const ext::shared_ptr<PricingEngine>& engine) {
+        if (engine != 0)
             setPricingEngine(engine);
     }
 
@@ -52,7 +52,7 @@ namespace QuantLib {
 
     void PathMultiAssetOption::arguments::validate() const {
         QL_REQUIRE(payoff,                 "no payoff given");
-        QL_REQUIRE(fixingDates.size() > 0, "no dates given");
+        QL_REQUIRE(!fixingDates.empty(), "no dates given");
     }
 }
 

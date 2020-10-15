@@ -39,7 +39,7 @@ namespace QuantLib {
     class FDDividendEngineBase : public FDMultiPeriodEngine<Scheme> {
       public:
         FDDividendEngineBase(
-             const boost::shared_ptr<GeneralizedBlackScholesProcess>& process,
+             const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
              Size timeSteps = 100,
              Size gridPoints = 100,
              bool timeDependent = false)
@@ -47,12 +47,12 @@ namespace QuantLib {
                                       gridPoints, timeDependent) {}
       protected:
         virtual void setupArguments(const PricingEngine::arguments*) const;
-        void setGridLimits() const = 0;
-        void executeIntermediateStep(Size step) const = 0;
+        virtual void setGridLimits() const = 0;
+        virtual void executeIntermediateStep(Size step) const = 0;
         Real getDividendAmount(Size i) const {
             const Dividend *dividend =
                 dynamic_cast<const Dividend *>(this->events_[i].get());
-            if (dividend) {
+            if (dividend != 0) {
                 return dividend->amount();
             } else {
                 return 0.0;
@@ -85,7 +85,7 @@ namespace QuantLib {
     class FDDividendEngineMerton73 : public FDDividendEngineBase<Scheme> {
       public:
         FDDividendEngineMerton73(
-             const boost::shared_ptr<GeneralizedBlackScholesProcess>& process,
+             const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
              Size timeSteps = 100,
              Size gridPoints = 100,
              bool timeDependent = false)
@@ -109,7 +109,7 @@ namespace QuantLib {
     class FDDividendEngineShiftScale : public FDDividendEngineBase<Scheme> {
       public:
         FDDividendEngineShiftScale(
-             const boost::shared_ptr<GeneralizedBlackScholesProcess>& process,
+             const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
              Size timeSteps = 100,
              Size gridPoints = 100,
              bool timeDependent = false)
@@ -126,7 +126,7 @@ namespace QuantLib {
     class FDDividendEngine : public FDDividendEngineMerton73<Scheme> {
       public:
         FDDividendEngine(
-             const boost::shared_ptr<GeneralizedBlackScholesProcess>& process,
+             const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
              Size timeSteps = 100,
              Size gridPoints = 100,
              bool timeDependent = false)
@@ -143,7 +143,7 @@ namespace QuantLib {
         const DividendVanillaOption::arguments *args =
             dynamic_cast<const DividendVanillaOption::arguments *>(a);
         QL_REQUIRE(args, "incorrect argument type");
-        std::vector<boost::shared_ptr<Event> > events(args->cashFlow.size());
+        std::vector<ext::shared_ptr<Event> > events(args->cashFlow.size());
         std::copy(args->cashFlow.begin(), args->cashFlow.end(),
                   events.begin());
         FDMultiPeriodEngine<Scheme>::setupArguments(a, events);
@@ -195,13 +195,11 @@ namespace QuantLib {
 
     namespace detail {
 
-        class DividendAdder : std::unary_function<Real,Real> {
+        class DividendAdder {
           private:
             const Dividend *dividend;
           public:
-            DividendAdder (const Dividend *d) {
-                dividend = d;
-            }
+            explicit DividendAdder (const Dividend *d) : dividend(d) {}
             Real operator() (Real x) const {
                 return x + dividend->amount(x);
             }
@@ -215,7 +213,8 @@ namespace QuantLib {
         for (Size i=0; i<this->events_.size(); i++) {
             const Dividend *dividend =
                 dynamic_cast<const Dividend *>(this->events_[i].get());
-            if (!dividend) continue;
+            if (dividend == 0)
+                continue;
             if (this->getDividendTime(i) < 0.0) continue;
             underlying -= dividend->amount(underlying);
         }
@@ -230,7 +229,8 @@ namespace QuantLib {
                                                              Size step) const{
         const Dividend *dividend =
             dynamic_cast<const Dividend *>(this->events_[step].get());
-        if (!dividend) return;
+        if (dividend == 0)
+            return;
         detail::DividendAdder adder(dividend);
         this->sMin_ = adder(this->sMin_);
         this->sMax_ = adder(this->sMax_);

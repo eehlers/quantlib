@@ -25,6 +25,7 @@
 #define quantlib_actualactual_day_counter_h
 
 #include <ql/time/daycounter.hpp>
+#include <ql/time/schedule.hpp>
 
 namespace QuantLib {
 
@@ -39,7 +40,7 @@ namespace QuantLib {
         - the AFB convention, also known as "Actual/Actual (Euro)".
 
         For more details, refer to
-        http://www.isda.org/publications/pdf/Day-Count-Fracation1999.pdf
+        https://www.isda.org/a/pIJEE/The-Actual-Actual-Day-Count-Fraction-1999.pdf
 
         \ingroup daycounters
 
@@ -53,6 +54,21 @@ namespace QuantLib {
                           AFB, Euro };
       private:
         class ISMA_Impl : public DayCounter::Impl {
+          public:
+            explicit ISMA_Impl(const Schedule& schedule)
+            : schedule_(schedule) {}
+
+            std::string name() const {
+                return std::string("Actual/Actual (ISMA)");
+            }
+            Time yearFraction(const Date& d1,
+                              const Date& d2,
+                              const Date& refPeriodStart,
+                              const Date& refPeriodEnd) const;
+          private:
+            Schedule schedule_;
+        };
+        class Old_ISMA_Impl : public DayCounter::Impl {
           public:
             std::string name() const {
                 return std::string("Actual/Actual (ISMA)");
@@ -82,11 +98,13 @@ namespace QuantLib {
                               const Date&,
                               const Date&) const;
         };
-        static boost::shared_ptr<DayCounter::Impl> implementation(
-                                                               Convention c);
+        static ext::shared_ptr<DayCounter::Impl> implementation(
+                                                               Convention c, 
+                                                               const Schedule& schedule);
       public:
-        ActualActual(Convention c = ActualActual::ISDA)
-        : DayCounter(implementation(c)) {}
+        ActualActual(Convention c = ActualActual::ISDA, 
+                     const Schedule& schedule = Schedule())
+        : DayCounter(implementation(c, schedule)) {}
     };
 
 }

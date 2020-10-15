@@ -54,14 +54,15 @@ namespace QuantLib {
     protected:
         // not a handle, the model doesnt keep any cached magnitudes, no need 
         //  for notifications, still...
-        mutable boost::shared_ptr<Basket> basket_;
-        boost::shared_ptr<LMIntegration> integration_;
+        mutable ext::shared_ptr<Basket> basket_;
+        ext::shared_ptr<LMIntegration> integration_;
     private:
         typedef typename copulaPolicy::initTraits initTraits;
     public:
         /*!
         @param factorWeights Latent model independent factors weights for each 
             variable.
+        @param integralType Integration type.
         @param ini Copula initialization if any.
 
         \warning Baskets with realized defaults not tested/WIP.
@@ -93,13 +94,13 @@ namespace QuantLib {
         /* To interface with loss models. It is possible to change the basket 
         since there are no cached magnitudes.
         */
-        void resetBasket(const boost::shared_ptr<Basket> basket) const {
+        void resetBasket(const ext::shared_ptr<Basket>& basket) const {
             basket_ = basket;
             // in the future change 'size' to 'liveSize'
             QL_REQUIRE(basket_->size() == factorWeights_.size(), 
                 "Incompatible new basket and model sizes.");
         }
-    public:
+
         /*! Returns the probability of default of a given name conditional on
         the realization of a given set of values of the model independent
         factors. The date at which the probability is given is implicit in the
@@ -128,7 +129,8 @@ namespace QuantLib {
         }
     protected:
         void update() {
-            if(basket_) basket_->notifyObservers();
+            if (basket_ != 0)
+                basket_->notifyObservers();
             LatentModel<copulaPolicy>::update();
         }
     public:// open since users access it for performance on joint integrations.
@@ -176,7 +178,7 @@ namespace QuantLib {
         Probability conditionalDefaultProbability(const Date& date, Size iName,
             const std::vector<Real>& mktFactors) const 
         {
-            const boost::shared_ptr<Pool>& pool = basket_->pool();
+            const ext::shared_ptr<Pool>& pool = basket_->pool();
             Probability pDefUncond =
                 pool->get(pool->names()[iName]).
                 defaultProbability(basket_->defaultKeys()[iName])
@@ -199,7 +201,7 @@ namespace QuantLib {
         Real conditionalProbAtLeastNEvents(Size n, const Date& date,
             const std::vector<Real>& mktFactors) const;
         //! access to integration:
-        const boost::shared_ptr<LMIntegration>& 
+        const ext::shared_ptr<LMIntegration>& 
             integration() const { return integration_; }
     public:
         /*! Computes the unconditional probability of default of a given name. 
@@ -207,7 +209,7 @@ namespace QuantLib {
         */
         Probability probOfDefault(Size iName, const Date& d) const {
             QL_REQUIRE(basket_, "No portfolio basket set.");
-            const boost::shared_ptr<Pool>& pool = basket_->pool();
+            const ext::shared_ptr<Pool>& pool = basket_->pool();
             // avoid repeating this in the integration:
             Probability pUncond = pool->get(pool->names()[iName]).
                 defaultProbability(basket_->defaultKeys()[iName])
@@ -215,14 +217,14 @@ namespace QuantLib {
             if (pUncond < 1.e-10) return 0.;
 
             return integratedExpectedValue(
-              boost::function<Real (const std::vector<Real>& v1)>(
-                boost::bind(
+              ext::function<Real (const std::vector<Real>& v1)>(
+                ext::bind(
                 &DefaultLatentModel<copulaPolicy>
                     ::conditionalDefaultProbabilityInvP,
                 this,
                 inverseCumulativeY(pUncond, iName),
                 iName, 
-                _1)
+                ext::placeholders::_1)
               ));
         }
         /*! Pearsons' default probability correlation. 
@@ -238,13 +240,13 @@ namespace QuantLib {
         */
         Probability probAtLeastNEvents(Size n, const Date& date) const {
             return integratedExpectedValue(
-             boost::function<Real (const std::vector<Real>& v1)>(
-              boost::bind(
+             ext::function<Real (const std::vector<Real>& v1)>(
+              ext::bind(
               &DefaultLatentModel<copulaPolicy>::conditionalProbAtLeastNEvents,
               this,
               n,
-              boost::cref(date),
-              _1)
+              ext::cref(date),
+              ext::placeholders::_1)
              ));
         }
     };
@@ -258,7 +260,7 @@ namespace QuantLib {
     {
         QL_REQUIRE(basket_, "No portfolio basket set.");
 
-        const boost::shared_ptr<Pool>& pool = basket_->pool();
+        const ext::shared_ptr<Pool>& pool = basket_->pool();
         // unconditionals:
         Probability pi = pool->get(pool->names()[iNamei]).
             defaultProbability(basket_->defaultKeys()[iNamei])
@@ -273,10 +275,11 @@ namespace QuantLib {
         Real E1i1j; // joint default covariance term
         if(iNamei !=iNamej) {
             E1i1j = integratedExpectedValue(
-              boost::function<Real (const std::vector<Real>& v1)>(
-                boost::bind(
+              ext::function<Real (const std::vector<Real>& v1)>(
+                ext::bind(
                 &DefaultLatentModel<CP>::condProbProduct,
-                this, invPi, invPj, iNamei, iNamej, _1) ));
+                this, invPi, invPj, iNamei, iNamej,
+                ext::placeholders::_1) ));
         }else{
             E1i1j = pi;
         }
@@ -299,7 +302,7 @@ namespace QuantLib {
             */
             // first position with as many defaults as desired:
             Size poolSize = basket_->size();//move to 'livesize'
-            const boost::shared_ptr<Pool>& pool = basket_->pool();
+            const ext::shared_ptr<Pool>& pool = basket_->pool();
 
             BigNatural limit = 
                 static_cast<BigNatural>(std::pow(2., (int)(poolSize)));

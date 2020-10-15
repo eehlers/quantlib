@@ -26,9 +26,10 @@
 #define quantlib_callability_schedule_hpp
 
 #include <ql/event.hpp>
+#include <ql/instruments/bond.hpp>
 #include <ql/patterns/visitor.hpp>
 #include <ql/utilities/null.hpp>
-#include <boost/shared_ptr.hpp>
+#include <ql/shared_ptr.hpp>
 #include <boost/optional.hpp>
 #include <vector>
 
@@ -38,26 +39,17 @@ namespace QuantLib {
     class Callability : public Event {
       public:
         //! amount to be paid upon callability
-        class Price {
-          public:
-            enum Type { Dirty, Clean };
-            Price() : amount_(Null<Real>()) {}
-            Price(Real amount, Type type) : amount_(amount), type_(type) {}
-            Real amount() const {
-                QL_REQUIRE(amount_ != Null<Real>(), "no amount given");
-                return amount_;
-            }
-            Type type() const { return type_; }
-          private:
-            Real amount_;
-            Type type_;
-        };
+        /*! \deprecated Use Bond::Price instead.
+                        Deprecated in version 1.17.
+        */
+        QL_DEPRECATED
+        typedef Bond::Price Price;
         //! type of the callability
         enum Type { Call, Put };
 
-        Callability(const Price& price, Type type, const Date& date)
+        Callability(const Bond::Price& price, Type type, const Date& date)
         : price_(price), type_(type), date_(date) {}
-        const Price& price() const {
+        const Bond::Price& price() const {
             QL_REQUIRE(price_, "no price given");
             return *price_;
         }
@@ -71,7 +63,7 @@ namespace QuantLib {
         virtual void accept(AcyclicVisitor&);
         //@}
       private:
-        boost::optional<Price> price_;
+        boost::optional<Bond::Price> price_;
         Type type_;
         Date date_;
     };
@@ -84,7 +76,7 @@ namespace QuantLib {
             Event::accept(v);
     }
 
-    typedef std::vector<boost::shared_ptr<Callability> > CallabilitySchedule;
+    typedef std::vector<ext::shared_ptr<Callability> > CallabilitySchedule;
 
 }
 

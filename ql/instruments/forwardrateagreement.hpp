@@ -28,6 +28,8 @@
 
 namespace QuantLib {
 
+    class IborIndex;
+
     //! %Forward rate agreement (FRA) class
     /*! 1. Unlike the forward contract conventions on carryable
            financial assets (stocks, bonds, commodities), the
@@ -72,7 +74,6 @@ namespace QuantLib {
 
         \ingroup instruments
     */
-    class IborIndex;
     class ForwardRateAgreement: public Forward {
       public:
         ForwardRateAgreement(const Date& valueDate,
@@ -80,9 +81,10 @@ namespace QuantLib {
                              Position::Type type,
                              Rate strikeForwardRate,
                              Real notionalAmount,
-                             const boost::shared_ptr<IborIndex>& index,
+                             const ext::shared_ptr<IborIndex>& index,
                              const Handle<YieldTermStructure>& discountCurve =
-                                                 Handle<YieldTermStructure>());
+                                                 Handle<YieldTermStructure>(),
+                             bool useIndexedCoupon = true);
         //! \name Calculations
         //@{
         /*! A FRA expires/settles on the valueDate */
@@ -91,6 +93,7 @@ namespace QuantLib {
             valueDate).
         */
         Date settlementDate() const;
+        Date fixingDate() const;
         /*!  Income is zero for a FRA */
         Real spotIncome(const Handle<YieldTermStructure>& incomeDiscountCurve)
             const;
@@ -102,6 +105,7 @@ namespace QuantLib {
         //@}
 
       protected:
+        void setupExpired() const;
         void performCalculations() const;
         Position::Type fraType_;
         //! aka FRA rate (the market forward rate)
@@ -109,7 +113,11 @@ namespace QuantLib {
         //! aka FRA fixing rate, contract rate
         InterestRate strikeForwardRate_;
         Real notionalAmount_;
-        boost::shared_ptr<IborIndex> index_;
+        ext::shared_ptr<IborIndex> index_;
+        bool useIndexedCoupon_;
+
+      private:
+        void calculateForwardRate() const;
     };
 
 }

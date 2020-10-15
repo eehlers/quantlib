@@ -17,6 +17,7 @@
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
+
 #ifndef quantlib_latent_model_hpp
 #define quantlib_latent_model_hpp
 
@@ -28,14 +29,11 @@
 #include <ql/experimental/math/gaussiancopulapolicy.hpp>
 #include <ql/experimental/math/tcopulapolicy.hpp>
 #include <ql/math/randomnumbers/boxmullergaussianrng.hpp>
+#include <ql/math/functional.hpp>
 #include <ql/experimental/math/polarstudenttrng.hpp>
 #include <ql/handle.hpp>
 #include <ql/quote.hpp>
-#include <boost/function.hpp>
-#include <boost/bind.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/construct.hpp>
-#include <boost/make_shared.hpp>
+#include <ql/functional.hpp>
 #include <vector>
 
 /*! \file latentmodel.hpp
@@ -52,7 +50,7 @@ namespace QuantLib {
                 operator()(Real d,  Disposable<std::vector<Real> > v) 
             {
                 std::transform(v.begin(), v.end(), v.begin(), 
-                    boost::lambda::_1 * d);
+                               multiply_by<Real>(d));
                 return v;
             }
         };
@@ -72,19 +70,19 @@ namespace QuantLib {
     public:
         // Interface with actual integrators:
         // integral of a scalar function
-        virtual Real integrate(const boost::function<Real (
+        virtual Real integrate(const ext::function<Real (
             const std::vector<Real>& arg)>& f) const = 0;
         // integral of a vector function
         /* I had to use a different name, since the compiler does not
         recognise the overload; MSVC sees the argument as 
-        boost::function<Signature> in both cases....   
+        ext::function<Signature> in both cases....   
         I could do the as with the quadratures and have this as a template 
         function and spez for the vector case but I prefer to understand
         why the overload fails....
                     FIX ME
         */
         virtual Disposable<std::vector<Real> > integrateV(
-            const boost::function<Disposable<std::vector<Real> >  (
+            const ext::function<Disposable<std::vector<Real> >  (
             const std::vector<Real>& arg)>& f) const {
             QL_FAIL("No vector integration provided");
         }
@@ -106,11 +104,15 @@ namespace QuantLib {
     namespace LatentModelIntegrationType {
         typedef 
         enum LatentModelIntegrationType {
+            #ifndef QL_PATCH_SOLARIS
             GaussianQuadrature,
+            #endif
             Trapezoid
             // etc....
         } LatentModelIntegrationType;
     }
+
+    #ifndef QL_PATCH_SOLARIS
 
     /* class template specializations. I havent use CRTP type cast directly
     because the signature of the integrators is different, grid integration
@@ -120,12 +122,12 @@ namespace QuantLib {
     public:
         IntegrationBase(Size dimension, Size order) 
         : GaussianQuadMultidimIntegrator(dimension, order) {}
-        Real integrate(const boost::function<Real (
+        Real integrate(const ext::function<Real (
             const std::vector<Real>& arg)>& f) const {
                 return GaussianQuadMultidimIntegrator::integrate<Real>(f);
         }
         Disposable<std::vector<Real> > integrateV(
-            const boost::function<Disposable<std::vector<Real> >  (
+            const ext::function<Disposable<std::vector<Real> >  (
                 const std::vector<Real>& arg)>& f) const {
                 return GaussianQuadMultidimIntegrator::
                     integrate<Disposable<std::vector<Real> > >(f);
@@ -133,15 +135,17 @@ namespace QuantLib {
         virtual ~IntegrationBase() {}
     };
 
+    #endif
+
     template<> class IntegrationBase<MultidimIntegral> : 
         public MultidimIntegral, public LMIntegration {
     public:
         IntegrationBase(
-            const std::vector<boost::shared_ptr<Integrator> >& integrators, 
+            const std::vector<ext::shared_ptr<Integrator> >& integrators, 
             Real a, Real b) 
         : MultidimIntegral(integrators), 
           a_(integrators.size(),a), b_(integrators.size(),b) {}
-        Real integrate(const boost::function<Real (
+        Real integrate(const ext::function<Real (
             const std::vector<Real>& arg)>& f) const {
                 return MultidimIntegral::operator ()(f, a_, b_);
         }
@@ -331,12 +335,14 @@ namespace QuantLib {
         }
         //@}
 
-        /*!The value of the latent variable Y_i conditional to (given) a set of 
-        values of the factors. 
-        @param allFactors Contains values for all the independent factors in 
-        the model. The systemic and idiosyncratic in that order. A full sample 
-        is required, i.e. all the idiosyncratic values are expected to be 
-        present even if only the relevant one is used.
+        /*! The value of the latent variable Y_i conditional to
+            (given) a set of values of the factors.
+
+            The passed allFactors vector contains values for all the
+            independent factors in the model (systemic and
+            idiosyncratic, in that order). A full sample is required,
+            i.e. all the idiosyncratic values are expected to be
+            present even if only the relevant one is used.
         */
         Real latentVarValue(const std::vector<Real>& allFactors, 
                             Size iVar) const 
@@ -353,7 +359,7 @@ namespace QuantLib {
             return copula_;
         }
 
-    public:
+
     //  protected:
         //! \name Latent model random factor number generator facility.
         //@{
@@ -451,24 +457,29 @@ namespace QuantLib {
         */
         class IntegrationFactory {
         public:
-            static boost::shared_ptr<LMIntegration> createLMIntegration(
+            static ext::shared_ptr<LMIntegration> createLMIntegration(
                 Size dimension, 
                 LatentModelIntegrationType::LatentModelIntegrationType type = 
-                    LatentModelIntegrationType::GaussianQuadrature) 
+                    #ifndef QL_PATCH_SOLARIS
+                    LatentModelIntegrationType::GaussianQuadrature)
+                    #else
+                    LatentModelIntegrationType::Trapezoid)
+                    #endif
             {
                 switch(type) {
+                    #ifndef QL_PATCH_SOLARIS
                     case LatentModelIntegrationType::GaussianQuadrature:
                         return 
-                            boost::make_shared<
+                            ext::make_shared<
                             IntegrationBase<GaussianQuadMultidimIntegrator> >(
                                 dimension, 25);
-                        break;
+                    #endif
                     case LatentModelIntegrationType::Trapezoid:
                         {
-                        std::vector<boost::shared_ptr<Integrator> > integrals;
+                        std::vector<ext::shared_ptr<Integrator> > integrals;
                         for(Size i=0; i<dimension; i++)
                             integrals.push_back(
-                            boost::make_shared<TrapezoidIntegral<Default> >(
+                            ext::make_shared<TrapezoidIntegral<Default> >(
                                 1.e-4, 20));
                         /* This integration domain is tailored for the T 
                         distribution; it is too wide for normals or Ts of high
@@ -481,9 +492,8 @@ namespace QuantLib {
                         here in some cases.
                         */
                         return 
-                          boost::make_shared<IntegrationBase<MultidimIntegral> >
+                          ext::make_shared<IntegrationBase<MultidimIntegral> >
                                (integrals, -35., 35.);
-                        break;
                         }
                     default:
                         QL_FAIL("Unknown latent model integration type.");
@@ -530,24 +540,28 @@ namespace QuantLib {
         /*! Constructs a LM with an arbitrary number of latent variables 
           depending only on one random factor with the same weight for all
           latent variables.
-            @param correlSqr The weight, same for all.
-            @param ini Initialization variables. Trait type from the copula 
-              policy to allow for static policies (this solution needs to be 
-              revised, possibly drop the static policy and create a policy 
-              member in LatentModel)
+
+            correlSqr is the weight, same for all.
+
+            ini is a trait type from the copula policy, to allow for
+            static policies (this solution needs to be revised,
+            possibly drop the static policy and create a policy member
+            in LatentModel)
         */
-        explicit LatentModel(const Real correlSqr, Size nVariables,
-            const typename copulaType::initTraits& ini = 
-                copulaType::initTraits());
+        explicit LatentModel(Real correlSqr,
+                             Size nVariables,
+                             const typename copulaType::initTraits& ini = copulaType::initTraits());
         /*! Constructs a LM with an arbitrary number of latent variables 
           depending only on one random factor with the same weight for all
           latent variables. The weight is observed and this constructor is
           intended to be used when the model relates to a market value.
-            @param singleFactorCorrel The weight/mkt-factor, same for all.
-            @param ini Initialization variables. Trait type from the copula 
-              policy to allow for static policies (this solution needs to be 
-              revised, possibly drop the static policy and create a policy 
-              member in LatentModel)
+
+            singleFactorCorrel is the weight/mkt-factor, same for all.
+
+            ini is a trait type from the copula policy, to allow for
+            static policies (this solution needs to be revised,
+            possibly drop the static policy and create a policy member
+            in LatentModel)
         */
         explicit LatentModel(const Handle<Quote>& singleFactorCorrel,
             Size nVariables,
@@ -576,38 +590,42 @@ namespace QuantLib {
          computes its expected value).
         */
         Real integratedExpectedValue(
-            const boost::function<Real(const std::vector<Real>& v1)>& f) const {
+            const ext::function<Real(const std::vector<Real>& v1)>& f) const {
+
             // function composition: composes the integrand with the density 
             //   through a product.
             return 
                 integration()->integrate(
-                    boost::bind(std::multiplies<Real>(), 
-                    boost::bind(&copulaPolicyImpl::density, copula_, _1),
-                    boost::bind(boost::cref(f), _1)));   
+                    ext::bind(std::multiplies<Real>(), 
+                    ext::bind(&copulaPolicyImpl::density, copula_,
+                              ext::placeholders::_1),
+                              ext::bind(ext::cref(f),
+                                        ext::placeholders::_1)));   
         }
         /*! Integrates an arbitrary vector function over the density domain(i.e.
          computes its expected value).
         */
         Disposable<std::vector<Real> > integratedExpectedValue(
-           // const boost::function<std::vector<Real>(
-            const boost::function<Disposable<std::vector<Real> >(
+            // const ext::function<std::vector<Real>(
+            const ext::function<Disposable<std::vector<Real> >(
                 const std::vector<Real>& v1)>& f ) const {
             return 
                 integration()->integrateV(//see note in LMIntegrators base class
-                    boost::bind<Disposable<std::vector<Real> > >(
+                    ext::bind<Disposable<std::vector<Real> > >(
                         detail::multiplyV(),
-                        boost::bind(&copulaPolicyImpl::density, copula_, _1),
-                        boost::bind(boost::cref(f), _1)));
+                        ext::bind(&copulaPolicyImpl::density, copula_,
+                                  ext::placeholders::_1),
+                        ext::bind(ext::cref(f), ext::placeholders::_1)));
         }
     protected:
         // Integrable models must provide their integrator.
         // Arguable, not having the integration in the LM class saves that 
         //   memory but have an entry in the VT... 
-        virtual const boost::shared_ptr<LMIntegration>& integration() const {
+        virtual const ext::shared_ptr<LMIntegration>& integration() const {
             QL_FAIL("Integration non implemented in Latent model.");
         }
         //@}
-    protected:
+
         // Ordering is: factorWeights_[iVariable][iFactor]
         mutable std::vector<std::vector<Real> > factorWeights_;
         /* This is a duplicated value from the data above chosen for memory 
@@ -641,6 +659,8 @@ namespace QuantLib {
 
 
     // Defines ----------------------------------------------------------------
+
+#ifndef __DOXYGEN__
 
     template <class Impl>
     LatentModel<Impl>::LatentModel(
@@ -708,6 +728,7 @@ namespace QuantLib {
         registerWith(cachedMktFactor_);
     }
 
+#endif
 
     template <class Impl>
     void LatentModel<Impl>::update() {
@@ -724,6 +745,7 @@ namespace QuantLib {
         notifyObservers();
     }
 
+#ifndef __DOXYGEN__
 
     //----Template partial specializations of the random FactorSampler--------
     /*
@@ -744,18 +766,19 @@ namespace QuantLib {
     class LatentModel<TC>
         ::FactorSampler <RandomSequenceGenerator<BoxMullerGaussianRng<URNG> > ,
             dummy> {
+        typedef URNG urng_type;
     public:
         //Size below must be == to the numb of factors idiosy + systemi
         typedef Sample<std::vector<Real> > sample_type;
         explicit FactorSampler(const GaussianCopulaPolicy& copula,
                                BigNatural seed = 0) 
         : boxMullRng_(copula.numFactors(), 
-            BoxMullerGaussianRng<URNG>(URNG(seed))){ }
+            BoxMullerGaussianRng<urng_type>(urng_type(seed))){ }
         const sample_type& nextSequence() const {
                 return boxMullRng_.nextSequence();
         }
     private:
-        RandomSequenceGenerator<BoxMullerGaussianRng<URNG> > boxMullRng_;
+        RandomSequenceGenerator<BoxMullerGaussianRng<urng_type> > boxMullRng_;
     };
 
     /*! \brief Specialization for direct T samples generation.\par
@@ -769,6 +792,7 @@ namespace QuantLib {
     class LatentModel<TC>
         ::FactorSampler<RandomSequenceGenerator<PolarStudentTRng<URNG> > , 
             dummy> {
+        typedef URNG urng_type;
     public:
         typedef Sample<std::vector<Real> > sample_type;
         explicit FactorSampler(const TCopulaPolicy& copula, BigNatural seed = 0)
@@ -778,7 +802,7 @@ namespace QuantLib {
             const std::vector<Real>& varF = copula.varianceFactors();
             for(Size i=0; i<varF.size(); i++)// ...use back inserter lambda
                 trng_.push_back(
-                    PolarStudentTRng<URNG>(2./(1.-varF[i]*varF[i]), urng_));
+                    PolarStudentTRng<urng_type>(2./(1.-varF[i]*varF[i]), urng_));
         }
         const sample_type& nextSequence() const {
             Size i=0;
@@ -790,10 +814,11 @@ namespace QuantLib {
         }
     private:
         mutable sample_type sequence_;
-        URNG urng_;
-        mutable std::vector<PolarStudentTRng<URNG> > trng_;
+        urng_type urng_;
+        mutable std::vector<PolarStudentTRng<urng_type> > trng_;
     };
 
+#endif
 
 }                    
 

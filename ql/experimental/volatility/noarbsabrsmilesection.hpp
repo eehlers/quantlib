@@ -34,13 +34,15 @@ namespace QuantLib {
 class NoArbSabrSmileSection : public SmileSection {
 
   public:
-    NoArbSabrSmileSection(Time timeToExpiry, Rate forward,
-                          const std::vector<Real> &sabrParameters,
-                          const Real shift = 0.0);
-    NoArbSabrSmileSection(const Date &d, Rate forward,
-                          const std::vector<Real> &sabrParameters,
-                          const DayCounter &dc = Actual365Fixed(),
-                          const Real shift = 0.0);
+    NoArbSabrSmileSection(Time timeToExpiry,
+                          Rate forward,
+                          const std::vector<Real>& sabrParameters,
+                          Real shift = 0.0);
+    NoArbSabrSmileSection(const Date& d,
+                          Rate forward,
+                          const std::vector<Real>& sabrParameters,
+                          const DayCounter& dc = Actual365Fixed(),
+                          Real shift = 0.0);
     Real minStrike() const { return 0.0; }
     Real maxStrike() const { return QL_MAX_REAL; }
     Real atmLevel() const { return forward_; }
@@ -50,14 +52,14 @@ class NoArbSabrSmileSection : public SmileSection {
                             Real discount = 1.0, Real gap = 1.0e-5) const;
     Real density(Rate strike, Real discount = 1.0, Real gap = 1.0E-4) const;
 
-    boost::shared_ptr<NoArbSabrModel> model() { return model_; }
+    ext::shared_ptr<NoArbSabrModel> model() { return model_; }
 
   protected:
     Volatility volatilityImpl(Rate strike) const;
 
   private:
     void init();
-    boost::shared_ptr<NoArbSabrModel> model_;
+    ext::shared_ptr<NoArbSabrModel> model_;
     Rate forward_;
     std::vector<Real> params_;
     Real shift_;

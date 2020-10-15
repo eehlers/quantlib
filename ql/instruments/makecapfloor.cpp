@@ -22,26 +22,27 @@
 #include <ql/cashflows/cashflows.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
 
-using boost::shared_ptr;
-using boost::dynamic_pointer_cast;
-
 namespace QuantLib {
 
     MakeCapFloor::MakeCapFloor(CapFloor::Type capFloorType,
                                const Period& tenor,
-                               const shared_ptr<IborIndex>& iborIndex,
+                               const ext::shared_ptr<IborIndex>& iborIndex,
                                Rate strike,
                                const Period& forwardStart)
     : capFloorType_(capFloorType), strike_(strike),
       firstCapletExcluded_(forwardStart==0*Days), asOptionlet_(false),
-      makeVanillaSwap_(MakeVanillaSwap(tenor, iborIndex, 0.0, forwardStart)) {}
+      // setting the fixed leg tenor avoids that MakeVanillaSwap throws
+      // because of an unknown fixed leg default tenor for a currency,
+      // notice that only the floating leg of the swap is used anyway
+      makeVanillaSwap_(MakeVanillaSwap(tenor, iborIndex, 0.0, forwardStart)
+                       .withFixedLegTenor(1*Years).withFixedLegDayCount(Actual365Fixed())) {}
 
     MakeCapFloor::operator CapFloor() const {
-        shared_ptr<CapFloor> capfloor = *this;
+        ext::shared_ptr<CapFloor> capfloor = *this;
         return *capfloor;
     }
 
-    MakeCapFloor::operator shared_ptr<CapFloor>() const {
+    MakeCapFloor::operator ext::shared_ptr<CapFloor>() const {
 
         VanillaSwap swap = makeVanillaSwap_;
 
@@ -60,8 +61,8 @@ namespace QuantLib {
 
             // temporary patch...
             // should be fixed for every CapFloor::Engine
-            shared_ptr<BlackCapFloorEngine> temp = 
-                dynamic_pointer_cast<BlackCapFloorEngine>(engine_);
+            ext::shared_ptr<BlackCapFloorEngine> temp = 
+                ext::dynamic_pointer_cast<BlackCapFloorEngine>(engine_);
             QL_REQUIRE(temp,
                        "cannot calculate ATM without a BlackCapFloorEngine");
             Handle<YieldTermStructure> discountCurve = temp->termStructure();
@@ -71,7 +72,7 @@ namespace QuantLib {
                                                  discountCurve->referenceDate());
         }
 
-        shared_ptr<CapFloor> capFloor(new
+        ext::shared_ptr<CapFloor> capFloor(new
             CapFloor(capFloorType_, leg, strikeVector));
         capFloor->setPricingEngine(engine_);
         return capFloor;
@@ -90,21 +91,18 @@ namespace QuantLib {
     }
 
     MakeCapFloor& MakeCapFloor::withTenor(const Period& t) {
-        makeVanillaSwap_.withFixedLegTenor(t);
         makeVanillaSwap_.withFloatingLegTenor(t);
         return *this;
     }
 
 
     MakeCapFloor& MakeCapFloor::withCalendar(const Calendar& cal) {
-        makeVanillaSwap_.withFixedLegCalendar(cal);
         makeVanillaSwap_.withFloatingLegCalendar(cal);
         return *this;
     }
 
 
     MakeCapFloor& MakeCapFloor::withConvention(BusinessDayConvention bdc) {
-        makeVanillaSwap_.withFixedLegConvention(bdc);
         makeVanillaSwap_.withFloatingLegConvention(bdc);
         return *this;
     }
@@ -112,39 +110,33 @@ namespace QuantLib {
 
     MakeCapFloor&
     MakeCapFloor::withTerminationDateConvention(BusinessDayConvention bdc) {
-        makeVanillaSwap_.withFixedLegTerminationDateConvention(bdc);
         makeVanillaSwap_.withFloatingLegTerminationDateConvention(bdc);
         return *this;
     }
 
 
     MakeCapFloor& MakeCapFloor::withRule(DateGeneration::Rule r) {
-        makeVanillaSwap_.withFixedLegRule(r);
         makeVanillaSwap_.withFloatingLegRule(r);
         return *this;
     }
 
     MakeCapFloor& MakeCapFloor::withEndOfMonth(bool flag) {
-        makeVanillaSwap_.withFixedLegEndOfMonth(flag);
         makeVanillaSwap_.withFloatingLegEndOfMonth(flag);
         return *this;
     }
 
 
     MakeCapFloor& MakeCapFloor::withFirstDate(const Date& d) {
-        makeVanillaSwap_.withFixedLegFirstDate(d);
         makeVanillaSwap_.withFloatingLegFirstDate(d);
         return *this;
     }
 
     MakeCapFloor& MakeCapFloor::withNextToLastDate(const Date& d) {
-        makeVanillaSwap_.withFixedLegNextToLastDate(d);
         makeVanillaSwap_.withFloatingLegNextToLastDate(d);
         return *this;
     }
 
     MakeCapFloor& MakeCapFloor::withDayCount(const DayCounter& dc) {
-        makeVanillaSwap_.withFixedLegDayCount(dc);
         makeVanillaSwap_.withFloatingLegDayCount(dc);
         return *this;
     }
@@ -155,7 +147,7 @@ namespace QuantLib {
     }
 
     MakeCapFloor& MakeCapFloor::withPricingEngine(
-                             const shared_ptr<PricingEngine>& engine) {
+                             const ext::shared_ptr<PricingEngine>& engine) {
         engine_ = engine;
         return *this;
     }

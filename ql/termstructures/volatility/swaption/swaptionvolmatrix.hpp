@@ -2,7 +2,7 @@
 
 /*
  Copyright (C) 2000, 2001, 2002, 2003 RiskMap srl
- Copyright (C) 2006 François du Vignaud
+ Copyright (C) 2006 FranÃ§ois du Vignaud
  Copyright (C) 2006, 2008 Ferdinando Ametrano
  Copyright (C) 2015 Peter Caspers
 
@@ -54,132 +54,59 @@ namespace QuantLib {
       public:
         //! floating reference date, floating market data
         SwaptionVolatilityMatrix(
-                    const Calendar& calendar,
-                    BusinessDayConvention bdc,
-                    const std::vector<Period>& optionTenors,
-                    const std::vector<Period>& swapTenors,
-                    const std::vector<std::vector<Handle<Quote> > >& vols,
-                    const DayCounter& dayCounter,
-                    const bool flatExtrapolation = false,
-                    const VolatilityType type = ShiftedLognormal,
-                    const std::vector<std::vector<Real> >& shifts
-                    = std::vector<std::vector<Real> >());
+            const Calendar& calendar,
+            BusinessDayConvention bdc,
+            const std::vector<Period>& optionTenors,
+            const std::vector<Period>& swapTenors,
+            const std::vector<std::vector<Handle<Quote> > >& vols,
+            const DayCounter& dayCounter,
+            bool flatExtrapolation = false,
+            VolatilityType type = ShiftedLognormal,
+            const std::vector<std::vector<Real> >& shifts = std::vector<std::vector<Real> >());
         //! fixed reference date, floating market data
         SwaptionVolatilityMatrix(
-                    const Date& referenceDate,
-                    const Calendar& calendar,
-                    BusinessDayConvention bdc,
-                    const std::vector<Period>& optionTenors,
-                    const std::vector<Period>& swapTenors,
-                    const std::vector<std::vector<Handle<Quote> > >& vols,
-                    const DayCounter& dayCounter,
-                    const bool flatExtrapolation = false,
-                    const VolatilityType type = ShiftedLognormal,
-                    const std::vector<std::vector<Real> >& shifts
-                    = std::vector<std::vector<Real> >());
+            const Date& referenceDate,
+            const Calendar& calendar,
+            BusinessDayConvention bdc,
+            const std::vector<Period>& optionTenors,
+            const std::vector<Period>& swapTenors,
+            const std::vector<std::vector<Handle<Quote> > >& vols,
+            const DayCounter& dayCounter,
+            bool flatExtrapolation = false,
+            VolatilityType type = ShiftedLognormal,
+            const std::vector<std::vector<Real> >& shifts = std::vector<std::vector<Real> >());
         //! floating reference date, fixed market data
-        SwaptionVolatilityMatrix(
-                    const Calendar& calendar,
-                    BusinessDayConvention bdc,
-                    const std::vector<Period>& optionTenors,
-                    const std::vector<Period>& swapTenors,
-                    const Matrix& volatilities,
-                    const DayCounter& dayCounter,
-                    const bool flatExtrapolation = false,
-                    const VolatilityType type = ShiftedLognormal,
-                    const Matrix& shifts = Matrix());
-        //! fixed reference date, fixed market data
-        SwaptionVolatilityMatrix(
-                    const Date& referenceDate,
-                    const Calendar& calendar,
-                    BusinessDayConvention bdc,
-                    const std::vector<Period>& optionTenors,
-                    const std::vector<Period>& swapTenors,
-                    const Matrix& volatilities,
-                    const DayCounter& dayCounter,
-                    const bool flatExtrapolation = false,
-                    const VolatilityType type = ShiftedLognormal,
-                    const Matrix& shifts = Matrix());
-        // fixed reference date and fixed market data, option dates
-        SwaptionVolatilityMatrix(const Date& referenceDate,
-                                 const std::vector<Date>& optionDates,
+        SwaptionVolatilityMatrix(const Calendar& calendar,
+                                 BusinessDayConvention bdc,
+                                 const std::vector<Period>& optionTenors,
                                  const std::vector<Period>& swapTenors,
                                  const Matrix& volatilities,
                                  const DayCounter& dayCounter,
-                                 const bool flatExtrapolation = false,
-                                 const VolatilityType type = ShiftedLognormal,
+                                 bool flatExtrapolation = false,
+                                 VolatilityType type = ShiftedLognormal,
                                  const Matrix& shifts = Matrix());
-
-        //! floating reference date, floating market data
-        /*! \deprecated
-            Use the constructor taking an explicit volatility type
-        */
-        QL_DEPRECATED
-        SwaptionVolatilityMatrix(
-                    const Calendar& calendar,
-                    BusinessDayConvention bdc,
-                    const std::vector<Period>& optionTenors,
-                    const std::vector<Period>& swapTenors,
-                    const std::vector<std::vector<Handle<Quote> > >& vols,
-                    const DayCounter& dayCounter,
-                    const bool flatExtrapolation,
-                    const std::vector<std::vector<Real> >& shifts);
-        //! fixed reference date, floating market data
-        /*! \deprecated
-            Use the constructor taking an explicit volatility type
-        */
-        QL_DEPRECATED
-        SwaptionVolatilityMatrix(
-                    const Date& referenceDate,
-                    const Calendar& calendar,
-                    BusinessDayConvention bdc,
-                    const std::vector<Period>& optionTenors,
-                    const std::vector<Period>& swapTenors,
-                    const std::vector<std::vector<Handle<Quote> > >& vols,
-                    const DayCounter& dayCounter,
-                    const bool flatExtrapolation,
-                    const std::vector<std::vector<Real> >& shifts);
-        //! floating reference date, fixed market data
-        /*! \deprecated
-            Use the constructor taking an explicit volatility type
-        */
-        QL_DEPRECATED
-        SwaptionVolatilityMatrix(
-                    const Calendar& calendar,
-                    BusinessDayConvention bdc,
-                    const std::vector<Period>& optionTenors,
-                    const std::vector<Period>& swapTenors,
-                    const Matrix& volatilities,
-                    const DayCounter& dayCounter,
-                    const bool flatExtrapolation,
-                    const Matrix& shifts);
         //! fixed reference date, fixed market data
-        /*! \deprecated
-            Use the constructor taking an explicit volatility type
-        */
-        QL_DEPRECATED
-        SwaptionVolatilityMatrix(
-                    const Date& referenceDate,
-                    const Calendar& calendar,
-                    BusinessDayConvention bdc,
-                    const std::vector<Period>& optionTenors,
-                    const std::vector<Period>& swapTenors,
-                    const Matrix& volatilities,
-                    const DayCounter& dayCounter,
-                    const bool flatExtrapolation,
-                    const Matrix& shifts);
-        // fixed reference date and fixed market data, option dates
-        /*! \deprecated
-            Use the constructor taking an explicit volatility type
-        */
-        QL_DEPRECATED
         SwaptionVolatilityMatrix(const Date& referenceDate,
+                                 const Calendar& calendar,
+                                 BusinessDayConvention bdc,
+                                 const std::vector<Period>& optionTenors,
+                                 const std::vector<Period>& swapTenors,
+                                 const Matrix& volatilities,
+                                 const DayCounter& dayCounter,
+                                 bool flatExtrapolation = false,
+                                 VolatilityType type = ShiftedLognormal,
+                                 const Matrix& shifts = Matrix());
+        //! fixed reference date and fixed market data, option dates
+        SwaptionVolatilityMatrix(const Date& referenceDate,
+                                 const Calendar& calendar,
+                                 BusinessDayConvention bdc,
                                  const std::vector<Date>& optionDates,
                                  const std::vector<Period>& swapTenors,
                                  const Matrix& volatilities,
                                  const DayCounter& dayCounter,
-                                 const bool flatExtrapolation,
-                                 const Matrix& shifts);
+                                 bool flatExtrapolation = false,
+                                 VolatilityType type = ShiftedLognormal,
+                                 const Matrix& shifts = Matrix());
 
         //! \name LazyObject interface
         //@{
@@ -217,9 +144,9 @@ namespace QuantLib {
       protected:
         // defining the following method would break CMS test suite
         // to be further investigated
-        //boost::shared_ptr<SmileSection> smileSectionImpl(const Date&,
+        //ext::shared_ptr<SmileSection> smileSectionImpl(const Date&,
         //                                                 const Period&) const;
-        boost::shared_ptr<SmileSection> smileSectionImpl(Time,
+        ext::shared_ptr<SmileSection> smileSectionImpl(Time,
                                                          Time) const;
         Volatility volatilityImpl(Time optionTime,
                                   Time swapLength,

@@ -55,7 +55,7 @@ namespace QuantLib {
 
 
     CappedFlooredYoYInflationCoupon::CappedFlooredYoYInflationCoupon(
-                const boost::shared_ptr<YoYInflationCoupon>& underlying,
+                const ext::shared_ptr<YoYInflationCoupon>& underlying,
                         Rate cap, Rate floor)
     : YoYInflationCoupon(underlying->date(),
                          underlying->nominal(),
@@ -77,18 +77,19 @@ namespace QuantLib {
 
 
     void CappedFlooredYoYInflationCoupon::setPricer(
-            const boost::shared_ptr<YoYInflationCouponPricer>& pricer) {
+            const ext::shared_ptr<YoYInflationCouponPricer>& pricer) {
 
         YoYInflationCoupon::setPricer(pricer);
-        if (underlying_) underlying_->setPricer(pricer);
+        if (underlying_ != 0)
+            underlying_->setPricer(pricer);
     }
 
 
     Rate CappedFlooredYoYInflationCoupon::rate() const {
-        Rate swapletRate = underlying_ ? underlying_->rate() : YoYInflationCoupon::rate();
+        Rate swapletRate = underlying_ != 0 ? underlying_->rate() : YoYInflationCoupon::rate();
 
         if(isFloored_ || isCapped_) {
-            if (underlying_) {
+            if (underlying_ != 0) {
                 QL_REQUIRE(underlying_->pricer(), "pricer not set");
             } else {
                 QL_REQUIRE(pricer_, "pricer not set");
@@ -97,19 +98,14 @@ namespace QuantLib {
 
         Rate floorletRate = 0.;
         if(isFloored_) {
-            floorletRate =
-            underlying_ ?
-            underlying_->pricer()->floorletRate(effectiveFloor()) :
-            pricer()->floorletRate(effectiveFloor())
-            ;
+            floorletRate = underlying_ != 0 ?
+                               underlying_->pricer()->floorletRate(effectiveFloor()) :
+                               pricer()->floorletRate(effectiveFloor());
         }
         Rate capletRate = 0.;
         if(isCapped_) {
-            capletRate =
-            underlying_ ?
-            underlying_->pricer()->capletRate(effectiveCap()) :
-            pricer()->capletRate(effectiveCap())
-            ;
+            capletRate = underlying_ != 0 ? underlying_->pricer()->capletRate(effectiveCap()) :
+                                            pricer()->capletRate(effectiveCap());
         }
 
         return swapletRate + floorletRate - capletRate;

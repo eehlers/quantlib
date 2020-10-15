@@ -34,18 +34,13 @@
 #include <ql/time/daycounters/simpledaycounter.hpp>
 #include <sstream>
 
-#if defined(BOOST_MSVC)
-#include <float.h>
-//namespace { unsigned int u = _controlfp(_EM_INEXACT, _MCW_EM); }
-#endif
-
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
 #define BEGIN(x) (x+0)
 #define END(x) (x+LENGTH(x))
 
-namespace {
+namespace curve_states_test {
 
     struct CommonVars {
         // global data
@@ -116,8 +111,8 @@ namespace {
             std::copy(rateTimes.begin(), rateTimes.end()-1,
                       evolutionTimes.begin());
             EvolutionDescription evolution(rateTimes,evolutionTimes);
-            std::vector<Real> rateTaus = evolution.rateTaus();
-            std::vector<Size> alive = evolution.firstAliveRate();
+            evolution.rateTaus();
+            evolution.firstAliveRate();
         }
     };
 
@@ -128,12 +123,16 @@ void CurveStatesTest::testLMMCurveState() {
 
     BOOST_TEST_MESSAGE("Testing Libor-market-model curve state...");
 
+    using namespace curve_states_test;
+
     CommonVars vars;
 }
 
 void CurveStatesTest::testCoterminalSwapCurveState() {
 
     BOOST_TEST_MESSAGE("Testing coterminal-swap-market-model curve state...");
+
+    using namespace curve_states_test;
 
     CommonVars vars;
 }
@@ -142,6 +141,8 @@ void CurveStatesTest::testCoterminalSwapCurveState() {
 void CurveStatesTest::testCMSwapCurveState() {
 
     BOOST_TEST_MESSAGE("Testing constant-maturity-swap-market-model curve state...");
+
+    using namespace curve_states_test;
 
     CommonVars vars;
 
@@ -183,10 +184,10 @@ void CurveStatesTest::testCMSwapCurveState() {
                                           numeraire, alive);
     LMMCurveState lmmCs(rateTimes);
     lmmCs.setOnForwardRates(forwards);
+    /*
     std::vector<Real> lmmDrifts(nbRates);
 
-
- /*   std::cout << "drifts:"<< std::endl;
+    std::cout << "drifts:"<< std::endl;
     std::cout << "LMM\t\tCMS"<< std::endl;
     for (Size i = 0; i<nbRates; ++i){
          std::cout << lmmDrifts[i] << "\t\t"<< cmsDrifts[i] << std::endl;

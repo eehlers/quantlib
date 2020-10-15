@@ -30,7 +30,7 @@
 #include <ql/cashflows/duration.hpp>
 #include <ql/cashflow.hpp>
 #include <ql/interestrate.hpp>
-#include <boost/shared_ptr.hpp>
+#include <ql/shared_ptr.hpp>
 
 namespace QuantLib {
 
@@ -42,6 +42,31 @@ namespace QuantLib {
       private:
         CashFlows();
         CashFlows(const CashFlows&);
+
+        class IrrFinder {
+          public:
+            IrrFinder(const Leg& leg,
+                      Real npv,
+                      const DayCounter& dayCounter,
+                      Compounding comp,
+                      Frequency freq,
+                      bool includeSettlementDateFlows,
+                      Date settlementDate,
+                      Date npvDate);
+
+            Real operator()(Rate y) const;
+            Real derivative(Rate y) const;
+          private:
+            void checkSign() const;
+
+            const Leg& leg_;
+            Real npv_;
+            DayCounter dayCounter_;
+            Compounding compounding_;
+            Frequency frequency_;
+            bool includeSettlementDateFlows_;
+            Date settlementDate_, npvDate_;
+        };
       public:
         //! \name Date functions
         //@{
@@ -232,7 +257,7 @@ namespace QuantLib {
                         Date npvDate = Date());
         //! Implied internal rate of return.
         /*! The function verifies
-            the theoretical existance of an IRR and numerically
+            the theoretical existence of an IRR and numerically
             establishes the IRR to the desired precision.
         */
         static Rate yield(const Leg& leg,
@@ -246,6 +271,24 @@ namespace QuantLib {
                           Real accuracy = 1.0e-10,
                           Size maxIterations = 100,
                           Rate guess = 0.05);
+
+        template <typename Solver>
+        static Rate yield(const Solver& solver,
+                          const Leg& leg,
+                          Real npv,
+                          const DayCounter& dayCounter,
+                          Compounding compounding,
+                          Frequency frequency,
+                          bool includeSettlementDateFlows,
+                          Date settlementDate = Date(),
+                          Date npvDate = Date(),
+                          Real accuracy = 1.0e-10,
+                          Rate guess = 0.05) {
+            IrrFinder objFunction(leg, npv, dayCounter, compounding,
+                                  frequency, includeSettlementDateFlows,
+                                  settlementDate, npvDate);
+            return solver.solve(objFunction, accuracy, guess, guess/10.0);
+        }
 
         //! Cash-flow duration.
         /*! The simple duration of a string of cash flows is defined as
@@ -360,7 +403,7 @@ namespace QuantLib {
             and the relative frequency and day counter.
         */
         static Real npv(const Leg& leg,
-                        const boost::shared_ptr<YieldTermStructure>& discount,
+                        const ext::shared_ptr<YieldTermStructure>& discount,
                         Spread zSpread,
                         const DayCounter& dayCounter,
                         Compounding compounding,
@@ -371,7 +414,7 @@ namespace QuantLib {
         //! implied Z-spread.
         static Spread zSpread(const Leg& leg,
                               Real npv,
-                              const boost::shared_ptr<YieldTermStructure>&,
+                              const ext::shared_ptr<YieldTermStructure>&,
                               const DayCounter& dayCounter,
                               Compounding compounding,
                               Frequency frequency,
@@ -383,7 +426,7 @@ namespace QuantLib {
                               Rate guess = 0.0);
         //! deprecated implied Z-spread.
         static Spread zSpread(const Leg& leg,
-                              const boost::shared_ptr<YieldTermStructure>& d,
+                              const ext::shared_ptr<YieldTermStructure>& d,
                               Real npv,
                               const DayCounter& dayCounter,
                               Compounding compounding,

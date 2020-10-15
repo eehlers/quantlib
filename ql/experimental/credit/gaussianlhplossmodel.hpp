@@ -21,14 +21,17 @@
 #ifndef quantlib_gaussian_lhp_lossmodel_hpp
 #define quantlib_gaussian_lhp_lossmodel_hpp
 
+#include <ql/qldefines.hpp>
+
+#ifndef QL_PATCH_SOLARIS
+
 #include <ql/math/distributions/bivariatenormaldistribution.hpp>
 #include <ql/experimental/credit/recoveryratequote.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/experimental/credit/defaultlossmodel.hpp>
 #include <ql/experimental/credit/basket.hpp>
 #include <ql/experimental/math/latentmodel.hpp>
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <ql/functional.hpp>
 #include <numeric>
 
 /* Intended to replace GaussianLHPCDOEngine in 
@@ -111,9 +114,9 @@ namespace QuantLib {
                 attach, detach);
         }
 
-        /*!  @param remainingLossFraction fraction in live tranche
-             units, not portfolio as a fraction of the remaining(live)
-             tranche (i.e. a_remaining=0% and det_remaining=100%)
+        /*! The passed remainingLossFraction is in live tranche units,
+            not portfolio as a fraction of the remaining(live) tranche
+            (i.e. a_remaining=0% and det_remaining=100%)
         */
         Real probOverLoss(const Date& d, Real remainingLossFraction) const;
 
@@ -209,5 +212,7 @@ namespace QuantLib {
     };
 
 }
+
+#endif
 
 #endif

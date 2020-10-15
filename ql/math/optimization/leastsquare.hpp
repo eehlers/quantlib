@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2001, 2002, 2003 Nicolas Di Césaré
+ Copyright (C) 2001, 2002, 2003 Nicolas Di CÃ©sarÃ©
  Copyright (C) 2005, 2007 StatPro Italia srl
 
  This file is part of QuantLib, a free-software/open-source library
@@ -104,7 +104,7 @@ namespace QuantLib {
         NonLinearLeastSquare(Constraint& c,
                              Real accuracy,
                              Size maxiter,
-                             boost::shared_ptr<OptimizationMethod> om);
+                             const ext::shared_ptr<OptimizationMethod>& om);
         //! Destructor
         ~NonLinearLeastSquare() {}
 
@@ -119,16 +119,17 @@ namespace QuantLib {
         Array& results() { return results_; }
 
         //! return the least square residual norm
-        Real residualNorm() { return resnorm_; }
+        Real residualNorm() const { return resnorm_; }
 
         //! return last function value
-        Real lastValue() { return bestAccuracy_; }
+        Real lastValue() const { return bestAccuracy_; }
 
         //! return exit flag
-        Integer exitFlag() { return exitFlag_; }
+        Integer exitFlag() const { return exitFlag_; }
 
         //! return the performed number of iterations
-        Integer iterationsNumber() { return nbIterations_; }
+        Integer iterationsNumber() const { return nbIterations_; }
+
       private:
         //! solution vector
         Array results_, initialValue_;
@@ -141,7 +142,7 @@ namespace QuantLib {
         //! maximum and real number of iterations
         Size maxIterations_, nbIterations_;
         //! Optimization method
-        boost::shared_ptr<OptimizationMethod> om_;
+        ext::shared_ptr<OptimizationMethod> om_;
         //constraint
         Constraint& c_;
 

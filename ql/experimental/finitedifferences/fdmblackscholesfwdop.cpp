@@ -27,8 +27,8 @@
 namespace QuantLib {
 
     FdmBlackScholesFwdOp::FdmBlackScholesFwdOp(
-        const boost::shared_ptr<FdmMesher>& mesher,
-        const boost::shared_ptr<GeneralizedBlackScholesProcess> & bsProcess,
+        const ext::shared_ptr<FdmMesher>& mesher,
+        const ext::shared_ptr<GeneralizedBlackScholesProcess> & bsProcess,
         Real strike,
         bool localVol,
         Real illegalLocalVolOverwrite,
@@ -38,7 +38,7 @@ namespace QuantLib {
       qTS_   (bsProcess->dividendYield().currentLink()),
       volTS_ (bsProcess->blackVolatility().currentLink()),
       localVol_((localVol) ? bsProcess->localVolatility().currentLink()
-                           : boost::shared_ptr<LocalVolTermStructure>()),
+                           : ext::shared_ptr<LocalVolTermStructure>()),
       x_ ((localVol) ? Array(Exp(mesher->locations(direction))) : Array()),
       dxMap_ (FirstDerivativeOp(direction, mesher)),
       dxxMap_(SecondDerivativeOp(direction, mesher)),
@@ -52,8 +52,8 @@ namespace QuantLib {
         const Rate r = rTS_->forwardRate(t1, t2, Continuous).rate();
         const Rate q = qTS_->forwardRate(t1, t2, Continuous).rate();
 
-        if (localVol_) {
-            const boost::shared_ptr<FdmLinearOpLayout> layout=mesher_->layout();
+        if (localVol_ != 0) {
+            const ext::shared_ptr<FdmLinearOpLayout> layout=mesher_->layout();
             const FdmLinearOpIterator endIter = layout->end();
 
             Array v(layout->size());
@@ -86,9 +86,7 @@ namespace QuantLib {
         }
     }
 
-    Size FdmBlackScholesFwdOp::size() const {
-        return 1u;
-    }
+    Size FdmBlackScholesFwdOp::size() const { return 1U; }
 
     Disposable<Array> FdmBlackScholesFwdOp::apply(const Array& u) const {
         return mapT_.apply(u);

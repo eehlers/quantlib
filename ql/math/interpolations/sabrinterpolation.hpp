@@ -3,7 +3,7 @@
 /*
  Copyright (C) 2006 Ferdinando Ametrano
  Copyright (C) 2007 Marco Bianchetti
- Copyright (C) 2007 François du Vignaud
+ Copyright (C) 2007 FranÃ§ois du Vignaud
  Copyright (C) 2007 Giorgio Facchinetti
  Copyright (C) 2006 Mario Pucci
  Copyright (C) 2006 StatPro Italia srl
@@ -33,7 +33,6 @@
 #include <ql/math/interpolations/xabrinterpolation.hpp>
 #include <ql/termstructures/volatility/sabr.hpp>
 
-#include <boost/make_shared.hpp>
 #include <boost/assign/list_of.hpp>
 
 namespace QuantLib {
@@ -42,11 +41,11 @@ namespace detail {
 
 class SABRWrapper {
   public:
-    SABRWrapper(const Time t, const Real &forward,
-                const std::vector<Real> &params,
-                const std::vector<Real> &addParams)
-        : t_(t), forward_(forward), params_(params),
-          shift_(addParams.size() == 0 ? 0.0 : addParams[0]) {
+    SABRWrapper(const Time t,
+                const Real& forward,
+                const std::vector<Real>& params,
+                const std::vector<Real>& addParams)
+    : t_(t), forward_(forward), params_(params), shift_(addParams.empty() ? 0.0 : addParams[0]) {
         QL_REQUIRE(forward_ + shift_ > 0.0, "forward+shift must be positive: "
                                                  << forward_ << " with shift "
                                                  << shift_ << " not allowed");
@@ -72,12 +71,10 @@ struct SABRSpecs {
             params[1] = 0.5;
         if (params[0] == Null<Real>())
             // adapt alpha to beta level
-            params[0] = 0.2 * (params[1] < 0.9999
-                                   ? std::pow(forward + (addParams.size() == 0
-                                                             ? 0.0
-                                                             : addParams[0]),
-                                              1.0 - params[1])
-                                   : 1.0);
+            params[0] = 0.2 * (params[1] < 0.9999 ?
+                                   std::pow(forward + (addParams.empty() ? 0.0 : addParams[0]),
+                                            1.0 - params[1]) :
+                                   1.0);
         if (params[2] == Null<Real>())
             params[2] = std::sqrt(0.4);
         if (params[3] == Null<Real>())
@@ -93,9 +90,8 @@ struct SABRSpecs {
             values[0] = (1.0 - 2E-6) * r[j++] + 1E-6; // lognormal vol guess
             // adapt this to beta level
             if (values[1] < 0.999)
-                values[0] *= std::pow(
-                    forward + (addParams.size() == 0 ? 0.0 : addParams[0]),
-                    1.0 - values[1]);
+                values[0] *=
+                    std::pow(forward + (addParams.empty() ? 0.0 : addParams[0]), 1.0 - values[1]);
         }
         if (!paramIsFixed[2])
             values[2] = 1.5 * r[j++] + 1E-6;
@@ -139,16 +135,19 @@ struct SABRSpecs {
                                             addParams[0]);
     }
     typedef SABRWrapper type;
-    boost::shared_ptr<type> instance(const Time t, const Real &forward,
+    ext::shared_ptr<type> instance(const Time t, const Real &forward,
                                      const std::vector<Real> &params,
                                      const std::vector<Real> &addParams) {
-        return boost::make_shared<type>(t, forward, params, addParams);
+        return ext::make_shared<type>(t, forward, params, addParams);
     }
 };
 }
 
 //! %SABR smile interpolation between discrete volatility points.
-/*! \ingroup interpolations */
+/*! \ingroup interpolations
+    \warning See the Interpolation class for information about the
+             required lifetime of the underlying data.
+*/
 class SABRInterpolation : public Interpolation {
   public:
     template <class I1, class I2>
@@ -159,15 +158,15 @@ class SABRInterpolation : public Interpolation {
                       const Real &forward, Real alpha, Real beta, Real nu,
                       Real rho, bool alphaIsFixed, bool betaIsFixed,
                       bool nuIsFixed, bool rhoIsFixed, bool vegaWeighted = true,
-                      const boost::shared_ptr<EndCriteria> &endCriteria =
-                          boost::shared_ptr<EndCriteria>(),
-                      const boost::shared_ptr<OptimizationMethod> &optMethod =
-                          boost::shared_ptr<OptimizationMethod>(),
+                      const ext::shared_ptr<EndCriteria> &endCriteria =
+                          ext::shared_ptr<EndCriteria>(),
+                      const ext::shared_ptr<OptimizationMethod> &optMethod =
+                          ext::shared_ptr<OptimizationMethod>(),
                       const Real errorAccept = 0.0020,
                       const bool useMaxError = false,
                       const Size maxGuesses = 50, const Real shift = 0.0) {
 
-        impl_ = boost::shared_ptr<Interpolation::Impl>(
+        impl_ = ext::shared_ptr<Interpolation::Impl>(
             new detail::XABRInterpolationImpl<I1, I2, detail::SABRSpecs>(
                 xBegin, xEnd, yBegin, t, forward,
                 boost::assign::list_of(alpha)(beta)(nu)(rho),
@@ -175,7 +174,7 @@ class SABRInterpolation : public Interpolation {
                     rhoIsFixed),
                 vegaWeighted, endCriteria, optMethod, errorAccept, useMaxError,
                 maxGuesses, boost::assign::list_of(shift)));
-        coeffs_ = boost::dynamic_pointer_cast<
+        coeffs_ = ext::dynamic_pointer_cast<
             detail::XABRCoeffHolder<detail::SABRSpecs> >(impl_);
     }
     Real expiry() const { return coeffs_->t_; }
@@ -192,28 +191,36 @@ class SABRInterpolation : public Interpolation {
     EndCriteria::Type endCriteria() { return coeffs_->XABREndCriteria_; }
 
   private:
-    boost::shared_ptr<detail::XABRCoeffHolder<detail::SABRSpecs> > coeffs_;
+    ext::shared_ptr<detail::XABRCoeffHolder<detail::SABRSpecs> > coeffs_;
 };
 
 //! %SABR interpolation factory and traits
 /*! \ingroup interpolations */
 class SABR {
   public:
-    SABR(Time t, Real forward, Real alpha, Real beta, Real nu, Real rho,
-         bool alphaIsFixed, bool betaIsFixed, bool nuIsFixed, bool rhoIsFixed,
+    SABR(Time t,
+         Real forward,
+         Real alpha,
+         Real beta,
+         Real nu,
+         Real rho,
+         bool alphaIsFixed,
+         bool betaIsFixed,
+         bool nuIsFixed,
+         bool rhoIsFixed,
          bool vegaWeighted = false,
-         const boost::shared_ptr<EndCriteria> endCriteria =
-             boost::shared_ptr<EndCriteria>(),
-         const boost::shared_ptr<OptimizationMethod> optMethod =
-             boost::shared_ptr<OptimizationMethod>(),
-         const Real errorAccept = 0.0020, const bool useMaxError = false,
-         const Size maxGuesses = 50, const Real shift = 0.0)
-        : t_(t), forward_(forward), alpha_(alpha), beta_(beta), nu_(nu),
-          rho_(rho), alphaIsFixed_(alphaIsFixed), betaIsFixed_(betaIsFixed),
-          nuIsFixed_(nuIsFixed), rhoIsFixed_(rhoIsFixed),
-          vegaWeighted_(vegaWeighted), endCriteria_(endCriteria),
-          optMethod_(optMethod), errorAccept_(errorAccept),
-          useMaxError_(useMaxError), maxGuesses_(maxGuesses), shift_(shift) {}
+         const ext::shared_ptr<EndCriteria>& endCriteria = ext::shared_ptr<EndCriteria>(),
+         const ext::shared_ptr<OptimizationMethod>& optMethod =
+             ext::shared_ptr<OptimizationMethod>(),
+         const Real errorAccept = 0.0020,
+         const bool useMaxError = false,
+         const Size maxGuesses = 50,
+         const Real shift = 0.0)
+    : t_(t), forward_(forward), alpha_(alpha), beta_(beta), nu_(nu), rho_(rho),
+      alphaIsFixed_(alphaIsFixed), betaIsFixed_(betaIsFixed), nuIsFixed_(nuIsFixed),
+      rhoIsFixed_(rhoIsFixed), vegaWeighted_(vegaWeighted), endCriteria_(endCriteria),
+      optMethod_(optMethod), errorAccept_(errorAccept), useMaxError_(useMaxError),
+      maxGuesses_(maxGuesses), shift_(shift) {}
     template <class I1, class I2>
     Interpolation interpolate(const I1 &xBegin, const I1 &xEnd,
                               const I2 &yBegin) const {
@@ -231,8 +238,8 @@ class SABR {
     Real alpha_, beta_, nu_, rho_;
     bool alphaIsFixed_, betaIsFixed_, nuIsFixed_, rhoIsFixed_;
     bool vegaWeighted_;
-    const boost::shared_ptr<EndCriteria> endCriteria_;
-    const boost::shared_ptr<OptimizationMethod> optMethod_;
+    const ext::shared_ptr<EndCriteria> endCriteria_;
+    const ext::shared_ptr<OptimizationMethod> optMethod_;
     const Real errorAccept_;
     const bool useMaxError_;
     const Size maxGuesses_;

@@ -34,8 +34,14 @@ class ScheduleTest {
     static void testForwardDatesWithEomAdjustment();
     static void testBackwardDatesWithEomAdjustment();
     static void testDoubleFirstDateWithEomAdjustment();
+    static void testCDS2015Convention();
     static void testDateConstructor();
     static void testFourWeeksTenor();
+    static void testScheduleAlwaysHasAStartDate();
+    static void testShortEomSchedule();
+    static void testFirstDateOnMaturity();
+    static void testNextToLastDateOnStart();
+    static void testTruncation();
     static boost::unit_test_framework::test_suite* suite();
 };
 

@@ -4,7 +4,10 @@
  Copyright (C) 2007 Ferdinando Ametrano
  Copyright (C) 2001, 2002, 2003 Sadruddin Rejeb
  Copyright (C) 2006 StatPro Italia srl
- Copyright (C) 2015, 2016 Peter Caspers
+ Copyright (C) 2015, 2016, 2017 Peter Caspers
+ Copyright (C) 2017 Paul Giltinan
+ Copyright (C) 2017 Werner Kuerzinger
+ Copyright (C) 2020 Marcin Rybacki
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -49,20 +52,20 @@ namespace QuantLib {
     template<class Spec>
     class BlackStyleSwaptionEngine : public Swaption::engine {
       public:
+        enum CashAnnuityModel { SwapRate, DiscountCurve };
         BlackStyleSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
                             Volatility vol,
                             const DayCounter& dc = Actual365Fixed(),
-                            Real displacement = 0.0);
+                            Real displacement = 0.0,
+                            CashAnnuityModel model = DiscountCurve);
         BlackStyleSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
                             const Handle<Quote>& vol,
                             const DayCounter& dc = Actual365Fixed(),
-                            Real displacement = 0.0);
-        /*! if displacement is Null<Real>(), it is read from the volatility
-          structure, the parameter can be removed once the deprecated methods
-          overriding the displacement are deleted */
+                            Real displacement = 0.0,
+                            CashAnnuityModel model = DiscountCurve);
         BlackStyleSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
-                            const Handle<SwaptionVolatilityStructure>& vol,
-                            Real displacement = Null<Real>());
+                                 const Handle<SwaptionVolatilityStructure>& vol,
+                                 CashAnnuityModel model = DiscountCurve);
         void calculate() const;
         Handle<YieldTermStructure> termStructure() { return discountCurve_; }
         Handle<SwaptionVolatilityStructure> volatility() { return vol_; }
@@ -70,11 +73,7 @@ namespace QuantLib {
       private:
         Handle<YieldTermStructure> discountCurve_;
         Handle<SwaptionVolatilityStructure> vol_;
-
-      protected:
-        // can be removed once the deprecated methods overriding the
-        // displacement are deleted
-        Real displacement_;
+        CashAnnuityModel model_;
     };
 
     // shifted lognormal type engine
@@ -93,6 +92,12 @@ namespace QuantLib {
                    blackFormulaStdDevDerivative(strike, atmForward, stdDev,
                                                 annuity, displacement);
         }
+        Real delta(const Option::Type type, const Real strike,
+                   const Real atmForward, const Real stdDev, const Real annuity,
+                   const Real displacement) {
+            return blackFormulaForwardDerivative(type, strike, atmForward, stdDev,
+                                                 annuity, displacement);
+        }
     };
 
     // normal type engine
@@ -110,6 +115,12 @@ namespace QuantLib {
                    bachelierBlackFormulaStdDevDerivative(
                        strike, atmForward, stdDev, annuity);
         }
+        Real delta(const Option::Type type, const Real strike,
+                   const Real atmForward, const Real stdDev, const Real annuity,
+                   const Real) {
+            return bachelierBlackFormulaForwardDerivative(
+                type, strike, atmForward, stdDev, annuity);
+        }
     };
 
     } // namespace detail
@@ -117,7 +128,7 @@ namespace QuantLib {
     //! Shifted Lognormal Black-formula swaption engine
     /*! \ingroup swaptionengines
 
-        \warning The engine assumes that the exercise date equals the
+        \warning The engine assumes that the exercise date lies before the
                  start date of the passed swap.
     */
 
@@ -127,33 +138,22 @@ namespace QuantLib {
         BlackSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
                             Volatility vol,
                             const DayCounter& dc = Actual365Fixed(),
-                            Real displacement = 0.0);
+                            Real displacement = 0.0,
+                            CashAnnuityModel model = DiscountCurve);
         BlackSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
                             const Handle<Quote>& vol,
                             const DayCounter& dc = Actual365Fixed(),
-                            Real displacement = 0.0);
-        BlackSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
-                            const Handle<SwaptionVolatilityStructure>& vol);
-
-        /*! \deprecated
-          overrides displacement from given volatility structure,
-          this is not recommended to do */
-        QL_DEPRECATED
+                            Real displacement = 0.0,
+                            CashAnnuityModel model = DiscountCurve);
         BlackSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
                             const Handle<SwaptionVolatilityStructure>& vol,
-                            Real displacement);
-
-        /*! \deprecated
-          might return Null<Real>(), if given by a volatility structure,
-          use volatility()->shift() to get the displacement instead */
-        QL_DEPRECATED
-        Real displacement() { return displacement_; }
+                            CashAnnuityModel model = DiscountCurve);
     };
 
     //! Normal Bachelier-formula swaption engine
     /*! \ingroup swaptionengines
 
-        \warning The engine assumes that the exercise date equals the
+        \warning The engine assumes that the exercise date lies before the
                  start date of the passed swap.
     */
 
@@ -162,12 +162,15 @@ namespace QuantLib {
       public:
         BachelierSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
                                 Volatility vol,
-                                const DayCounter& dc = Actual365Fixed());
+                                const DayCounter& dc = Actual365Fixed(),
+                                CashAnnuityModel model = DiscountCurve);
         BachelierSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
                                 const Handle<Quote>& vol,
-                                const DayCounter& dc = Actual365Fixed());
+                                const DayCounter& dc = Actual365Fixed(),
+                                CashAnnuityModel model = DiscountCurve);
         BachelierSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
-                                const Handle<SwaptionVolatilityStructure>& vol);
+                                const Handle<SwaptionVolatilityStructure>& vol,
+                                CashAnnuityModel model = DiscountCurve);
     };
 
     // implementation
@@ -177,24 +180,25 @@ namespace QuantLib {
     template<class Spec>
     BlackStyleSwaptionEngine<Spec>::BlackStyleSwaptionEngine(
         const Handle<YieldTermStructure> &discountCurve, Volatility vol,
-        const DayCounter &dc, Real displacement)
+        const DayCounter &dc, Real displacement, CashAnnuityModel model)
         : discountCurve_(discountCurve),
-          vol_(boost::shared_ptr<SwaptionVolatilityStructure>(
+          vol_(ext::shared_ptr<SwaptionVolatilityStructure>(
               new ConstantSwaptionVolatility(0, NullCalendar(), Following, vol,
                                              dc, Spec().type, displacement))),
-          displacement_(displacement) {
+          model_(model) {
         registerWith(discountCurve_);
     }
 
     template<class Spec>
     BlackStyleSwaptionEngine<Spec>::BlackStyleSwaptionEngine(
         const Handle<YieldTermStructure> &discountCurve,
-        const Handle<Quote> &vol, const DayCounter &dc, Real displacement)
+        const Handle<Quote> &vol, const DayCounter &dc, Real displacement,
+        CashAnnuityModel model)
         : discountCurve_(discountCurve),
-          vol_(boost::shared_ptr<SwaptionVolatilityStructure>(
+          vol_(ext::shared_ptr<SwaptionVolatilityStructure>(
               new ConstantSwaptionVolatility(0, NullCalendar(), Following, vol,
                                              dc, Spec().type, displacement))),
-          displacement_(displacement) {
+          model_(model) {
         registerWith(discountCurve_);
         registerWith(vol_);
     }
@@ -203,9 +207,9 @@ namespace QuantLib {
     BlackStyleSwaptionEngine<Spec>::BlackStyleSwaptionEngine(
         const Handle<YieldTermStructure> &discountCurve,
         const Handle<SwaptionVolatilityStructure> &volatility,
-        Real displacement)
+        CashAnnuityModel model)
         : discountCurve_(discountCurve), vol_(volatility),
-          displacement_(displacement) {
+          model_(model) {
         registerWith(discountCurve_);
         registerWith(vol_);
     }
@@ -218,13 +222,20 @@ namespace QuantLib {
 
         // the part of the swap preceding exerciseDate should be truncated
         // to avoid taking into account unwanted cashflows
+        // for the moment we add a check avoiding this situation
         VanillaSwap swap = *arguments_.swap;
+        const Leg& fixedLeg = swap.fixedLeg();
+        ext::shared_ptr<FixedRateCoupon> firstCoupon =
+            ext::dynamic_pointer_cast<FixedRateCoupon>(fixedLeg[0]);
+        QL_REQUIRE(firstCoupon->accrualStartDate() >= exerciseDate,
+                   "swap start (" << firstCoupon->accrualStartDate() << ") before exercise date ("
+                                  << exerciseDate << ") not supported in Black swaption engine");
 
         Rate strike = swap.fixedRate();
 
         // using the discounting curve
         // swap.iborIndex() might be using a different forwarding curve
-        swap.setPricingEngine(boost::shared_ptr<PricingEngine>(new
+        swap.setPricingEngine(ext::shared_ptr<PricingEngine>(new
             DiscountingSwapEngine(discountCurve_, false)));
         Rate atmForward = swap.fairRate();
 
@@ -244,58 +255,60 @@ namespace QuantLib {
         results_.additionalResults["atmForward"] = atmForward;
 
         // using the discounting curve
-        swap.setPricingEngine(boost::shared_ptr<PricingEngine>(
+        swap.setPricingEngine(ext::shared_ptr<PricingEngine>(
                            new DiscountingSwapEngine(discountCurve_, false)));
         Real annuity;
-        switch(arguments_.settlementType) {
-          case Settlement::Physical: {
-              annuity = std::fabs(swap.fixedLegBPS())/basisPoint;
-              break;
-          }
-          case Settlement::Cash: {
-              const Leg& fixedLeg = swap.fixedLeg();
-              boost::shared_ptr<FixedRateCoupon> firstCoupon =
-                  boost::dynamic_pointer_cast<FixedRateCoupon>(fixedLeg[0]);
-              DayCounter dayCount = firstCoupon->dayCounter();
-              Real fixedLegCashBPS =
-                  CashFlows::bps(fixedLeg,
-                                 InterestRate(atmForward, dayCount, Compounded, Annual),
-                                 false, discountCurve_->referenceDate()) ;
-              annuity = std::fabs(fixedLegCashBPS/basisPoint);
-              break;
-          }
-          default:
-            QL_FAIL("unknown settlement type");
+        if (arguments_.settlementType == Settlement::Physical ||
+            (arguments_.settlementType == Settlement::Cash &&
+             arguments_.settlementMethod ==
+                 Settlement::CollateralizedCashPrice)) {
+            annuity = std::fabs(swap.fixedLegBPS()) / basisPoint;
+        } else if (arguments_.settlementType == Settlement::Cash &&
+                   arguments_.settlementMethod == Settlement::ParYieldCurve) {
+            DayCounter dayCount = firstCoupon->dayCounter();
+            // we assume that the cash settlement date is equal
+            // to the swap start date
+            Date discountDate = model_ == DiscountCurve
+                                    ? firstCoupon->accrualStartDate()
+                                    : discountCurve_->referenceDate();
+            Real fixedLegCashBPS = CashFlows::bps(
+                fixedLeg,
+                InterestRate(atmForward, dayCount, Compounded, Annual), false,
+                discountDate);
+            annuity = std::fabs(fixedLegCashBPS / basisPoint) *
+                      discountCurve_->discount(discountDate);
+        } else {
+            QL_FAIL("invalid (settlementType, settlementMethod) pair");
         }
         results_.additionalResults["annuity"] = annuity;
 
-        // the swap length calculation might be improved using the value date
-        // of the exercise date
-        Time swapLength =  vol_->swapLength(exerciseDate,
-                                                   arguments_.floatingPayDates.back());
+        Time swapLength =  vol_->swapLength(swap.floatingSchedule().dates().front(),
+                                            swap.floatingSchedule().dates().back());
+
+        // swapLength is rounded to whole months. To ensure we can read a variance
+        // and a shift from vol_ we floor swapLength at 1/12 here therefore.
+        swapLength = std::max(swapLength, 1.0 / 12.0);
         results_.additionalResults["swapLength"] = swapLength;
 
-        Real variance = vol_->blackVariance(exerciseDate,
-                                                   swapLength,
-                                                   strike);
+        Real variance = vol_->blackVariance(exerciseDate, swapLength, strike);
 
-        // once the deprecated methods allowing to override the displacement
-        // are gone, we can avoid this and directly read the displacement
-        // from the volatility structure
-        Real displacement = displacement_ == Null<Real>()
-                                ? vol_->shift(exerciseDate, swapLength)
-                                : displacement_;
+        Real displacement =
+            vol_->volatilityType() == ShiftedLognormal ?
+            vol_->shift(exerciseDate, swapLength) : 0.0;
 
         Real stdDev = std::sqrt(variance);
         results_.additionalResults["stdDev"] = stdDev;
         Option::Type w = (arguments_.type==VanillaSwap::Payer) ?
                                                 Option::Call : Option::Put;
-        results_.value = Spec().value(w, strike, atmForward, stdDev, annuity,
-                                                                displacement);
-
+        results_.value = Spec().value(w, strike, atmForward, stdDev, annuity, displacement);
+        
         Time exerciseTime = vol_->timeFromReference(exerciseDate);
         results_.additionalResults["vega"] = Spec().vega(
             strike, atmForward, stdDev, exerciseTime, annuity, displacement);
+        results_.additionalResults["delta"] = Spec().delta(
+            w, strike, atmForward, stdDev, annuity, displacement);
+        results_.additionalResults["timeToExpiry"] = exerciseTime;
+        results_.additionalResults["impliedVolatility"] = stdDev / std::sqrt(exerciseTime);
     }
 
     }  // namespace detail

@@ -53,6 +53,10 @@ namespace QuantLib {
         Swap(const std::vector<Leg>& legs,
              const std::vector<bool>& payer);
         //@}
+        //! \name Observable interface
+        //@{
+        void deepUpdate();
+        //@}
         //! \name Instrument interface
         //@{
         bool isExpired() const;
@@ -95,6 +99,10 @@ namespace QuantLib {
         const Leg& leg(Size j) const {
             QL_REQUIRE(j<legs_.size(), "leg #" << j << " doesn't exist!");
             return legs_[j];
+        }
+        bool payer(Size j) const {
+            QL_REQUIRE(j<legs_.size(), "leg #" << j << " doesn't exist!");
+            return payer_[j] < 0.0;
         }
         //@}
       protected:

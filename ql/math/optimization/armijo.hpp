@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2001, 2002, 2003 Nicolas Di Césaré
+ Copyright (C) 2001, 2002, 2003 Nicolas Di CÃ©sarÃ©
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -54,10 +54,10 @@ namespace QuantLib {
         : LineSearch(eps), alpha_(alpha), beta_(beta) {}
 
         //! Perform line search
-        Real operator()(Problem& P,             // Optimization problem
+        Real operator()(Problem& P, // Optimization problem
                         EndCriteria::Type& ecType,
                         const EndCriteria&,
-                        const Real t_ini);      // initial value of line-search step
+                        Real t_ini); // initial value of line-search step
       private:
         Real alpha_, beta_;
     };

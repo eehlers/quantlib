@@ -27,16 +27,18 @@
 
 #include <ql/math/optimization/method.hpp>
 #include <ql/math/array.hpp>
-#include <boost/shared_ptr.hpp>
+#include <ql/shared_ptr.hpp>
 
 namespace QuantLib {
 
     class LineSearch;
 
+    //! Line search based method
     class LineSearchBasedMethod : public OptimizationMethod {
       public:
-        LineSearchBasedMethod(const boost::shared_ptr<LineSearch>& lSearch =
-                                            boost::shared_ptr<LineSearch>());
+        explicit LineSearchBasedMethod(
+             const ext::shared_ptr<LineSearch>& lSearch =
+                                            ext::shared_ptr<LineSearch>());
         virtual ~LineSearchBasedMethod() {}
 
         virtual EndCriteria::Type minimize(Problem& P,
@@ -48,7 +50,7 @@ namespace QuantLib {
                             Real gold2,
                             const Array& gradient) = 0;
         //! line search
-        boost::shared_ptr<LineSearch> lineSearch_;
+        ext::shared_ptr<LineSearch> lineSearch_;
     };
 
 }

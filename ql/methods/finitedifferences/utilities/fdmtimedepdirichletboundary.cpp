@@ -31,8 +31,8 @@
 namespace QuantLib {
 
     FdmTimeDepDirichletBoundary::FdmTimeDepDirichletBoundary(
-        const boost::shared_ptr<FdmMesher>& mesher,
-        const boost::function<Real (Real)>& valueOnBoundary,
+        const ext::shared_ptr<FdmMesher>& mesher,
+        const ext::function<Real (Real)>& valueOnBoundary,
         Size direction, Side side)
     : indices_(FdmIndicesOnBoundary(mesher->layout(),
                                     direction, side).getIndices()),
@@ -41,8 +41,8 @@ namespace QuantLib {
     }
 
     FdmTimeDepDirichletBoundary::FdmTimeDepDirichletBoundary(
-        const boost::shared_ptr<FdmMesher>& mesher,
-        const boost::function<Disposable<Array> (Real)>& valuesOnBoundary,
+        const ext::shared_ptr<FdmMesher>& mesher,
+        const ext::function<Disposable<Array> (Real)>& valuesOnBoundary,
         Size direction, Side side)
     : indices_(FdmIndicesOnBoundary(mesher->layout(),
                                     direction, side).getIndices()),
@@ -51,10 +51,9 @@ namespace QuantLib {
     }
 
     void FdmTimeDepDirichletBoundary::setTime(Time t) {
-        if (valueOnBoundary_) {
+        if (valueOnBoundary_ != 0) {
             std::fill(values_.begin(), values_.end(), valueOnBoundary_(t));
-        }
-        else if (valuesOnBoundary_) {
+        } else if (valuesOnBoundary_ != 0) {
             values_ = valuesOnBoundary_(t);
         }
         else {

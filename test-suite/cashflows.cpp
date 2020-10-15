@@ -28,13 +28,16 @@
 #include <ql/termstructures/volatility/optionlet/constantoptionletvol.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/time/calendars/target.hpp>
+#include <ql/time/daycounters/actualactual.hpp>
 #include <ql/time/schedule.hpp>
+#include <ql/indexes/ibor/euribor.hpp>
 #include <ql/indexes/ibor/usdlibor.hpp>
 #include <ql/settings.hpp>
 
+
 using namespace QuantLib;
-using namespace boost;
 using namespace boost::unit_test_framework;
+using boost::none;
 
 void CashFlowsTest::testSettings() {
 
@@ -46,9 +49,10 @@ void CashFlowsTest::testSettings() {
     Settings::instance().evaluationDate() = today;
 
     // cash flows at T+0, T+1, T+2
-    std::vector<shared_ptr<CashFlow> > leg;
-    for (Integer i=0; i<3; ++i)
-        leg.push_back(shared_ptr<CashFlow>(new SimpleCashFlow(1.0, today+i)));
+    std::vector<ext::shared_ptr<CashFlow> > leg;
+    leg.reserve(3);
+    for (Integer i = 0; i < 3; ++i)
+        leg.push_back(ext::shared_ptr<CashFlow>(new SimpleCashFlow(1.0, today+i)));
 
 
     #define CHECK_INCLUSION(n, days, expected) \
@@ -186,7 +190,7 @@ void CashFlowsTest::testAccessViolation() {
     Volatility volatility = 0.10;
     Handle<OptionletVolatilityStructure> vol;
     vol = Handle<OptionletVolatilityStructure>(
-             boost::shared_ptr<OptionletVolatilityStructure>(
+             ext::shared_ptr<OptionletVolatilityStructure>(
                  new ConstantOptionletVolatility(
                              2,
                              calendar,
@@ -194,15 +198,15 @@ void CashFlowsTest::testAccessViolation() {
                              volatility,
                              Actual365Fixed())));
 
-    boost::shared_ptr<IborIndex> index3m (new USDLibor(3*Months,
+    ext::shared_ptr<IborIndex> index3m (new USDLibor(3*Months,
                                                        rhTermStructure));
 
     Date payDate(20, December, 2013);
     Date startDate(20, September, 2013);
     Date endDate(20, December, 2013);
     Rate spread = 0.0115;
-    boost::shared_ptr<IborCouponPricer> pricer(new BlackIborCouponPricer(vol));
-    boost::shared_ptr<FloatingRateCoupon> coupon(
+    ext::shared_ptr<IborCouponPricer> pricer(new BlackIborCouponPricer(vol));
+    ext::shared_ptr<FloatingRateCoupon> coupon(
         new FloatingRateCoupon(payDate,100, startDate, endDate, 2,
                                index3m, 1.0 , spread / 100));
     coupon->setPricer(pricer);
@@ -256,7 +260,7 @@ void CashFlowsTest::testNullFixingDays() {
         .withConvention(Following)
         .backwards();
 
-    boost::shared_ptr<IborIndex> index(new USDLibor(6*Months));
+    ext::shared_ptr<IborIndex> index(new USDLibor(6*Months));
     Leg leg = IborLeg(schedule, index)
         .withNotionals(100.0)
         // this can happen with default values, and caused an
@@ -264,14 +268,256 @@ void CashFlowsTest::testNullFixingDays() {
         .withFixingDays(Null<Natural>());
 }
 
+void CashFlowsTest::testExCouponDates() {
+    BOOST_TEST_MESSAGE("Testing ex-coupon date calculation...");
+
+    Date today = Date::todaysDate();
+    Schedule schedule = MakeSchedule()
+                            .from(today)
+                            .to(today + 5 * Years)
+                            .withFrequency(Monthly)
+                            .withCalendar(TARGET())
+                            .withConvention(Following);
+
+    // no ex-coupon dates
+    Leg l1 = FixedRateLeg(schedule).withNotionals(100.0).withCouponRates(0.03, Actual360());
+    for (Size i = 0; i < l1.size(); ++i) {
+        ext::shared_ptr<Coupon> c = ext::dynamic_pointer_cast<Coupon>(l1[i]);
+        if (c->exCouponDate() != Date()) {
+            BOOST_ERROR("ex-coupon date found (none expected)");
+        }
+    }
+
+    // same for floating legs
+    ext::shared_ptr<IborIndex> index(new Euribor3M);
+    Leg l2 = IborLeg(schedule, index).withNotionals(100.0);
+    for (Size i = 0; i < l2.size(); ++i) {
+        ext::shared_ptr<Coupon> c = ext::dynamic_pointer_cast<Coupon>(l2[i]);
+        if (c->exCouponDate() != Date()) {
+            BOOST_ERROR("ex-coupon date found (none expected)");
+        }
+    }
+
+    // calendar days
+    Leg l5 = FixedRateLeg(schedule)
+                 .withNotionals(100.0)
+                 .withCouponRates(0.03, Actual360())
+                 .withExCouponPeriod(Period(2, Days), NullCalendar(), Unadjusted, false);
+    for (Size i = 0; i < l5.size(); ++i) {
+        ext::shared_ptr<Coupon> c = ext::dynamic_pointer_cast<Coupon>(l5[i]);
+        Date expected = c->accrualEndDate() - 2;
+        if (c->exCouponDate() != expected) {
+            BOOST_ERROR("ex-coupon date = " << c->exCouponDate() << " (" << expected
+                                            << " expected)");
+        }
+    }
+
+    Leg l6 = IborLeg(schedule, index)
+                 .withNotionals(100.0)
+                 .withExCouponPeriod(Period(2, Days), NullCalendar(), Unadjusted, false);
+    for (Size i = 0; i < l6.size(); ++i) {
+        ext::shared_ptr<Coupon> c = ext::dynamic_pointer_cast<Coupon>(l6[i]);
+        Date expected = c->accrualEndDate() - 2;
+        if (c->exCouponDate() != expected) {
+            BOOST_ERROR("ex-coupon date = " << c->exCouponDate() << " (" << expected
+                                            << " expected)");
+        }
+    }
+
+    // business days
+    Leg l7 = FixedRateLeg(schedule)
+                 .withNotionals(100.0)
+                 .withCouponRates(0.03, Actual360())
+                 .withExCouponPeriod(Period(2, Days), TARGET(), Preceding, false);
+    for (Size i = 0; i < l7.size(); ++i) {
+        ext::shared_ptr<Coupon> c = ext::dynamic_pointer_cast<Coupon>(l7[i]);
+        Date expected = TARGET().advance(c->accrualEndDate(), -2, Days);
+        if (c->exCouponDate() != expected) {
+            BOOST_ERROR("ex-coupon date = " << c->exCouponDate() << " (" << expected
+                                            << " expected)");
+        }
+    }
+
+    Leg l8 = IborLeg(schedule, index)
+                 .withNotionals(100.0)
+                 .withExCouponPeriod(Period(2, Days), TARGET(), Preceding, false);
+    for (Size i = 0; i < l8.size(); ++i) {
+        ext::shared_ptr<Coupon> c = ext::dynamic_pointer_cast<Coupon>(l8[i]);
+        Date expected = TARGET().advance(c->accrualEndDate(), -2, Days);
+        if (c->exCouponDate() != expected) {
+            BOOST_ERROR("ex-coupon date = " << c->exCouponDate() << " (" << expected
+                                            << " expected)");
+        }
+    }
+}
+
+void CashFlowsTest::testIrregularFirstCouponReferenceDatesAtEndOfMonth() {
+    BOOST_TEST_MESSAGE("Testing irregular first coupon reference dates with end of month enabled...");
+    Schedule schedule =
+        MakeSchedule()
+        .from(Date(17, January, 2017)).to(Date(28, February, 2018))
+        .withFrequency(Semiannual)
+        .withConvention(Unadjusted)
+        .endOfMonth()
+        .backwards();
+
+    Leg leg = FixedRateLeg(schedule)
+        .withNotionals(100.0)
+        .withCouponRates(0.01, Actual360());
+
+    ext::shared_ptr<Coupon> firstCoupon =
+        ext::dynamic_pointer_cast<Coupon>(leg.front());
+
+    if (firstCoupon->referencePeriodStart() != Date(31, August, 2016))
+        BOOST_ERROR("Expected reference start date at end of month, "
+                    "got " << firstCoupon->referencePeriodStart());
+}
+
+void CashFlowsTest::testIrregularLastCouponReferenceDatesAtEndOfMonth() {
+    BOOST_TEST_MESSAGE("Testing irregular last coupon reference dates with end of month enabled...");
+    Schedule schedule =
+            MakeSchedule()
+                    .from(Date(17, January, 2017)).to(Date(15, September, 2018))
+                    .withNextToLastDate(Date(28, February, 2018))
+                    .withFrequency(Semiannual)
+                    .withConvention(Unadjusted)
+                    .endOfMonth()
+                    .backwards();
+
+    Leg leg = FixedRateLeg(schedule)
+            .withNotionals(100.0)
+            .withCouponRates(0.01, Actual360());
+
+    ext::shared_ptr<Coupon> lastCoupon =
+            ext::dynamic_pointer_cast<Coupon>(leg.back());
+
+    if (lastCoupon->referencePeriodEnd() != Date(31, August, 2018))
+        BOOST_ERROR("Expected reference end date at end of month, "
+                            "got " << lastCoupon->referencePeriodEnd());
+}
+
+void CashFlowsTest::testPartialScheduleLegConstruction() {
+    BOOST_TEST_MESSAGE("Testing leg construction with partial schedule...");
+    // schedule with irregular first and last period
+    Schedule schedule = MakeSchedule()
+                            .from(Date(15, September, 2017))
+                            .to(Date(30, September, 2020))
+                            .withNextToLastDate(Date(25, September, 2020))
+                            .withFrequency(Semiannual)
+                            .backwards();
+    // same schedule, date based, with metadata
+    Schedule schedule2(schedule.dates(), NullCalendar(), Unadjusted, Unadjusted,
+                       6 * Months, boost::none, schedule.endOfMonth(),
+                       schedule.isRegular());
+    // same schedule, date based, without metadata
+    Schedule schedule3(schedule.dates());
+
+    // fixed rate legs based on the three schedule
+    Leg leg = FixedRateLeg(schedule).withNotionals(100.0).withCouponRates(
+        0.01, ActualActual(ActualActual::ISMA));
+    Leg leg2 = FixedRateLeg(schedule2).withNotionals(100.0).withCouponRates(
+        0.01, ActualActual(ActualActual::ISMA));
+    Leg leg3 = FixedRateLeg(schedule3).withNotionals(100.0).withCouponRates(
+        0.01, ActualActual(ActualActual::ISMA));
+
+    // check reference period of first and last coupon in all variants
+    // for the first two we expect a 6M reference period, for the
+    // third it can not be constructed, so should be equal to the
+    // respective schedule period
+    ext::shared_ptr<FixedRateCoupon> firstCpn =
+        ext::dynamic_pointer_cast<FixedRateCoupon>(leg.front());
+    ext::shared_ptr<FixedRateCoupon> lastCpn =
+        ext::dynamic_pointer_cast<FixedRateCoupon>(leg.back());
+    BOOST_REQUIRE(firstCpn != NULL);
+    BOOST_REQUIRE(lastCpn != NULL);
+    BOOST_CHECK_EQUAL(firstCpn->referencePeriodStart(), Date(25, Mar, 2017));
+    BOOST_CHECK_EQUAL(firstCpn->referencePeriodEnd(), Date(25, Sep, 2017));
+    BOOST_CHECK_EQUAL(lastCpn->referencePeriodStart(), Date(25, Sep, 2020));
+    BOOST_CHECK_EQUAL(lastCpn->referencePeriodEnd(), Date(25, Mar, 2021));
+
+    ext::shared_ptr<FixedRateCoupon> firstCpn2 =
+        ext::dynamic_pointer_cast<FixedRateCoupon>(leg2.front());
+    ext::shared_ptr<FixedRateCoupon> lastCpn2 =
+        ext::dynamic_pointer_cast<FixedRateCoupon>(leg2.back());
+    BOOST_REQUIRE(firstCpn2 != NULL);
+    BOOST_REQUIRE(lastCpn2 != NULL);
+    BOOST_CHECK_EQUAL(firstCpn2->referencePeriodStart(), Date(25, Mar, 2017));
+    BOOST_CHECK_EQUAL(firstCpn2->referencePeriodEnd(), Date(25, Sep, 2017));
+    BOOST_CHECK_EQUAL(lastCpn2->referencePeriodStart(), Date(25, Sep, 2020));
+    BOOST_CHECK_EQUAL(lastCpn2->referencePeriodEnd(), Date(25, Mar, 2021));
+
+    ext::shared_ptr<FixedRateCoupon> firstCpn3 =
+        ext::dynamic_pointer_cast<FixedRateCoupon>(leg3.front());
+    ext::shared_ptr<FixedRateCoupon> lastCpn3 =
+        ext::dynamic_pointer_cast<FixedRateCoupon>(leg3.back());
+    BOOST_REQUIRE(firstCpn3 != NULL);
+    BOOST_REQUIRE(lastCpn3 != NULL);
+    BOOST_CHECK_EQUAL(firstCpn3->referencePeriodStart(), Date(15, Sep, 2017));
+    BOOST_CHECK_EQUAL(firstCpn3->referencePeriodEnd(), Date(25, Sep, 2017));
+    BOOST_CHECK_EQUAL(lastCpn3->referencePeriodStart(), Date(25, Sep, 2020));
+    BOOST_CHECK_EQUAL(lastCpn3->referencePeriodEnd(), Date(30, Sep, 2020));
+
+    // same check as above for a floating leg
+    ext::shared_ptr<IborIndex> iborIndex =
+        ext::make_shared<USDLibor>(3 * Months);
+    Leg legf = IborLeg(schedule, iborIndex)
+                   .withNotionals(100.0)
+                   .withPaymentDayCounter(ActualActual(ActualActual::ISMA));
+    Leg legf2 = IborLeg(schedule2, iborIndex)
+                    .withNotionals(100.0)
+                    .withPaymentDayCounter(ActualActual(ActualActual::ISMA));
+    Leg legf3 = IborLeg(schedule3, iborIndex)
+                    .withNotionals(100.0)
+                    .withPaymentDayCounter(ActualActual(ActualActual::ISMA));
+
+    ext::shared_ptr<FloatingRateCoupon> firstCpnF =
+        ext::dynamic_pointer_cast<FloatingRateCoupon>(legf.front());
+    ext::shared_ptr<FloatingRateCoupon> lastCpnF =
+        ext::dynamic_pointer_cast<FloatingRateCoupon>(legf.back());
+    BOOST_REQUIRE(firstCpnF != NULL);
+    BOOST_REQUIRE(lastCpnF != NULL);
+    BOOST_CHECK_EQUAL(firstCpnF->referencePeriodStart(), Date(25, Mar, 2017));
+    BOOST_CHECK_EQUAL(firstCpnF->referencePeriodEnd(), Date(25, Sep, 2017));
+    BOOST_CHECK_EQUAL(lastCpnF->referencePeriodStart(), Date(25, Sep, 2020));
+    BOOST_CHECK_EQUAL(lastCpnF->referencePeriodEnd(), Date(25, Mar, 2021));
+
+    ext::shared_ptr<FloatingRateCoupon> firstCpnF2 =
+        ext::dynamic_pointer_cast<FloatingRateCoupon>(legf2.front());
+    ext::shared_ptr<FloatingRateCoupon> lastCpnF2 =
+        ext::dynamic_pointer_cast<FloatingRateCoupon>(legf2.back());
+    BOOST_REQUIRE(firstCpnF2 != NULL);
+    BOOST_REQUIRE(lastCpnF2 != NULL);
+    BOOST_CHECK_EQUAL(firstCpnF2->referencePeriodStart(), Date(25, Mar, 2017));
+    BOOST_CHECK_EQUAL(firstCpnF2->referencePeriodEnd(), Date(25, Sep, 2017));
+    BOOST_CHECK_EQUAL(lastCpnF2->referencePeriodStart(), Date(25, Sep, 2020));
+    BOOST_CHECK_EQUAL(lastCpnF2->referencePeriodEnd(), Date(25, Mar, 2021));
+
+    ext::shared_ptr<FloatingRateCoupon> firstCpnF3 =
+        ext::dynamic_pointer_cast<FloatingRateCoupon>(legf3.front());
+    ext::shared_ptr<FloatingRateCoupon> lastCpnF3 =
+        ext::dynamic_pointer_cast<FloatingRateCoupon>(legf3.back());
+    BOOST_REQUIRE(firstCpnF3 != NULL);
+    BOOST_REQUIRE(lastCpnF3 != NULL);
+    BOOST_CHECK_EQUAL(firstCpnF3->referencePeriodStart(), Date(15, Sep, 2017));
+    BOOST_CHECK_EQUAL(firstCpnF3->referencePeriodEnd(), Date(25, Sep, 2017));
+    BOOST_CHECK_EQUAL(lastCpnF3->referencePeriodStart(), Date(25, Sep, 2020));
+    BOOST_CHECK_EQUAL(lastCpnF3->referencePeriodEnd(), Date(30, Sep, 2020));
+}
+
 test_suite* CashFlowsTest::suite() {
     test_suite* suite = BOOST_TEST_SUITE("Cash flows tests");
     suite->add(QUANTLIB_TEST_CASE(&CashFlowsTest::testSettings));
     suite->add(QUANTLIB_TEST_CASE(&CashFlowsTest::testAccessViolation));
     suite->add(QUANTLIB_TEST_CASE(&CashFlowsTest::testDefaultSettlementDate));
-    #ifndef QL_USE_INDEXED_COUPON
-    suite->add(QUANTLIB_TEST_CASE(&CashFlowsTest::testNullFixingDays));
-    #endif
+    suite->add(QUANTLIB_TEST_CASE(&CashFlowsTest::testExCouponDates));
+    if (IborCoupon::usingAtParCoupons())
+        suite->add(QUANTLIB_TEST_CASE(&CashFlowsTest::testNullFixingDays));
+
+    suite->add(QUANTLIB_TEST_CASE(
+                             &CashFlowsTest::testIrregularFirstCouponReferenceDatesAtEndOfMonth));
+    suite->add(QUANTLIB_TEST_CASE(
+                             &CashFlowsTest::testIrregularLastCouponReferenceDatesAtEndOfMonth));
+    suite->add(QUANTLIB_TEST_CASE(
+                             &CashFlowsTest::testPartialScheduleLegConstruction));
     return suite;
 }
-

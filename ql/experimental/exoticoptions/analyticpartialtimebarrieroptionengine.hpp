@@ -32,11 +32,11 @@ namespace QuantLib {
     class AnalyticPartialTimeBarrierOptionEngine
         : public PartialTimeBarrierOption::engine {
       public:
-        AnalyticPartialTimeBarrierOptionEngine(
-            const boost::shared_ptr<GeneralizedBlackScholesProcess>& process);
+        explicit AnalyticPartialTimeBarrierOptionEngine(
+            const ext::shared_ptr<GeneralizedBlackScholesProcess>& process);
         void calculate() const;
       private:
-        boost::shared_ptr<GeneralizedBlackScholesProcess> process_;
+        ext::shared_ptr<GeneralizedBlackScholesProcess> process_;
         Real underlying() const;
         Real strike() const;
         Time residualTime() const;

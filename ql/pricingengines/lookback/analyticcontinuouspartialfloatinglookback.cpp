@@ -25,15 +25,15 @@ namespace QuantLib {
 
     AnalyticContinuousPartialFloatingLookbackEngine::
     AnalyticContinuousPartialFloatingLookbackEngine(
-             const boost::shared_ptr<GeneralizedBlackScholesProcess>& process)
+             const ext::shared_ptr<GeneralizedBlackScholesProcess>& process)
     : process_(process) {
         registerWith(process_);
     }
 
     void AnalyticContinuousPartialFloatingLookbackEngine::calculate() const {
 
-        boost::shared_ptr<FloatingTypePayoff> payoff =
-            boost::dynamic_pointer_cast<FloatingTypePayoff>(arguments_.payoff);
+        ext::shared_ptr<FloatingTypePayoff> payoff =
+            ext::dynamic_pointer_cast<FloatingTypePayoff>(arguments_.payoff);
         QL_REQUIRE(payoff, "Non-floating payoff given");
 
         QL_REQUIRE(process_->x0() > 0.0, "negative or null underlying");
@@ -115,7 +115,7 @@ namespace QuantLib {
         {
             e1 = (carry + vol * vol / 2) * (residualTime() - lookbackPeriodEndTime()) / (vol * std::sqrt(residualTime() - lookbackPeriodEndTime()));
             e2 = e1 - vol * std::sqrt(residualTime() - lookbackPeriodEndTime());
-        } 
+        }
 
         Real f1 = (ls + (carry + vol * vol / 2) * lookbackPeriodEndTime()) / (vol * std::sqrt(lookbackPeriodEndTime()));
         Real f2 = f1 - vol * std::sqrt(lookbackPeriodEndTime());

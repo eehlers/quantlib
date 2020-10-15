@@ -3,7 +3,7 @@
 /*
  Copyright (C) 2001, 2002, 2003 Sadruddin Rejeb
  Copyright (C) 2006, 2014 Ferdinando Ametrano
- Copyright (C) 2006 François du Vignaud
+ Copyright (C) 2006 FranÃ§ois du Vignaud
  Copyright (C) 2006, 2007 StatPro Italia srl
 
  This file is part of QuantLib, a free-software/open-source library
@@ -64,6 +64,10 @@ namespace QuantLib {
         CapFloor(Type type,
                  const Leg& floatingLeg,
                  const std::vector<Rate>& strikes);
+        //! \name Observable interface
+        //@{
+        void deepUpdate();
+        //@}
         //! \name Instrument interface
         //@{
         bool isExpired() const;
@@ -78,9 +82,9 @@ namespace QuantLib {
 
         Date startDate() const;
         Date maturityDate() const;
-        boost::shared_ptr<FloatingRateCoupon> lastFloatingRateCoupon() const;
+        ext::shared_ptr<FloatingRateCoupon> lastFloatingRateCoupon() const;
         //! Returns the n-th optionlet as a new CapFloor with only one cash flow.
-        boost::shared_ptr<CapFloor> optionlet(const Size n) const;
+        ext::shared_ptr<CapFloor> optionlet(Size n) const;
         //@}
         Rate atmRate(const YieldTermStructure& discountCurve) const;
         //! implied term volatility
@@ -94,17 +98,6 @@ namespace QuantLib {
                                  Volatility maxVol = 4.0,
                                  VolatilityType type = ShiftedLognormal,
                                  Real displacement = 0.0) const;
-        QL_DEPRECATED
-        Volatility impliedVolatility(
-                                 Real price,
-                                 const Handle<YieldTermStructure>& disc,
-                                 Volatility guess,
-                                 Real accuracy,
-                                 Natural maxEvaluations,
-                                 Volatility minVol,
-                                 Volatility maxVol,
-                                 Real displacement,
-                                 VolatilityType type = ShiftedLognormal) const;
       private:
         Type type_;
         Leg floatingLeg_;
@@ -158,7 +151,7 @@ namespace QuantLib {
         std::vector<Real> gearings;
         std::vector<Real> spreads;
         std::vector<Real> nominals;
-        std::vector<boost::shared_ptr<InterestRateIndex> > indexes;
+        std::vector<ext::shared_ptr<InterestRateIndex> > indexes;
         void validate() const;
     };
 

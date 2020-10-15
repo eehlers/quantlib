@@ -41,6 +41,7 @@ namespace QuantLib {
         \ingroup optimizers
     */
 
+    //! Simulated Annealing
     template <class RNG = MersenneTwisterUniformRng>
     class SimulatedAnnealing : public OptimizationMethod {
 
@@ -101,7 +102,7 @@ namespace QuantLib {
         Real result = 0;
         for (Size i = 0; i < vertices_.size(); ++i) {
             Array temp = vertices_[i] - center;
-            result += std::sqrt(DotProduct(temp, temp));
+            result += Norm2(temp);
         }
         return result / Real(vertices_.size());
     }
@@ -134,7 +135,6 @@ namespace QuantLib {
             }
         }
         ytry_ = yflu_;
-        return;
     }
 
     template <class RNG>

@@ -23,7 +23,7 @@ namespace QuantLib {
 
     NewZealand::NewZealand() {
         // all calendar instances share the same implementation instance
-        static boost::shared_ptr<Calendar::Impl> impl(new NewZealand::Impl);
+        static ext::shared_ptr<Calendar::Impl> impl(new NewZealand::Impl);
         impl_ = impl;
     }
 
@@ -60,7 +60,7 @@ namespace QuantLib {
             // Boxing Day, December 26th (possibly Monday or Tuesday)
             || ((d == 26 || (d == 28 && (w == Monday || w == Tuesday)))
                 && m == December))
-            return false;
+            return false; // NOLINT(readability-simplify-boolean-expr)
         return true;
     }
 

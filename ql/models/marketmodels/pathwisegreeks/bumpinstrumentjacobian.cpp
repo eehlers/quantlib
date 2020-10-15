@@ -39,8 +39,7 @@ namespace QuantLib
 
     }
 
-    const std::vector<Real> VolatilityBumpInstrumentJacobian::derivativesVolatility(Size j) const
-    {
+    std::vector<Real> VolatilityBumpInstrumentJacobian::derivativesVolatility(Size j) const {
         QL_REQUIRE(j < swaptions_.size()+caps_.size(), "too high index passed to VolatilityBumpInstrumentJacobian::derivativesVolatility");
 
         if (computed_[j])
@@ -113,16 +112,13 @@ namespace QuantLib
 
 
      return derivatives_[initj];
-
     }
 
-     
-    const std::vector<Real> VolatilityBumpInstrumentJacobian::onePercentBump(Size j) const
-    {
+
+    std::vector<Real> VolatilityBumpInstrumentJacobian::onePercentBump(Size j) const {
         derivativesVolatility(j); 
     
         return onePercentBumps_[j];
-     
     }
 
     const Matrix& VolatilityBumpInstrumentJacobian::getAllOnePercentBumps() const
@@ -162,7 +158,7 @@ namespace QuantLib
 
         Size numberRestrictedBumps(projector.numberValidVectors());
 
-        boost::shared_ptr<MarketModel> marketmodel(derivativesProducer_.getInputBumps().associatedModel());
+        ext::shared_ptr<MarketModel> marketmodel(derivativesProducer_.getInputBumps().associatedModel());
         const EvolutionDescription& evolution(marketmodel->evolution());
 
         Size numberSteps = evolution.numberOfSteps();

@@ -24,9 +24,8 @@
 #include <ql/experimental/credit/basket.hpp>
 #include <ql/experimental/credit/defaultlossmodel.hpp>
 #include <ql/experimental/credit/constantlosslatentmodel.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/bind.hpp>
+#include <ql/math/functional.hpp>
+#include <ql/functional.hpp>
 #include <algorithm>
 #include <numeric>
 
@@ -39,10 +38,10 @@ namespace QuantLib {
     with no excesive cost over the LHP.\par
     See:\par
     <b>Approximating Independent Loss Distributions with an Adjusted Binomial 
-    Distribution</b> , Dominic O’Kane, 2007 EDHEC RISK AND ASSET MANAGEMENT 
+    Distribution</b> , Dominic O'Kane, 2007 EDHEC RISK AND ASSET MANAGEMENT 
     RESEARCH CENTRE \par
     <b>Modelling single name and multi-name credit derivatives</b> Chapter 
-    18.5.2, Dominic O’Kane, Wiley Finance, 2008 \par
+    18.5.2, Dominic O'Kane, Wiley Finance, 2008 \par
     The version presented here is adaptated to the multifactorial case
     by computing a conditional binomial approximation; notice that the Binomial
     is stable. This way the model can be used also in risk management models
@@ -63,8 +62,8 @@ namespace QuantLib {
     class BinomialLossModel : public DefaultLossModel {
     public:
         typedef typename LLM::copulaType copulaType;
-        BinomialLossModel(
-            const boost::shared_ptr<LLM>& copula)
+        explicit BinomialLossModel(
+            const ext::shared_ptr<LLM>& copula)
         : copula_(copula) { }
     private:
         void resetModel() {
@@ -81,6 +80,7 @@ namespace QuantLib {
         */
         Disposable<std::vector<Real> > 
             expectedDistribution(const Date& date) const {
+            using namespace ext::placeholders;
             // precal date conditional magnitudes:
             std::vector<Real> notionals = basket_->remainingNotionals(date);
             std::vector<Probability> invProbs = 
@@ -90,14 +90,14 @@ namespace QuantLib {
                     copula_->inverseCumulativeY(invProbs[iName], iName);
 
             return copula_->integratedExpectedValue(
-                boost::function<Disposable<std::vector<Real> > (
+                ext::function<Disposable<std::vector<Real> > (
                   const std::vector<Real>& v1)>(
-                    boost::bind(
+                    ext::bind(
                         &BinomialLossModel<LLM>::lossProbability,
                         this,
-                        boost::cref(date), //d,
-                        boost::cref(notionals),
-                        boost::cref(invProbs),
+                        ext::cref(date), //d,
+                        ext::cref(notionals),
+                        ext::cref(invProbs),
                         _1)
                     )
                 );
@@ -111,7 +111,7 @@ namespace QuantLib {
         Real percentile(const Date& d, Real percentile) const;
         Real expectedShortfall(const Date&d, Real percentile) const;
         Real expectedTrancheLoss(const Date& d) const;
-    protected:
+
         // Model internal workings ----------------
         //! Average loss per credit.
         Real averageLoss(const Date&, const std::vector<Real>& reminingNots, 
@@ -143,8 +143,8 @@ namespace QuantLib {
                 const std::vector<Real>& bsktNots,
                 const std::vector<Real>& uncondDefProbInv, 
                             const std::vector<Real>&  mktFactor) const;
-    protected:
-        const boost::shared_ptr<LLM> copula_;
+
+        const ext::shared_ptr<LLM> copula_;
 
         // cached arguments:
         // remaining basket magnitudes:
@@ -182,7 +182,8 @@ namespace QuantLib {
             bsktNots.begin(), std::back_inserter(lgdsLeft), 
             std::multiplies<Real>());
         Real avgLgd = 
-            std::accumulate(lgdsLeft.begin(), lgdsLeft.end(), Real(0.)) / bsktSize;
+            std::accumulate(lgdsLeft.begin(), lgdsLeft.end(), Real(0.)) /
+                bsktSize;
 
         std::vector<Probability> condDefProb(bsktSize, 0.);
         for(Size j=0; j<bsktSize; j++)//transform
@@ -203,8 +204,8 @@ namespace QuantLib {
         // nu_E
         std::vector<Probability> oneMinusDefProb;//: 1.-condDefProb[j]
         std::transform(condDefProb.begin(), condDefProb.end(), 
-            std::back_inserter(oneMinusDefProb), 
-            std::bind1st(std::minus<Real>(), 1.));
+                       std::back_inserter(oneMinusDefProb), 
+                       subtract_from<Real>(1.0));
 
         //breaks condDefProb and lgdsLeft to spare memory
         std::transform(condDefProb.begin(), condDefProb.end(), 
@@ -272,28 +273,29 @@ namespace QuantLib {
         */
         std::vector<Real> fractionalEL = expConditionalLgd(d, mktFctrs);
         Real notBskt = std::accumulate(reminingNots.begin(), 
-            reminingNots.end(), Real(0.));
+                                       reminingNots.end(), Real(0.));
         std::vector<Real> lgdsLeft;
         std::transform(fractionalEL.begin(), fractionalEL.end(), 
-            reminingNots.begin(), std::back_inserter(lgdsLeft),
-            boost::lambda::_1 * boost::lambda::_2 / notBskt);
+                       reminingNots.begin(), std::back_inserter(lgdsLeft),
+                       std::multiplies<Real>());
         return std::accumulate(lgdsLeft.begin(), lgdsLeft.end(), Real(0.)) 
-            / bsktSize;
+            / (bsktSize*notBskt);
     }
 
     template< class LLM>
     Disposable<std::vector<Real> >
         BinomialLossModel<LLM>::lossPoints(const Date& d) const 
     {
+        using namespace ext::placeholders;
         std::vector<Real> notionals = basket_->remainingNotionals(d);
 
         Real aveLossFrct = copula_->integratedExpectedValue(
-            boost::function<Real (const std::vector<Real>& v1)>(
-                boost::bind(
+            ext::function<Real (const std::vector<Real>& v1)>(
+                ext::bind(
                     &BinomialLossModel<LLM>::averageLoss,
                     this,
-                    boost::cref(d),
-                    boost::cref(notionals),
+                    ext::cref(d),
+                    ext::cref(notionals),
                     _1)
                 )
             );
@@ -330,6 +332,7 @@ namespace QuantLib {
 
     template< class LLM>
     Real BinomialLossModel<LLM>::expectedTrancheLoss(const Date& d) const {
+        using namespace ext::placeholders;
         std::vector<Real> lossVals  = lossPoints(d);
         std::vector<Real> notionals = basket_->remainingNotionals(d);
         std::vector<Probability> invProbs = 
@@ -339,13 +342,13 @@ namespace QuantLib {
                 copula_->inverseCumulativeY(invProbs[iName], iName);
             
         return copula_->integratedExpectedValue(
-            boost::function<Real (const std::vector<Real>& v1)>(
-                boost::bind(&BinomialLossModel<LLM>::condTrancheLoss,
+            ext::function<Real (const std::vector<Real>& v1)>(
+                ext::bind(&BinomialLossModel<LLM>::condTrancheLoss,
                             this,
-                            boost::cref(d), 
-                            boost::cref(lossVals), 
-                            boost::cref(notionals), 
-                            boost::cref(invProbs), 
+                            ext::cref(d), 
+                            ext::cref(lossVals), 
+                            ext::cref(notionals), 
+                            ext::cref(invProbs), 
                             _1))
             );
     }
@@ -382,10 +385,10 @@ namespace QuantLib {
         if(perc == 1.) return dist.rbegin()->first;
         if(perc == 0.) return dist.begin()->first;
         std::map<Real, Probability>::const_iterator itdist = dist.begin();
-        while(itdist->second <= perc) itdist++;
+        while (itdist->second <= perc) ++itdist;
         Real valPlus = itdist->second;
         Real xPlus   = itdist->first;
-        itdist--;//we r never 1st or last, because of tests above
+        --itdist; //we're never 1st or last, because of tests above
         Real valMin  = itdist->second;
         Real xMin    = itdist->first;
 
@@ -406,9 +409,10 @@ namespace QuantLib {
 
             std::map<Real, Probability>::iterator 
                 itNxt, itDist = distrib.begin();
-            for(; itDist != distrib.end(); itDist++) 
+            for(; itDist != distrib.end(); ++itDist)
                 if(itDist->second >= perctl) break;
-            itNxt = itDist; itDist--;
+            itNxt = itDist;
+            --itDist;
 
             // \todo: I could linearly triangulate the exact point and get 
             //    extra precission on the first(broken) period.
@@ -421,7 +425,7 @@ namespace QuantLib {
                 Real val =  lossNxt - (itNxt->second - perctl) * 
                     (lossNxt - lossHere) / (itNxt->second - itDist->second); 
                 Real suma = (itNxt->second - perctl) * (lossNxt + val) * .5;
-                itDist++;itNxt++;
+                ++itDist; ++itNxt;
                 do{
                     lossNxt = std::min(std::max(itNxt->first - attachAmount_, 
                         0.), detachAmount_ - attachAmount_);
@@ -429,7 +433,7 @@ namespace QuantLib {
                         0.), detachAmount_ - attachAmount_);
                     suma += .5 * (lossHere + lossNxt) 
                         * (itNxt->second - itDist->second);
-                    itDist++;itNxt++;
+                    ++itDist; ++itNxt;
                 }while(itNxt != distrib.end());
                 return suma / (1.-perctl);
             }

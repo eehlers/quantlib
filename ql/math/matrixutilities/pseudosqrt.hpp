@@ -40,14 +40,14 @@ namespace QuantLib {
         return an approximation of the pseudo square root
         using a (user selected) salvaging algorithm.
 
-        For more information see: R. Rebonato and P. Jäckel, The most
+        For more information see: R. Rebonato and P. JÃ¤ckel, The most
         general methodology to create a valid correlation matrix for
         risk management and option pricing purposes, The Journal of
         Risk, 2(2), Winter 1999/2000.
         http://www.rebonato.com/correlationmatrix.pdf
 
         Revised and extended in "Monte Carlo Methods in Finance",
-        by Peter Jäckel, Chapter 6.
+        by Peter JÃ¤ckel, Chapter 6.
 
         \pre the given matrix must be symmetric.
 
@@ -61,9 +61,8 @@ namespace QuantLib {
         - the correctness of the results is tested by checking
           returned values against numerical calculations.
     */
-    const Disposable<Matrix> pseudoSqrt(
-                        const Matrix&,
-                        SalvagingAlgorithm::Type = SalvagingAlgorithm::None);
+    Disposable<Matrix> pseudoSqrt(const Matrix&,
+                                  SalvagingAlgorithm::Type = SalvagingAlgorithm::None);
 
     //! Returns the rank-reduced pseudo square root of a real symmetric matrix
     /*! The result matrix has rank<=maxRank. If maxRank>=size, then the
@@ -78,11 +77,10 @@ namespace QuantLib {
 
         \relates Matrix
     */
-    const Disposable<Matrix> rankReducedSqrt(const Matrix&,
-                                             Size maxRank,
-                                             Real componentRetainedPercentage,
-                                             SalvagingAlgorithm::Type);
-
+    Disposable<Matrix> rankReducedSqrt(const Matrix&,
+                                       Size maxRank,
+                                       Real componentRetainedPercentage,
+                                       SalvagingAlgorithm::Type);
 }
 
 

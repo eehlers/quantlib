@@ -34,7 +34,7 @@ namespace QuantLib {
 
     std::ostream& operator<<(std::ostream& out,
                              const CommodityCashFlows& cashFlows) {
-        if (cashFlows.size() == 0)
+        if (cashFlows.empty())
             return out << "no cashflows" << std::endl;
         out << "cashflows" << std::endl;
         std::string currencyCode; //= cashFlows[0]->discountedAmount().currency().code();
@@ -42,8 +42,8 @@ namespace QuantLib {
         Real totalUndiscounted = 0;
         for (CommodityCashFlows::const_iterator i = cashFlows.begin();
              i != cashFlows.end(); ++i) {
-            //const boost::shared_ptr<CommodityCashFlow> cashFlow = *i;
-            const boost::shared_ptr<CommodityCashFlow> cashFlow = i->second;
+            //const ext::shared_ptr<CommodityCashFlow> cashFlow = *i;
+            const ext::shared_ptr<CommodityCashFlow> cashFlow = i->second;
             totalDiscounted += cashFlow->discountedAmount().value();
             totalUndiscounted += cashFlow->undiscountedAmount().value();
             //out << io::iso_date(cashFlow->date()) << " " <<

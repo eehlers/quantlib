@@ -31,18 +31,29 @@
 #define quantlib_parallel_test_runner_hpp
 
 #include <ql/types.hpp>
+#include <ql/errors.hpp>
+#include <ql/functional.hpp>
 
-#include <boost/timer.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
+#ifdef VERSION
+/* This comes from ./configure, and for some reason it interferes with
+   the internals of the unit test library in Boost 1.63. */
+#undef VERSION
+#endif
+
 #include <boost/thread/thread.hpp>
 #include <boost/interprocess/ipc/message_queue.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
+#include <boost/timer/timer.hpp>
 
 #define BOOST_TEST_NO_MAIN 1
+#if BOOST_VERSION < 107000
+#define timer __TIMER__
 #include <boost/test/included/unit_test.hpp>
-
+#undef timer
+#else
+#include <boost/test/included/unit_test.hpp>
+#endif
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -51,13 +62,18 @@
 #include <sstream>
 #include <utility>
 #include <fstream>
-#include <iostream>
 
 #include <string>
 #include <cstring>
 #include <cstdlib>
 
 #ifdef BOOST_MSVC
+#  define BOOST_LIB_NAME boost_timer
+#  include <boost/config/auto_link.hpp>
+#  undef BOOST_LIB_NAME
+#  define BOOST_LIB_NAME boost_chrono
+#  include <boost/config/auto_link.hpp>
+#  undef BOOST_LIB_NAME
 #  define BOOST_LIB_NAME boost_system
 #  include <boost/config/auto_link.hpp>
 #  undef BOOST_LIB_NAME
@@ -101,7 +117,7 @@ namespace {
         }
 
         void visit(test_case const& tc) {
-            if (test_enabled(tc.p_id))
+            if (test_enabled(tc.p_id) != 0u)
                 idMap_[tc.p_parent_id].push_back(tc.p_id);
         }
 
@@ -145,7 +161,7 @@ namespace {
     void output_logstream(
         std::ostream& out, std::streambuf* outBuf, std::stringstream& s) {
 
-        static named_mutex mutex(open_or_create, "namesLogMutexName");
+        static named_mutex mutex(open_or_create, namesLogMutexName);
         scoped_lock<named_mutex> lock(mutex);
 
         out.flush();
@@ -157,8 +173,8 @@ namespace {
 
         for (std::vector<std::string>::const_iterator iter = tok.begin();
             iter != tok.end(); ++iter) {
-            if (iter->length() && iter->compare("Running 1 test case...")) {
-                out << *iter << std::endl;
+            if ((iter->length() != 0u) && (iter->compare("Running 1 test case...") != 0)) {
+                out << *iter  << std::endl;
             }
         }
 
@@ -166,13 +182,13 @@ namespace {
         out.rdbuf(s.rdbuf());
     }
 
-	std::ostream& log_stream() {
-	#if BOOST_VERSION < 106200
-		return s_log_impl().stream();
-	#else
-		return s_log_impl().m_log_formatter_data.front().stream();
-	#endif
-	}
+    std::ostream& log_stream() {
+    #if BOOST_VERSION < 106200
+        return s_log_impl().stream();
+    #else
+        return s_log_impl().m_log_formatter_data.front().stream();
+    #endif
+    }
 }
 
 
@@ -190,18 +206,19 @@ int main( int argc, char* argv[] )
     const std::string clientModeStr = "--client_mode=true";
     const bool clientMode = (std::string(argv[argc-1]) == clientModeStr);
 
-    unsigned int priority;
     message_queue::size_type recvd_size;
 
     try {
+        unsigned int priority;
         if (!clientMode) {
             std::map<std::string, Time> runTimeLog;
 
             std::ifstream in(profileFileName);
             if (in.good()) {
+                // NOLINTNEXTLINE(readability-implicit-bool-conversion)
                 for (std::string line; std::getline(in, line);) {
                     std::vector<std::string> tok;
-                    boost::split(tok, line, boost::is_any_of(" "));
+                    boost::split(tok, line, boost::is_any_of(":"));
 
                     QL_REQUIRE(tok.size() == 2,
                         "every line should consists of two entries");
@@ -263,28 +280,14 @@ int main( int argc, char* argv[] )
                 sizeof(RuntimeLog));
 
             // run root test cases in master process
-            const std::list<test_unit_id> qlRoot
-                = (tcc.map().count(tcc.testSuiteId()))
-                    ? tcc.map().find(tcc.testSuiteId())->second
-                    : std::list<test_unit_id>();
-
-            std::stringstream logBuf;
-            std::streambuf* const oldBuf = log_stream().rdbuf();
-            log_stream().rdbuf(logBuf.rdbuf());
-
-            for (std::list<test_unit_id>::const_iterator iter = qlRoot.begin();
-                std::distance(qlRoot.begin(), iter) < int(qlRoot.size())-1;
-                ++iter) {
-
-                framework::impl::s_frk_state().execute_test_tree(*iter);
-            }
-            output_logstream(log_stream(), oldBuf, logBuf);
-            log_stream().rdbuf(oldBuf);
+            const std::list<test_unit_id> qlRoot = (tcc.map().count(tcc.testSuiteId())) != 0u ?
+                                                       tcc.map().find(tcc.testSuiteId())->second :
+                                                       std::list<test_unit_id>();
 
             // fork worker processes
             boost::thread_group threadGroup;
             for (unsigned i=0; i < nProc; ++i) {
-                threadGroup.create_thread(boost::bind(worker, cmd.str()));
+                threadGroup.create_thread(QuantLib::ext::bind(worker, cmd.str()));
             }
 
             struct mutex_remove {
@@ -292,7 +295,7 @@ int main( int argc, char* argv[] )
             } mutex_remover;
 
             struct queue_remove {
-                queue_remove(const char* name) : name_(name) { }
+                explicit queue_remove(const char* name) : name_(name) { }
                 ~queue_remove() { message_queue::remove(name_); }
 
             private:
@@ -315,7 +318,7 @@ int main( int argc, char* argv[] )
                         const std::string name
                             = framework::get(*it, TUT_ANY).p_name;
 
-                        if (runTimeLog.count(name)) {
+                        if (runTimeLog.count(name) != 0u) {
                             testsSortedByRunTime.insert(
                                 std::make_pair(runTimeLog[name], *it));
                         }
@@ -361,17 +364,6 @@ int main( int argc, char* argv[] )
                     = remoteResults.results;
             }
 
-            if (!qlRoot.empty()) {
-                std::streambuf* const oldBuf = log_stream().rdbuf();
-                log_stream().rdbuf(logBuf.rdbuf());
-
-                const test_unit_id id = qlRoot.back();
-                framework::impl::s_frk_state().execute_test_tree(id);
-
-                output_logstream(log_stream(), oldBuf, logBuf);
-                log_stream().rdbuf(oldBuf);
-            }
-
             TestCaseReportAggregator tca;
             traverse_test_tree(framework::master_test_suite(), tca , true);
 
@@ -388,7 +380,7 @@ int main( int argc, char* argv[] )
             out << std::setprecision(6);
             for (std::map<std::string, QuantLib::Time>::const_iterator
                 iter = runTimeLog.begin(); iter != runTimeLog.end(); ++iter) {
-                out << iter->first << " " << iter->second << std::endl;
+                out << iter->first << ":" << iter->second << std::endl;
             }
             out.close();
 
@@ -419,27 +411,33 @@ int main( int argc, char* argv[] )
             message_queue rq(open_only, testResultQueueName);
 
             while (!id.terminate) {
-                boost::timer t;
+                boost::timer::cpu_timer t;
 
-                BOOST_TEST_FOREACH( test_observer*, to,
-                    framework::impl::s_frk_state().m_observers )
-                    framework::impl::s_frk_state().m_aux_em.vexecute(
-                        boost::bind( &test_observer::test_start, to, 1 ) );
+                #if BOOST_VERSION < 106200
+                    BOOST_TEST_FOREACH( test_observer*, to,
+                        framework::impl::s_frk_state().m_observers )
+                        framework::impl::s_frk_state().m_aux_em.vexecute(
+                            ext::bind( &test_observer::test_start, to, 1 ) );
 
-                framework::impl::s_frk_state().execute_test_tree( id.id );
+                    framework::impl::s_frk_state().execute_test_tree( id.id );
 
-                BOOST_TEST_REVERSE_FOREACH( test_observer*, to,
-                    framework::impl::s_frk_state().m_observers )
-                    to->test_finish();
+                    BOOST_TEST_REVERSE_FOREACH( test_observer*, to,
+                        framework::impl::s_frk_state().m_observers )
+                        to->test_finish();
+                #else
+                    // works for BOOST_VERSION > 106100, needed for >106500
+                    framework::run(id.id, false);
+                #endif
 
                 runTimeLogs.push_back(std::make_pair(
-                    framework::get(id.id, TUT_ANY).p_name, t.elapsed()));
+                    framework::get(id.id, TUT_ANY).p_name, t.elapsed().wall));
 
                 output_logstream(log_stream(), oldBuf, logBuf);
 
                 QualifiedTestResults results
                     = { id.id,
                         boost::unit_test::results_collector.results(id.id) };
+
                 rq.send(&results, sizeof(QualifiedTestResults), 0);
 
                 mq.receive(&id, sizeof(TestCaseId), recvd_size, priority);
@@ -500,9 +498,12 @@ int main( int argc, char* argv[] )
 
     #if BOOST_VERSION < 106000
     return runtime_config::no_result_code()
-    #else
+    #elif BOOST_VERSION < 106400
     // changed in Boost 1.60
     return !runtime_config::get<bool>( runtime_config::RESULT_CODE )
+    #else
+    // changed again in Boost 1.64
+    return !runtime_config::get<bool>( runtime_config::btrt_result_code )
     #endif
         ? boost::exit_success
         : results_collector.results(

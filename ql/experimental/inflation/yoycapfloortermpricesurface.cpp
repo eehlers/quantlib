@@ -24,7 +24,7 @@ namespace QuantLib {
     YoYCapFloorTermPriceSurface::
     YoYCapFloorTermPriceSurface(Natural fixingDays,
                                 const Period &lag,
-                                const boost::shared_ptr<YoYInflationIndex>& yii,
+                                const ext::shared_ptr<YoYInflationIndex>& yii,
                                 Rate baseRate,
                                 const Handle<YieldTermStructure> &nominal,
                                 const DayCounter &dc,
@@ -35,8 +35,8 @@ namespace QuantLib {
                                 const std::vector<Period> &cfMaturities,
                                 const Matrix &cPrice,
                                 const Matrix &fPrice)
-    : InflationTermStructure(0, cal, baseRate, lag, yii->frequency(), yii->interpolated(), nominal, dc),
-      fixingDays_(fixingDays), bdc_(bdc), yoyIndex_(yii),
+    : InflationTermStructure(0, cal, baseRate, lag, yii->frequency(), yii->interpolated(), dc),
+      fixingDays_(fixingDays), bdc_(bdc), yoyIndex_(yii), nominalTS_(nominal),
       cStrikes_(cStrikes), fStrikes_(fStrikes),
       cfMaturities_(cfMaturities), cPrice_(cPrice), fPrice_(fPrice) {
 

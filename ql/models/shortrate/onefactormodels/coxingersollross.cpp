@@ -31,33 +31,33 @@ namespace QuantLib {
             Impl(Real k, Real theta) : k_(k), theta_(theta) {}
             bool test(const Array& params) const {
                 Real sigma = params[0];
-                if (sigma <= 0.0)
-                    return false;
-                if (sigma*sigma >= 2.0*k_*theta_)
-                    return false;
-                return true;
+                return (sigma > 0.0) && (sigma*sigma < 2.0*k_*theta_);
             }
         };
       public:
         VolatilityConstraint(Real k, Real theta)
-        : Constraint(boost::shared_ptr<Constraint::Impl>(
+        : Constraint(ext::shared_ptr<Constraint::Impl>(
                                  new VolatilityConstraint::Impl(k, theta))) {}
     };
 
     CoxIngersollRoss::CoxIngersollRoss(Rate r0, Real theta,
-                                       Real k, Real sigma)
+                                       Real k, Real sigma,
+                                       bool withFellerConstraint)
     : OneFactorAffineModel(4),
       theta_(arguments_[0]), k_(arguments_[1]),
       sigma_(arguments_[2]), r0_(arguments_[3]) {
         theta_ = ConstantParameter(theta, PositiveConstraint());
         k_ = ConstantParameter(k, PositiveConstraint());
-        sigma_ = ConstantParameter(sigma, VolatilityConstraint(k,theta));
+        if (withFellerConstraint)
+            sigma_ = ConstantParameter(sigma, VolatilityConstraint(k,theta));
+        else
+            sigma_ = ConstantParameter(sigma, PositiveConstraint());
         r0_ = ConstantParameter(r0, PositiveConstraint());
     }
 
-    boost::shared_ptr<OneFactorModel::ShortRateDynamics>
+    ext::shared_ptr<OneFactorModel::ShortRateDynamics>
     CoxIngersollRoss::dynamics() const {
-        return boost::shared_ptr<ShortRateDynamics>(
+        return ext::shared_ptr<ShortRateDynamics>(
                                   new Dynamics(theta(), k() , sigma(), x0()));
     }
 
@@ -109,8 +109,8 @@ namespace QuantLib {
         Real ncps = 2.0*rho*rho*x0()*std::exp(h*t)/(rho+psi+b);
         Real ncpt = 2.0*rho*rho*x0()*std::exp(h*t)/(rho+psi);
 
-        NonCentralChiSquareDistribution chis(df, ncps);
-        NonCentralChiSquareDistribution chit(df, ncpt);
+        NonCentralCumulativeChiSquareDistribution chis(df, ncps);
+        NonCentralCumulativeChiSquareDistribution chit(df, ncpt);
 
         Real z = std::log(A(t,s)/strike)/b;
         Real call = discountS*chis(2.0*z*(rho+psi+b)) -
@@ -122,11 +122,11 @@ namespace QuantLib {
             return call - discountS + strike*discountT;
     }
 
-    boost::shared_ptr<Lattice>
+    ext::shared_ptr<Lattice>
     CoxIngersollRoss::tree(const TimeGrid& grid) const {
-        boost::shared_ptr<TrinomialTree> trinomial(
+        ext::shared_ptr<TrinomialTree> trinomial(
                         new TrinomialTree(dynamics()->process(), grid, true));
-        return boost::shared_ptr<Lattice>(
+        return ext::shared_ptr<Lattice>(
                               new ShortRateTree(trinomial, dynamics(), grid));
     }
 

@@ -36,12 +36,11 @@ namespace QuantLib {
     /*! Provides sequences of random default times for each name in the pool. */
     class RandomDefaultModel : public Observer, public Observable {
     public:
-        RandomDefaultModel(boost::shared_ptr<Pool> pool,
-                           const std::vector<DefaultProbKey>& defaultKeys)
-        : pool_(pool), defaultKeys_(defaultKeys) {
-            // assuming none defaulted this is true.
-            QL_REQUIRE(defaultKeys.size() == pool->size(),
-                       "Incompatible pool and keys sizes.");
+      RandomDefaultModel(const ext::shared_ptr<Pool>& pool,
+                         const std::vector<DefaultProbKey>& defaultKeys)
+      : pool_(pool), defaultKeys_(defaultKeys) {
+          // assuming none defaulted this is true.
+          QL_REQUIRE(defaultKeys.size() == pool->size(), "Incompatible pool and keys sizes.");
         }
         virtual ~RandomDefaultModel() {}
         void update() { notifyObservers(); }
@@ -54,7 +53,7 @@ namespace QuantLib {
         virtual void nextSequence(Real tmax = QL_MAX_REAL) = 0;
         virtual void reset() = 0;
     protected:
-        boost::shared_ptr<Pool> pool_;
+        ext::shared_ptr<Pool> pool_;
         std::vector<DefaultProbKey> defaultKeys_;
     };
 
@@ -63,13 +62,13 @@ namespace QuantLib {
     */
     class GaussianRandomDefaultModel : public RandomDefaultModel {
     public:
-        GaussianRandomDefaultModel(
-                               boost::shared_ptr<Pool> pool,
-                               const std::vector<DefaultProbKey>& defaultKeys,
-                               Handle<OneFactorCopula> copula,
-                               Real accuracy, long seed);
-        void nextSequence(Real tmax = QL_MAX_REAL);
-        void reset();
+      GaussianRandomDefaultModel(const ext::shared_ptr<Pool>& pool,
+                                 const std::vector<DefaultProbKey>& defaultKeys,
+                                 const Handle<OneFactorCopula>& copula,
+                                 Real accuracy,
+                                 long seed);
+      void nextSequence(Real tmax = QL_MAX_REAL);
+      void reset();
     private:
         Handle<OneFactorCopula> copula_;
         Real accuracy_;

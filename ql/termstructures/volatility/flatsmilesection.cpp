@@ -2,7 +2,7 @@
 
 /*
  Copyright (C) 2007 Ferdinando Ametrano
- Copyright (C) 2007 François du Vignaud
+ Copyright (C) 2007 FranÃ§ois du Vignaud
  Copyright (C) 2007 Giorgio Facchinetti
  Copyright (C) 2015 Peter Caspers
 
@@ -41,23 +41,6 @@ namespace QuantLib {
                                        VolatilityType type,
                                        Real shift)
     : SmileSection(exerciseTime, dc, type, shift),
-      vol_(vol), atmLevel_(atmLevel) {}
-
-    FlatSmileSection::FlatSmileSection(const Date& d,
-                                       Volatility vol,
-                                       const DayCounter& dc,
-                                       const Date& referenceDate,
-                                       Real atmLevel,
-                                       Real shift)
-    : SmileSection(d, dc, referenceDate, ShiftedLognormal, shift),
-      vol_(vol), atmLevel_(atmLevel) {}
-
-    FlatSmileSection::FlatSmileSection(Time exerciseTime,
-                                       Volatility vol,
-                                       const DayCounter& dc,
-                                       Real atmLevel,
-                                       Real shift)
-    : SmileSection(exerciseTime, dc, ShiftedLognormal, shift),
       vol_(vol), atmLevel_(atmLevel) {}
 
 }

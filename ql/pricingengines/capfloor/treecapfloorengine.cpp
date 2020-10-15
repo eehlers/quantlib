@@ -24,7 +24,7 @@
 namespace QuantLib {
 
     TreeCapFloorEngine::TreeCapFloorEngine(
-                               const boost::shared_ptr<ShortRateModel>& model,
+                               const ext::shared_ptr<ShortRateModel>& model,
                                Size timeSteps,
                                const Handle<YieldTermStructure>& termStructure)
     : LatticeShortRateModelEngine<CapFloor::arguments,
@@ -34,7 +34,7 @@ namespace QuantLib {
     }
 
     TreeCapFloorEngine::TreeCapFloorEngine(
-                               const boost::shared_ptr<ShortRateModel>& model,
+                               const ext::shared_ptr<ShortRateModel>& model,
                                const TimeGrid& timeGrid,
                                const Handle<YieldTermStructure>& termStructure)
     : LatticeShortRateModelEngine<CapFloor::arguments,
@@ -50,9 +50,9 @@ namespace QuantLib {
         Date referenceDate;
         DayCounter dayCounter;
 
-        boost::shared_ptr<TermStructureConsistentModel> tsmodel =
-            boost::dynamic_pointer_cast<TermStructureConsistentModel>(*model_);
-        if (tsmodel) {
+        ext::shared_ptr<TermStructureConsistentModel> tsmodel =
+            ext::dynamic_pointer_cast<TermStructureConsistentModel>(*model_);
+        if (tsmodel != 0) {
             referenceDate = tsmodel->termStructure()->referenceDate();
             dayCounter = tsmodel->termStructure()->dayCounter();
         } else {
@@ -61,9 +61,9 @@ namespace QuantLib {
         }
 
         DiscretizedCapFloor capfloor(arguments_, referenceDate, dayCounter);
-        boost::shared_ptr<Lattice> lattice;
+        ext::shared_ptr<Lattice> lattice;
 
-        if (lattice_) {
+        if (lattice_ != 0) {
             lattice = lattice_;
         } else {
             std::vector<Time> times = capfloor.mandatoryTimes();

@@ -26,6 +26,7 @@
 
 #include <ql/models/shortrate/onefactormodel.hpp>
 #include <ql/stochasticprocess.hpp>
+#include <ql/processes/eulerdiscretization.hpp>
 
 namespace QuantLib {
 
@@ -45,16 +46,17 @@ namespace QuantLib {
         CoxIngersollRoss(Rate r0 = 0.05,
                          Real theta = 0.1,
                          Real k = 0.1,
-                         Real sigma = 0.1);
+                         Real sigma = 0.1,
+                         bool withFellerConstraint = true);
 
         virtual Real discountBondOption(Option::Type type,
                                         Real strike,
                                         Time maturity,
                                         Time bondMaturity) const;
 
-        virtual boost::shared_ptr<ShortRateDynamics> dynamics() const;
+        virtual ext::shared_ptr<ShortRateDynamics> dynamics() const;
 
-        boost::shared_ptr<Lattice> tree(const TimeGrid& grid) const;
+        ext::shared_ptr<Lattice> tree(const TimeGrid& grid) const;
 
         class Dynamics;
       protected:
@@ -79,7 +81,10 @@ namespace QuantLib {
     class CoxIngersollRoss::HelperProcess : public StochasticProcess1D {
       public:
         HelperProcess(Real theta, Real k, Real sigma, Real y0)
-        : y0_(y0), theta_(theta), k_(k), sigma_(sigma) {}
+        : y0_(y0), theta_(theta), k_(k), sigma_(sigma) {
+            discretization_ =
+                ext::shared_ptr<discretization>(new EulerDiscretization);
+        }
 
         Real x0() const {
             return y0_;
@@ -112,7 +117,7 @@ namespace QuantLib {
                  Real k,
                  Real sigma,
                  Real x0)
-        : ShortRateDynamics(boost::shared_ptr<StochasticProcess1D>(
+        : ShortRateDynamics(ext::shared_ptr<StochasticProcess1D>(
                         new HelperProcess(theta, k, sigma, std::sqrt(x0)))) {}
 
         virtual Real variable(Time, Rate r) const {

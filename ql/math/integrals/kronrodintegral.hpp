@@ -1,8 +1,8 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2007 François du Vignaud
- Copyright (C) 2003 Niels Elken Sønderby
+ Copyright (C) 2007 FranÃ§ois du Vignaud
+ Copyright (C) 2003 Niels Elken SÃ¸nderby
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -29,7 +29,7 @@
 #include <ql/types.hpp>
 #include <ql/utilities/null.hpp>
 #include <ql/math/integrals/integral.hpp>
-#include <boost/function.hpp>
+#include <ql/functional.hpp>
 
 namespace QuantLib {
 
@@ -57,7 +57,7 @@ namespace QuantLib {
         void setRelativeAccuracy(Real);
         Real relativeAccuracy() const;
       protected:
-        Real integrate(const boost::function<Real (Real)>& f,
+        Real integrate(const ext::function<Real (Real)>& f,
                        Real a,
                        Real b) const;
       private:
@@ -85,14 +85,14 @@ namespace QuantLib {
     */
     class GaussKronrodAdaptive : public Integrator {
       public:
-          GaussKronrodAdaptive(Real tolerance,
-                               Size maxFunctionEvaluations = Null<Size>());
+        explicit GaussKronrodAdaptive(Real tolerance,
+                                      Size maxFunctionEvaluations = Null<Size>());
       protected:
-          Real integrate(const boost::function<Real (Real)>& f,
+          Real integrate(const ext::function<Real (Real)>& f,
                          Real a,
                          Real b) const;
       private:
-          Real integrateRecursively(const boost::function<Real (Real)>& f,
+          Real integrateRecursively(const ext::function<Real (Real)>& f,
                                     Real a,
                                     Real b,
                                     Real tolerance) const;

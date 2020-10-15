@@ -30,6 +30,7 @@
 #include <ql/experimental/commodities/exchangecontract.hpp>
 #include <ql/currency.hpp>
 #include <ql/math/interpolations/forwardflatinterpolation.hpp>
+#include <ql/time/daycounters/actual365fixed.hpp>
 
 namespace QuantLib {
 
@@ -69,19 +70,19 @@ namespace QuantLib {
 
         void setPrices(std::map<Date, Real>& prices);
         void setBasisOfCurve(
-                       const boost::shared_ptr<CommodityCurve>& basisOfCurve);
+                       const ext::shared_ptr<CommodityCurve>& basisOfCurve);
 
         Real price(
                const Date& d,
-               const boost::shared_ptr<ExchangeContracts>& exchangeContracts,
+               const ext::shared_ptr<ExchangeContracts>& exchangeContracts,
                Integer nearbyOffset) const;
         Real basisOfPrice(const Date& d) const;
         Date underlyingPriceDate(
                 const Date& date,
-                const boost::shared_ptr<ExchangeContracts>& exchangeContracts,
+                const ext::shared_ptr<ExchangeContracts>& exchangeContracts,
                 Integer nearbyOffset) const;
 
-        const boost::shared_ptr<CommodityCurve>& basisOfCurve() const;
+        const ext::shared_ptr<CommodityCurve>& basisOfCurve() const;
 
         friend std::ostream& operator<<(std::ostream& out,
                                         const CommodityCurve& curve);
@@ -97,7 +98,7 @@ namespace QuantLib {
         mutable std::vector<Real> data_;
         mutable Interpolation interpolation_;
         ForwardFlat interpolator_;
-        boost::shared_ptr<CommodityCurve> basisOfCurve_;
+        ext::shared_ptr<CommodityCurve> basisOfCurve_;
         Real basisOfCurveUomConversionFactor_;
 
         Real priceImpl(Time t) const;
@@ -134,7 +135,7 @@ namespace QuantLib {
         return dates_.empty();
     }
 
-    inline const boost::shared_ptr<CommodityCurve>&
+    inline const ext::shared_ptr<CommodityCurve>&
     CommodityCurve::basisOfCurve() const {
         return basisOfCurve_;
     }
@@ -154,7 +155,7 @@ namespace QuantLib {
     // gets a price that can include an arbitrary number of basis curves
     inline Real CommodityCurve::price(
                 const Date& d,
-                const boost::shared_ptr<ExchangeContracts>& exchangeContracts,
+                const ext::shared_ptr<ExchangeContracts>& exchangeContracts,
                 Integer nearbyOffset) const {
         Date date = nearbyOffset > 0 ?
             underlyingPriceDate(d, exchangeContracts, nearbyOffset) : d;
@@ -173,15 +174,14 @@ namespace QuantLib {
     // curves, rolls on the underlying contract expiry
     inline Date CommodityCurve::underlyingPriceDate(
                 const Date& date,
-                const boost::shared_ptr<ExchangeContracts>& exchangeContracts,
+                const ext::shared_ptr<ExchangeContracts>& exchangeContracts,
                 Integer nearbyOffset) const {
         QL_REQUIRE(nearbyOffset > 0, "nearby offset must be > 0");
         ExchangeContracts::const_iterator ic =
             exchangeContracts->lower_bound(date);
         if (ic != exchangeContracts->end()) {
-            int i;
-            for (i = 0; i < nearbyOffset-1 && ic!=exchangeContracts->end(); i++)
-                ic++;
+            for (int i = 0; i < nearbyOffset-1 && ic!=exchangeContracts->end(); ++i)
+                ++ic;
             QL_REQUIRE(ic != exchangeContracts->end(),
                        "not enough nearby contracts available for curve ["
                        << name() << "] for date [" << date << "].");

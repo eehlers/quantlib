@@ -72,10 +72,8 @@ namespace QuantLib {
     }
 
 
-    bool VegaBumpCluster::isCompatible(const boost::shared_ptr<MarketModel>& volStructure) const
+    bool VegaBumpCluster::isCompatible(const ext::shared_ptr<MarketModel>& volStructure) const
     {
-
-
         if (rateEnd_ > volStructure->numberOfRates())
             return false;
 
@@ -87,16 +85,12 @@ namespace QuantLib {
 
         Size firstAliveRate = volStructure->evolution().firstAliveRate()[stepEnd_-1];
 
-        if (rateBegin_ < firstAliveRate) // if the rate has reset before the beginning of the last step of the bump
-            return false;
-
-        return true;
-
+        return rateBegin_ >= firstAliveRate; // if the rate has reset after the beginning of the last step of the bump
     }
 
 
 
-    VegaBumpCollection::VegaBumpCollection(const boost::shared_ptr<MarketModel>& volStructure,
+    VegaBumpCollection::VegaBumpCollection(const ext::shared_ptr<MarketModel>& volStructure,
                            bool factorwiseBumping)
                             : associatedVolStructure_(volStructure)
     {
@@ -132,7 +126,7 @@ namespace QuantLib {
     }
 
 
-    VegaBumpCollection::VegaBumpCollection(const std::vector<VegaBumpCluster>& allBumps,  const boost::shared_ptr<MarketModel>& volStructure)
+    VegaBumpCollection::VegaBumpCollection(const std::vector<VegaBumpCluster>& allBumps,  const ext::shared_ptr<MarketModel>& volStructure)
         : allBumps_(allBumps), associatedVolStructure_(volStructure), checked_(false)
     {
         for (Size j=0; j < allBumps_.size(); ++j)

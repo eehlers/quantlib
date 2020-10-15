@@ -24,10 +24,10 @@
 namespace QuantLib {
 
     DigitalPathPricer::DigitalPathPricer(
-                    const boost::shared_ptr<CashOrNothingPayoff>& payoff,
-                    const boost::shared_ptr<AmericanExercise>& exercise,
+                    const ext::shared_ptr<CashOrNothingPayoff>& payoff,
+                    const ext::shared_ptr<AmericanExercise>& exercise,
                     const Handle<YieldTermStructure>& discountTS,
-                    const boost::shared_ptr<StochasticProcess1D>& diffProcess,
+                    const ext::shared_ptr<StochasticProcess1D>& diffProcess,
                     const PseudoRandom::ursg_type& sequenceGen)
     : payoff_(payoff), exercise_(exercise), diffProcess_(diffProcess),
       sequenceGen_(sequenceGen), discountTS_(discountTS) {}
@@ -39,7 +39,7 @@ namespace QuantLib {
         Real log_asset_price = std::log(path.front());
         Real x, y;
         Volatility vol;
-        TimeGrid timeGrid = path.timeGrid();
+        const TimeGrid& timeGrid = path.timeGrid();
         Time dt;
         std::vector<Real> u = sequenceGen_.nextSequence().value;
         Real log_strike = std::log(payoff_->strike());

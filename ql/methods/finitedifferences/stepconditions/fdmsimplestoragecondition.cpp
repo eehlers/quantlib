@@ -26,15 +26,15 @@ namespace QuantLib {
 
     FdmSimpleStorageCondition::FdmSimpleStorageCondition(
             const std::vector<Time> & exerciseTimes,
-            const boost::shared_ptr<FdmMesher>& mesher,
-            const boost::shared_ptr<FdmInnerValueCalculator>& calculator,
+            const ext::shared_ptr<FdmMesher>& mesher,
+            const ext::shared_ptr<FdmInnerValueCalculator>& calculator,
             Real changeRate)
     : exerciseTimes_(exerciseTimes),
       mesher_       (mesher),
       calculator_   (calculator),
       changeRate_   (changeRate) {
 
-        const boost::shared_ptr<FdmLinearOpLayout> layout = mesher_->layout();
+        const ext::shared_ptr<FdmLinearOpLayout> layout = mesher_->layout();
 
         x_.reserve(layout->dim()[0]);
         y_.reserve(layout->dim()[1]);
@@ -42,10 +42,10 @@ namespace QuantLib {
         const FdmLinearOpIterator endIter = layout->end();
         for (FdmLinearOpIterator iter = layout->begin(); iter != endIter;
              ++iter) {
-            if (!iter.coordinates()[1]) {
+            if (iter.coordinates()[1] == 0U) {
                 x_.push_back(mesher_->location(iter, 0));
             }
-            if (!iter.coordinates()[0]) {
+            if (iter.coordinates()[0] == 0U) {
                 y_.push_back(mesher_->location(iter, 1));
             }
         }
@@ -64,7 +64,11 @@ namespace QuantLib {
             BilinearInterpolation interpl(x_.begin(), x_.end(),
                                           y_.begin(), y_.end(), m);
 
-            const boost::shared_ptr<FdmLinearOpLayout> layout=mesher_->layout();
+            const ext::shared_ptr<FdmLinearOpLayout> layout=mesher_->layout();
+
+            QL_REQUIRE(layout->size() == a.size(),
+                       "inconsistent array dimensions");
+
             const FdmLinearOpIterator endIter = layout->end();
 
             for (FdmLinearOpIterator iter = layout->begin(); iter != endIter;

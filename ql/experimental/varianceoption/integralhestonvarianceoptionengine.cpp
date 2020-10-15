@@ -23,7 +23,7 @@
 
 #include <ql/experimental/varianceoption/integralhestonvarianceoptionengine.hpp>
 #include <ql/errors.hpp>
-#include <boost/function.hpp>
+#include <ql/functional.hpp>
 #include <boost/scoped_array.hpp>
 #include <complex>
 
@@ -133,7 +133,7 @@ namespace QuantLib {
          */
         for (j=0;j<=mm-1;j++)
         {
-            xiv[j+1]=(double)(j-mm/2)*nris;
+            xiv[j+1]=(j-mm/2.0)*nris;
         }
 
         for (j=0;j<=mm-1;j++)
@@ -199,7 +199,7 @@ namespace QuantLib {
 
     Real IvopTwoDim(Real eps, Real chi, Real theta, Real /*rho*/,
                     Real v0, Time tau, Real rtax,
-                    const boost::function<Real(Real)>& payoff) {
+                    const ext::function<Real(Real)>& payoff) {
 
         Real ss=0.0;
         boost::scoped_array<double> xiv(new double[2048*2048+1]);
@@ -218,8 +218,8 @@ namespace QuantLib {
 
         boost::scoped_array<Complex> ff(new Complex[2048*2048]);
         Complex xi;
-        Complex ui,beta,zita,gamma,csum,vero;
-        Complex contrib, caux, caux1,caux2,caux3;
+        Complex ui,beta,zita,gamma,csum;
+        Complex caux,caux1,caux2,caux3;
 
         ui=Complex(0.0,1.0);
 
@@ -284,8 +284,8 @@ namespace QuantLib {
 
         for (j=0;j<=mm-1;j++)
         {
-            xiv[j+1]=(double)(j-mm/2)*nris;
-            ivet[j+1]=(double)(j-mm/2)*pi2/((double)mm*nris);
+            xiv[j+1]=(j-mm/2.0)*nris;
+            ivet[j+1]=(j-mm/2.0)*pi2/((double)mm*nris);
         }
 
         for (j=0;j<=mm-1;j++)
@@ -346,9 +346,8 @@ namespace QuantLib {
     }
 
     struct payoff_adapter {
-        boost::shared_ptr<QuantLib::Payoff> payoff;
-        payoff_adapter(boost::shared_ptr<QuantLib::Payoff> payoff)
-        : payoff(payoff) {}
+        ext::shared_ptr<QuantLib::Payoff> payoff;
+        explicit payoff_adapter(const ext::shared_ptr<QuantLib::Payoff>& payoff) : payoff(payoff) {}
         Real operator()(Real S) const {
             return (*payoff)(S);
         }
@@ -357,7 +356,7 @@ namespace QuantLib {
     }
 
     IntegralHestonVarianceOptionEngine::IntegralHestonVarianceOptionEngine(
-                              const boost::shared_ptr<HestonProcess>& process)
+                              const ext::shared_ptr<HestonProcess>& process)
     : process_(process) {
         registerWith(process_);
     }
@@ -382,9 +381,9 @@ namespace QuantLib {
                                         riskFreeRate->dayCounter(),
                                         Continuous);
 
-        boost::shared_ptr<PlainVanillaPayoff> plainPayoff =
-            boost::dynamic_pointer_cast<PlainVanillaPayoff>(arguments_.payoff);
-        if (plainPayoff && plainPayoff->optionType() == Option::Call) {
+        ext::shared_ptr<PlainVanillaPayoff> plainPayoff =
+            ext::dynamic_pointer_cast<PlainVanillaPayoff>(arguments_.payoff);
+        if ((plainPayoff != 0) && plainPayoff->optionType() == Option::Call) {
             // a specialization for Call options is available
             Real strike = plainPayoff->strike();
             results_.value = IvopOneDim(epsilon, chi, theta, rho,

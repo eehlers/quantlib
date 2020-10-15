@@ -136,7 +136,7 @@ namespace QuantLib {
 
     SaudiArabia::SaudiArabia(Market market) {
         // all calendar instances share the same implementation instance
-        static boost::shared_ptr<Calendar::Impl> tadawulImpl(
+        static ext::shared_ptr<Calendar::Impl> tadawulImpl(
                                                 new SaudiArabia::TadawulImpl);
         switch (market) {
           case Tadawul:
@@ -165,7 +165,7 @@ namespace QuantLib {
             || (d == 26 && m == February && y==2011)
             || (d == 19 && m == March && y==2011)
             )
-            return false;
+            return false; // NOLINT(readability-simplify-boolean-expr)
         return true;
     }
 

@@ -7,6 +7,8 @@
  Copyright (C) 2006 Katiuscia Manzoni
  Copyright (C) 2006 Toyin Akin
  Copyright (C) 2015 Klaus Spanderen
+ Copyright (C) 2020 Leonardo Arcari
+ Copyright (C) 2020 Kline s.r.l.
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -31,6 +33,7 @@
 #endif
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/functional/hash.hpp>
 #if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8)) || (__GNUC__ > 4))
 #pragma GCC diagnostic pop
 #endif
@@ -81,7 +84,7 @@ namespace QuantLib {
         bool leap = isLeap(year());
         while (d <= monthOffset(Month(m),leap))
             --m;
-        while (d > monthOffset(Month(m+1),leap))
+        while (d > monthOffset(Month(m+1),leap)) // NOLINT(misc-misplaced-widening-cast)
             ++m;
         return Month(m);
     }
@@ -594,7 +597,7 @@ namespace QuantLib {
             /(ticksPerSecond()/1000000);
     }
 
-    Size Date::ticksPerSecond() {
+    time_duration::tick_type Date::ticksPerSecond() {
         return time_duration::ticks_per_second();
     }
 
@@ -826,6 +829,17 @@ namespace QuantLib {
         }
     }
 
+    std::size_t hash_value(const Date& d) {
+#ifdef QL_HIGH_RESOLUTION_DATE
+        std::size_t seed = 0;
+        boost::hash_combine(seed, d.serialNumber());
+        boost::hash_combine(seed, d.dateTime().time_of_day().total_nanoseconds());
+        return seed;
+#else
+
+        return boost::hash<Date::serial_type>()(d.serialNumber());
+#endif
+    }
 
     // date formatting
 
@@ -842,7 +856,7 @@ namespace QuantLib {
             struct nopunct : std::numpunct<char> {
                 std::string do_grouping() const {return "";}
             };
-            FormatResetter(std::ostream &out)
+            explicit FormatResetter(std::ostream &out)
                 : out_(&out), flags_(out.flags()), filler_(out.fill()),
                   loc_(out.getloc()) {
                 std::locale loc (out.getloc(),new nopunct);
@@ -935,8 +949,11 @@ namespace QuantLib {
 
             out << io::iso_date(d) << "T";
             FormatResetter resetter(out);
-            Integer hh = d.hours(), mm = d.minutes(), s = d.seconds(),
-                    millis = d.milliseconds(), micros = d.microseconds();
+            const Hour hh= d.hours();
+            const Minute mm = d.minutes();
+            const Second s = d.seconds();
+            const Millisecond millis = d.milliseconds();
+            const Microsecond micros = d.microseconds();
 
             out << std::setw(2) << std::setfill('0') << hh << ":"
                 << std::setw(2) << std::setfill('0') << mm << ":"

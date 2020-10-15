@@ -36,33 +36,35 @@ namespace QuantLib {
         standard yoy inflation cap and floor.
      */
     class MakeYoYInflationCapFloor {
-    public:
-        MakeYoYInflationCapFloor(YoYInflationCapFloor::Type capFloorType,
+      public:
+        MakeYoYInflationCapFloor(
+                        YoYInflationCapFloor::Type capFloorType,
+                        const ext::shared_ptr<YoYInflationIndex>& index,
                         const Size& length, const Calendar& cal,
-                        const boost::shared_ptr<YoYInflationIndex>& index,
-                        const Period& observationLag, Rate strike = Null<Rate>(),
-                        const Period& forwardStart=0*Days);
+                        const Period& observationLag);
         MakeYoYInflationCapFloor& withNominal(Real n);
         MakeYoYInflationCapFloor& withEffectiveDate(const Date& effectiveDate);
         MakeYoYInflationCapFloor& withFirstCapletExcluded();
         MakeYoYInflationCapFloor& withPaymentDayCounter(const DayCounter&);
         MakeYoYInflationCapFloor& withPaymentAdjustment(BusinessDayConvention);
         MakeYoYInflationCapFloor& withFixingDays(Natural fixingDays);
-
-
-        operator YoYInflationCapFloor() const;
-        operator boost::shared_ptr<YoYInflationCapFloor>() const ;
-
+        MakeYoYInflationCapFloor& withPricingEngine(
+                const ext::shared_ptr<PricingEngine>& engine);
         //! only get last coupon
         MakeYoYInflationCapFloor& asOptionlet(bool b = true);
+        MakeYoYInflationCapFloor& withStrike(Rate strike);
+        MakeYoYInflationCapFloor& withAtmStrike(
+                      const Handle<YieldTermStructure>& nominalTermStructure);
+        MakeYoYInflationCapFloor& withForwardStart(Period forwardStart);
 
-        MakeYoYInflationCapFloor& withPricingEngine(
-                const boost::shared_ptr<PricingEngine>& engine);
-    private:
+        operator YoYInflationCapFloor() const;
+        operator ext::shared_ptr<YoYInflationCapFloor>() const ;
+
+      private:
         YoYInflationCapFloor::Type capFloorType_;
         Size length_;
         Calendar calendar_;
-        boost::shared_ptr<YoYInflationIndex> index_;
+        ext::shared_ptr<YoYInflationIndex> index_;
         Period observationLag_;
         Rate strike_;
         bool firstCapletExcluded_, asOptionlet_;
@@ -72,9 +74,9 @@ namespace QuantLib {
         BusinessDayConvention roll_;
         Natural fixingDays_;
         Real nominal_;
+        Handle<YieldTermStructure> nominalTermStructure_;
 
-
-        boost::shared_ptr<PricingEngine> engine_;
+        ext::shared_ptr<PricingEngine> engine_;
     };
 
 }

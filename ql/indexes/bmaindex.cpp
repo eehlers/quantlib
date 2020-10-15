@@ -45,7 +45,19 @@ namespace QuantLib {
                         1 * Weeks,
                         1,
                         USDCurrency(),
-                        UnitedStates(UnitedStates::NYSE),
+                        UnitedStates(UnitedStates::GovernmentBond),
+                        ActualActual(ActualActual::ISDA)),
+      termStructure_(h) {
+        registerWith (h);
+    }
+
+    BMAIndex::BMAIndex(const Handle<YieldTermStructure>& h,
+                       const Calendar& fixingCalendar)
+    : InterestRateIndex("BMA",
+                        1 * Weeks,
+                        1,
+                        USDCurrency(),
+                        fixingCalendar,
                         ActualActual(ActualActual::ISDA)),
       termStructure_(h) {
         registerWith (h);

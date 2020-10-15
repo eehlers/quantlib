@@ -28,12 +28,11 @@
 #include <ql/methods/finitedifferences/dplusdminus.hpp>
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
-#include <boost/make_shared.hpp>
 
 namespace QuantLib {
 
     ContinuousArithmeticAsianVecerEngine::ContinuousArithmeticAsianVecerEngine(
-         const boost::shared_ptr<GeneralizedBlackScholesProcess>& process,
+         const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
          const Handle<Quote>& currentAverage,
          Date startDate,
          Size timeSteps,
@@ -61,8 +60,8 @@ namespace QuantLib {
         Real S_0 = process_->stateVariable()->value();
 
         // payoff
-        boost::shared_ptr<StrikedTypePayoff> payoff =
-            boost::dynamic_pointer_cast<StrikedTypePayoff>(arguments_.payoff);
+        ext::shared_ptr<StrikedTypePayoff> payoff =
+            ext::dynamic_pointer_cast<StrikedTypePayoff>(arguments_.payoff);
         QL_REQUIRE(payoff, "non-plain payoff given");
 
         // original time to maturity
@@ -96,7 +95,7 @@ namespace QuantLib {
             // its a vanilla option. Use vanilla engine
             VanillaOption europeanOption(payoff, arguments_.exercise);
             europeanOption.setPricingEngine(
-                        boost::make_shared<AnalyticEuropeanEngine>(process_));
+                        ext::make_shared<AnalyticEuropeanEngine>(process_));
             results_.value = europeanOption.NPV();
 
         } else {
@@ -135,14 +134,6 @@ namespace QuantLib {
 
             u = u_initial;
 
-            // Save Solution in Collapsed Vector
-            std::vector<Real> u_surface((timeSteps_+1) * (assetSteps_ + 1));
-
-            // Save solution
-            for (Natural i=0; i<=assetSteps_; i++) {
-                u_surface[i] = u[i];
-            }
-
             // Start Time Loop
 
             for (Natural j = 1; j<=timeSteps_;j++) {
@@ -155,7 +146,7 @@ namespace QuantLib {
                             0.5 * sigma2 * vecerTerm * vecerTerm  * Dia[i],
                             0.5 * sigma2 *  vecerTerm * vecerTerm * upperD[i]);
                     }
-                    explicit_part = gammaOp.identity(gammaOp.size()) +
+                    explicit_part = TridiagonalOperator::identity(gammaOp.size()) +
                                     (1 - Theta) * k * gammaOp;
                     explicit_part.setFirstRow(1.0,0.0); // Apply before applying
                     explicit_part.setLastRow(-1.0,1.0); // Neumann BC
@@ -177,7 +168,7 @@ namespace QuantLib {
                             0.5 * sigma2 * vecerTerm * vecerTerm * upperD[i]);
                     }
 
-                    implicit_part = gammaOp.identity(gammaOp.size()) -
+                    implicit_part = TridiagonalOperator::identity(gammaOp.size()) -
                                     Theta * k * gammaOp;
 
                     // Apply before solving
@@ -188,11 +179,6 @@ namespace QuantLib {
                     rhs[assetSteps_] = h; // Upper BC (Neumann) Delta=1
                     u = implicit_part.solveFor(rhs);
                 } // End implicit Part
-
-                // Save solution
-                for (Natural i=0; i<=assetSteps_; i++) {
-                    u_surface[j*(assetSteps_+1) + i] = u[i];
-                }
             } // End Time Loop
 
             DownRounding Rounding(0);

@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2007 François du Vignaud
+ Copyright (C) 2007 FranÃ§ois du Vignaud
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -25,7 +25,7 @@
 #include <ql/utilities/disposable.hpp>
 #include <ql/math/matrix.hpp>
 #include <ql/math/optimization/costfunction.hpp>
-#include <boost/function.hpp>
+#include <ql/functional.hpp>
 #include <vector>
 
 namespace QuantLib {
@@ -67,7 +67,7 @@ namespace QuantLib {
 
     //! Returns the rank reduced Triangular Angles Parametrized correlation matrix
     /*! The matrix \f$ m \f$ is filled with values corresponding to angles
-        corresponding  to the 3D spherical spiral paramterized by
+        corresponding  to the 3D spherical spiral parameterized by
         \f$ alpha \f$, \f$ t0 \f$, \f$ epsilon \f$ values. See equation (32) in
         "Parameterizing correlations: a geometric interpretation"
         by Francesco Rapisarda, Damiano Brigo, Fabio Mercurio
@@ -86,7 +86,7 @@ namespace QuantLib {
 
     // the same function with parameters packed in an Array
     Disposable<Matrix>
-    triangularAnglesParametrizationRankThreeVectorial(const Array& paramters,
+    triangularAnglesParametrizationRankThreeVectorial(const Array& parameters,
                                                       Size nbRows);
 
     // Cost function associated with Frobenius norm.
@@ -95,7 +95,7 @@ namespace QuantLib {
       public:
         FrobeniusCostFunction(
             const Matrix& target,
-            const boost::function<Disposable<Matrix>(const Array&,
+            const ext::function<Disposable<Matrix>(const Array&,
                                                      Size,
                                                      Size)>& f,
                                                      Size matrixSize,
@@ -105,7 +105,7 @@ namespace QuantLib {
         Disposable<Array> values (const Array &x) const;
       private:
         Matrix target_;
-        boost::function<Disposable<Matrix>(const Array&, Size, Size)> f_;
+        ext::function<Disposable<Matrix>(const Array&, Size, Size)> f_;
         Size matrixSize_;
         Size rank_;
     };

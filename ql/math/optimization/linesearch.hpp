@@ -2,7 +2,7 @@
 
 /*
  Copyright (C) 2006 Ferdinando Ametrano
- Copyright (C) 2001, 2002, 2003 Nicolas Di Césaré
+ Copyright (C) 2001, 2002, 2003 Nicolas Di CÃ©sarÃ©
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -38,7 +38,7 @@ namespace QuantLib {
     class LineSearch {
       public:
         //! Default constructor
-        LineSearch(Real = 0.0)
+        explicit LineSearch(Real = 0.0)
         : qt_(0.0), qpt_(0.0), succeed_(true) {}
         //! Destructor
         virtual ~LineSearch() {}
@@ -46,19 +46,19 @@ namespace QuantLib {
         //! return last x value
         const Array& lastX() { return xtd_; }
         //! return last cost function value
-        Real lastFunctionValue() { return qt_; }
+        Real lastFunctionValue() const { return qt_; }
         //! return last gradient
         const Array& lastGradient() { return gradient_; }
         //! return square norm of last gradient
-        Real lastGradientNorm2() { return qpt_;}
+        Real lastGradientNorm2() const { return qpt_; }
 
-        bool succeed() { return succeed_; }
+        bool succeed() const { return succeed_; }
 
         //! Perform line search
         virtual Real operator()(Problem& P, // Optimization problem
                                 EndCriteria::Type& ecType,
                                 const EndCriteria&,
-                                const Real t_ini) = 0;      // initial value of line-search step
+                                Real t_ini) = 0; // initial value of line-search step
         Real update(Array& params,
                     const Array& direction,
                     Real beta,

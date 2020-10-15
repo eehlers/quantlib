@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2015 Johannes Goettker-Schnetmann
+ Copyright (C) 2015 Johannes Göttker-Schnetmann
  Copyright (C) 2015 Klaus Spanderen
 
  This file is part of QuantLib, a free-software/open-source library
@@ -42,21 +42,19 @@ namespace QuantLib {
 
     class HestonSLVMCModel : public LazyObject {
       public:
-        HestonSLVMCModel(
-            const Handle<LocalVolTermStructure>& localVol,
-            const Handle<HestonModel>& hestonModel,
-            const boost::shared_ptr<BrownianGeneratorFactory>& brownianGeneratorFactory,
-            const Date& endDate,
-            Size timeStepsPerYear = 365,
-            Size nBins = 201,
-            Size calibrationPaths = (1 << 15),
-            const std::vector<Date>& mandatoryDates = std::vector<Date>());
+        HestonSLVMCModel(const Handle<LocalVolTermStructure>& localVol,
+                         const Handle<HestonModel>& hestonModel,
+                         const ext::shared_ptr<BrownianGeneratorFactory>& brownianGeneratorFactory,
+                         const Date& endDate,
+                         Size timeStepsPerYear = 365,
+                         Size nBins = 201,
+                         Size calibrationPaths = (1 << 15),
+                         const std::vector<Date>& mandatoryDates = std::vector<Date>(),
+                         Real mixingFactor = 1.0);
 
-        void update();
-
-        boost::shared_ptr<HestonProcess> hestonProcess() const;
-        boost::shared_ptr<LocalVolTermStructure> localVol() const;
-        boost::shared_ptr<LocalVolTermStructure> leverageFunction() const;
+        ext::shared_ptr<HestonProcess> hestonProcess() const;
+        ext::shared_ptr<LocalVolTermStructure> localVol() const;
+        ext::shared_ptr<LocalVolTermStructure> leverageFunction() const;
 
       protected:
         void performCalculations() const;
@@ -64,12 +62,13 @@ namespace QuantLib {
       private:
         const Handle<LocalVolTermStructure> localVol_;
         const Handle<HestonModel> hestonModel_;
-        const boost::shared_ptr<BrownianGeneratorFactory> brownianGeneratorFactory_;
+        const ext::shared_ptr<BrownianGeneratorFactory> brownianGeneratorFactory_;
         const Date endDate_;
         const Size nBins_, calibrationPaths_;
-        boost::shared_ptr<TimeGrid> timeGrid_;
+        const Real mixingFactor_;
+        ext::shared_ptr<TimeGrid> timeGrid_;
 
-        mutable boost::shared_ptr<FixedLocalVolSurface> leverageFunction_;
+        mutable ext::shared_ptr<FixedLocalVolSurface> leverageFunction_;
     };
 }
 

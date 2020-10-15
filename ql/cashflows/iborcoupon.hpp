@@ -5,6 +5,8 @@
  Copyright (C) 2007 Giorgio Facchinetti
  Copyright (C) 2007 Cristina Duminuco
  Copyright (C) 2007 StatPro Italia srl
+ Copyright (C) 2017 Joseph Jeisman
+ Copyright (C) 2017 Fabrice Lecuyer
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -41,18 +43,19 @@ namespace QuantLib {
                    const Date& startDate,
                    const Date& endDate,
                    Natural fixingDays,
-                   const boost::shared_ptr<IborIndex>& index,
+                   const ext::shared_ptr<IborIndex>& index,
                    Real gearing = 1.0,
                    Spread spread = 0.0,
                    const Date& refPeriodStart = Date(),
                    const Date& refPeriodEnd = Date(),
                    const DayCounter& dayCounter = DayCounter(),
-                   bool isInArrears = false);
+                   bool isInArrears = false,
+                   const Date& exCouponDate = Date());
         //! \name Inspectors
         //@{
-        const boost::shared_ptr<IborIndex>& iborIndex() const {
-            return iborIndex_;
-        }
+        const ext::shared_ptr<IborIndex>& iborIndex() const { return iborIndex_; }
+        //! this is dependent on usingAtParCoupons()
+        const Date& fixingEndDate() const { return fixingEndDate_; }
         //@}
         //! \name FloatingRateCoupon interface
         //@{
@@ -64,21 +67,43 @@ namespace QuantLib {
         virtual void accept(AcyclicVisitor&);
         //@}
       private:
-        boost::shared_ptr<IborIndex> iborIndex_;
+        ext::shared_ptr<IborIndex> iborIndex_;
         Date fixingDate_, fixingValueDate_, fixingEndDate_;
         Time spanningTime_;
+
+      public:
+        /*! When called, IborCoupons are created as indexed coupons instead of par coupons. This
+         * method must be called before any IborCoupon is created, otherwise an exception is thrown.
+         */
+        static void createAtParCoupons();
+
+        /*! When called, IborCoupons are created as par coupons instead of indexed coupons. This
+         * method must be called before any IborCoupon is created, otherwise an exception is thrown.
+         */
+        static void createIndexedCoupons();
+
+        /*! If true the IborCoupons are created as par coupons and vice versa.
+         *  The default depends on the compiler flag QL_USE_INDEXED_COUPON and can be overwritten by
+         *  createAtParCoupons() and createIndexedCoupons()
+        */
+        static bool usingAtParCoupons() { return usingAtParCoupons_; }
+
+      private:
+        static bool constructorWasNotCalled_;
+        static bool usingAtParCoupons_;
     };
 
 
     //! helper class building a sequence of capped/floored ibor-rate coupons
     class IborLeg {
       public:
-        IborLeg(const Schedule& schedule,
-                const boost::shared_ptr<IborIndex>& index);
+        IborLeg(const Schedule& schedule, const ext::shared_ptr<IborIndex>& index);
         IborLeg& withNotionals(Real notional);
         IborLeg& withNotionals(const std::vector<Real>& notionals);
         IborLeg& withPaymentDayCounter(const DayCounter&);
         IborLeg& withPaymentAdjustment(BusinessDayConvention);
+        IborLeg& withPaymentLag(Natural lag);
+        IborLeg& withPaymentCalendar(const Calendar&);
         IborLeg& withFixingDays(Natural fixingDays);
         IborLeg& withFixingDays(const std::vector<Natural>& fixingDays);
         IborLeg& withGearings(Real gearing);
@@ -91,18 +116,29 @@ namespace QuantLib {
         IborLeg& withFloors(const std::vector<Rate>& floors);
         IborLeg& inArrears(bool flag = true);
         IborLeg& withZeroPayments(bool flag = true);
+        IborLeg& withExCouponPeriod(const Period&,
+                                    const Calendar&,
+                                    BusinessDayConvention,
+                                    bool endOfMonth = false);
         operator Leg() const;
+
       private:
         Schedule schedule_;
-        boost::shared_ptr<IborIndex> index_;
+        ext::shared_ptr<IborIndex> index_;
         std::vector<Real> notionals_;
         DayCounter paymentDayCounter_;
         BusinessDayConvention paymentAdjustment_;
+        Natural paymentLag_;
+        Calendar paymentCalendar_;
         std::vector<Natural> fixingDays_;
         std::vector<Real> gearings_;
         std::vector<Spread> spreads_;
         std::vector<Rate> caps_, floors_;
         bool inArrears_, zeroPayments_;
+        Period exCouponPeriod_;
+        Calendar exCouponCalendar_;
+        BusinessDayConvention exCouponAdjustment_;
+        bool exCouponEndOfMonth_;
     };
 
 }

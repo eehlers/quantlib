@@ -21,6 +21,7 @@ Docs/.time-stamp
 Docs/.time-stamp-html
 Docs/.time-stamp-online
 Docs/.time-stamp-man
+Docs/LICENSE.TXT
 Docs/reference-*/
 Docs/html/
 Docs/man/
@@ -44,6 +45,8 @@ test-suite/*.trs
 # Artifacts created in multiple directories
 Makefile
 Makefile.in
+unity.cpp
+unity_*.cpp
 testCaseCollection.xml
 .deps
 .libs
@@ -74,26 +77,28 @@ testCaseCollection.xml
 CMakeFiles
 *.cmake
 TAGS
+.dirstamp
 
 # Outputs
 Examples/BasketLosses/BasketLosses
 Examples/BermudanSwaption/BermudanSwaption
 Examples/Bonds/Bonds
-Examples/CDS/CDS
 Examples/CallableBonds/CallableBonds
+Examples/CDS/CDS
 Examples/ConvertibleBonds/ConvertibleBonds
 Examples/CVAIRS/CVAIRS
 Examples/DiscreteHedging/DiscreteHedging
 Examples/EquityOption/EquityOption
-Examples/FRA/FRA
 Examples/FittedBondCurve/FittedBondCurve
+Examples/FRA/FRA
+Examples/Gaussian1dModels/Gaussian1dModels
+Examples/GlobalOptimizer/GlobalOptimizer
 Examples/LatentModel/LatentModel
 Examples/MarketModels/MarketModels
 Examples/MultidimIntegral/MultidimIntegral
-Examples/Gaussian1dModels/Gaussian1dModels
+Examples/MulticurveBootstrapping/MulticurveBootstrapping
 Examples/Replication/Replication
 Examples/Repo/Repo
-Examples/Swap/SwapValuation
 test-suite/quantlib-test-suite
 test-suite/quantlib-benchmark
 test-suite/bin/*.exp
@@ -101,4 +106,15 @@ test-suite/bin/*.lib
 test-suite/bin/*.pdb
 test-suite/.unit_test_profile.txt
 
+# IDEs
+.vs
+.vscode
+.idea
+cmake-build-debug
+nbproject
+.cproject
 
+# User customizations
+.dir-locals.el
+Build.props
+Directory.Build.props

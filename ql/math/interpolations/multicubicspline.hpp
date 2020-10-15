@@ -134,12 +134,8 @@ namespace QuantLib {
             operator data_type() const {
                 return first;
             }
-            data_type operator[](Size n) const {
-                return n ? second[n - 1] : first;
-            }
-            data_type& operator[](Size n) {
-                return n ? second[n - 1] : first;
-            }
+            data_type operator[](Size n) const { return n != 0U ? second[n - 1] : first; }
+            data_type& operator[](Size n) { return n != 0U ? second[n - 1] : first; }
             data_type first;
             Y second;
         };
@@ -211,7 +207,7 @@ namespace QuantLib {
 
         template<> struct Point<base_data_table, EmptyRes> {
             typedef base_data_table data_type;
-            Point<base_data_table, EmptyRes>(data_type s)
+            Point<base_data_table, EmptyRes>(const data_type& s)
             : first(s) {}
             Point<base_data_table, EmptyRes>(const SplineGrid::const_iterator &i)
             : first(i->size()) {}
@@ -230,8 +226,10 @@ namespace QuantLib {
 
         // no heap memory is allocated
         // in any of the recursive calls
-        class base_cubic_spline : public std::unary_function<Real,Real> {
+        class base_cubic_spline {
           public:
+            typedef Real argument_type;
+            typedef Real result_type;
             typedef base_data data;
             typedef base_data_table data_table;
             typedef base_output_data output_data;
@@ -250,7 +248,7 @@ namespace QuantLib {
                     (v[k] = (u += d[j] * v[j])) /= t;
                 }
                 y2[0] = y2[dim] = 0.0;
-                while (k) {
+                while (k != 0U) {
                     (y2[k-1] *= y2[l-1]) += v[k-1];
                     --k; --l;
                 }
@@ -277,8 +275,10 @@ namespace QuantLib {
             output_data &v_;
         };
 
-        class base_cubic_splint : public std::unary_function<base_arg_type,Real> {
+        class base_cubic_splint {
           public:
+            typedef base_arg_type argument_type;
+            typedef Real result_type;
             typedef base_data data;
             typedef base_data_table data_table;
             typedef base_dimensions dimensions;
@@ -297,23 +297,22 @@ namespace QuantLib {
         };
 
         template<class X>
-        class n_cubic_splint : public
-        std::unary_function<Point<Real, typename X::argument_type>, Real> {
+        class n_cubic_splint {
           public:
-            typedef std::unary_function<Point<Real, typename X::argument_type>,
-                                        Real> super;
+            typedef Point<Real, typename X::argument_type> argument_type;
+            typedef Real result_type;
             typedef Data<base_data, typename X::data> data;
             typedef DataTable<typename X::data_table> data_table;
             typedef Point<Size, typename X::dimensions> dimensions;
             typedef Point<base_output_data, typename X::output_data> output_data;
-            typedef Point<typename super::result_type,
+            typedef Point<result_type,
                           typename X::return_type> return_type;
             n_cubic_splint(const return_type &a, const return_type &b,
                            const return_type &a2, const return_type &b2,
                            const dimensions &i, const data &d, const data &d2,
                            const data_table &y, data_table &y2, output_data &v,
                            output_data &v1, output_data &v2,
-                           typename super::result_type& r)
+                           result_type& r)
             :  a_(a), b_(b), a2_(a2), b2_(b2), i_(i), d_(d), d2_(d2),
                y_(y), y2_(y2), v_(v), v1_(v1), v2_(v2) {
                 for(Size j = 0, dim = y_.size(); j < dim; ++j)
@@ -517,7 +516,8 @@ namespace QuantLib {
                 y[j].swap(tmp2);
                 for(; k < dim; ++k) {
                     if((x[j][k] = v[k + 1] - v[k]) <= 0.0) break;
-                    if(k) y[j][k - 1] = 2.0 * (v[k + 1] - v[k - 1]);
+                    if (k != 0U)
+                        y[j][k - 1] = 2.0 * (v[k + 1] - v[k - 1]);
                 }
             }
             QL_REQUIRE(dim >= 3,

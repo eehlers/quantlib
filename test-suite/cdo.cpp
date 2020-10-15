@@ -26,7 +26,6 @@
 #include <ql/experimental/credit/randomdefaultlatentmodel.hpp>
 #include <ql/experimental/credit/inhomogeneouspooldef.hpp>
 #include <ql/experimental/credit/homogeneouspooldef.hpp>
-
 #include <ql/experimental/credit/gaussianlhplossmodel.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/credit/flathazardrate.hpp>
@@ -35,8 +34,8 @@
 #include <ql/time/daycounters/actualactual.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/currencies/europe.hpp>
-
-#include <boost/bind.hpp>
+#include <ql/functional.hpp>
+#include <boost/preprocessor/iteration/local.hpp>
 #include <iomanip>
 #include <iostream>
 
@@ -44,7 +43,9 @@ using namespace QuantLib;
 using namespace std;
 using namespace boost::unit_test_framework;
 
-namespace {
+#ifndef QL_PATCH_SOLARIS
+
+namespace cdo_test {
 
     Real hwAttachment[] = { 0.00, 0.03, 0.06, 0.10 };
     Real hwDetachment[] = { 0.03, 0.06, 0.10, 1.00 };
@@ -73,7 +74,7 @@ namespace {
         { 0.3,  5,  5, { 1713, 359, 136,  9 } }
     };
 
-    void check(int i, int j, string desc, Real found, Real expected,
+    void check(int i, int j, const string& desc, Real found, Real expected,
                Real bpTolerance, Real relativeTolerance) 
     {
         /* Uncomment to display the full show if your debugging:
@@ -90,10 +91,16 @@ namespace {
 
 }
 
+#endif
+
+
 void CdoTest::testHW(unsigned dataSet) {
+    #ifndef QL_PATCH_SOLARIS
 
     BOOST_TEST_MESSAGE ("Testing CDO premiums against Hull-White values"
                         " for data set " << dataSet << "...");
+
+    using namespace cdo_test;
 
     SavedSettings backup;
 
@@ -123,18 +130,18 @@ void CdoTest::testHW(unsigned dataSet) {
 
     Settings::instance().evaluationDate() = asofDate;
 
-    boost::shared_ptr<YieldTermStructure> yieldPtr(
+    ext::shared_ptr<YieldTermStructure> yieldPtr(
                                               new FlatForward (asofDate, rate,
                                                                daycount, cmp));
     Handle<YieldTermStructure> yieldHandle (yieldPtr);
 
-    Handle<Quote> hazardRate(boost::shared_ptr<Quote>(new SimpleQuote(lambda)));
+    Handle<Quote> hazardRate(ext::shared_ptr<Quote>(new SimpleQuote(lambda)));
     vector<Handle<DefaultProbabilityTermStructure> > basket;
-    boost::shared_ptr<DefaultProbabilityTermStructure> ptr (
+    ext::shared_ptr<DefaultProbabilityTermStructure> ptr (
                new FlatHazardRate (asofDate,
                                    hazardRate,
                                    ActualActual()));
-    boost::shared_ptr<Pool> pool (new Pool());
+    ext::shared_ptr<Pool> pool (new Pool());
     vector<string> names;
     // probability key items
     vector<Issuer> issuers;
@@ -157,27 +164,27 @@ void CdoTest::testHW(unsigned dataSet) {
                 EURCurrency(), QuantLib::SeniorSec, Period(), 1.));
     }
 
-    boost::shared_ptr<SimpleQuote> correlation (new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> correlation (new SimpleQuote(0.0));
     Handle<Quote> hCorrelation (correlation);
     QL_REQUIRE (LENGTH(hwAttachment) == LENGTH(hwDetachment),
                 "data length does not match");
 
-    boost::shared_ptr<PricingEngine> midPCDOEngine( new MidPointCDOEngine(
+    ext::shared_ptr<PricingEngine> midPCDOEngine( new MidPointCDOEngine(
         yieldHandle));
-    boost::shared_ptr<PricingEngine> integralCDOEngine( new IntegralCDOEngine(
+    ext::shared_ptr<PricingEngine> integralCDOEngine( new IntegralCDOEngine(
         yieldHandle));
 
     const Size i = dataSet;
     correlation->setValue (hwData7[i].correlation);
     QL_REQUIRE (LENGTH(hwAttachment) == LENGTH(hwData7[i].trancheSpread),
                 "data length does not match");
-    std::vector<boost::shared_ptr<DefaultLossModel> > basketModels;
+    std::vector<ext::shared_ptr<DefaultLossModel> > basketModels;
     std::vector<std::string> modelNames;
     std::vector<Real> relativeToleranceMidp, relativeTolerancePeriod,
         absoluteTolerance;
 
     if (hwData7[i].nm == -1 && hwData7[i].nz == -1){
-        boost::shared_ptr<GaussianConstantLossLM> gaussKtLossLM(new
+        ext::shared_ptr<GaussianConstantLossLM> gaussKtLossLM(new
             GaussianConstantLossLM(hCorrelation,
             std::vector<Real>(poolSize, recovery),
             LatentModelIntegrationType::GaussianQuadrature, poolSize,
@@ -185,21 +192,21 @@ void CdoTest::testHW(unsigned dataSet) {
 
         // 1.-Inhomogeneous gaussian
         modelNames.push_back("Inhomogeneous gaussian");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>( new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>( new
             IHGaussPoolLossModel(gaussKtLossLM, nBuckets, 5., -5, 15)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.04);
         relativeTolerancePeriod.push_back(0.04);
         // 2.-homogeneous gaussian
         modelNames.push_back("Homogeneous gaussian");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>( new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>( new
             HomogGaussPoolLossModel(gaussKtLossLM, nBuckets, 5., -5, 15)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.04);
         relativeTolerancePeriod.push_back(0.04);
         // 3.-random default gaussian
         modelNames.push_back("Random default gaussian");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>(new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>(new
             RandomDefaultLM<GaussianCopulaPolicy>(gaussKtLossLM, numSims)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.07);
@@ -207,7 +214,7 @@ void CdoTest::testHW(unsigned dataSet) {
         // SECOND MC
         // gaussian LHP
         modelNames.push_back("Gaussian LHP");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>(new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>(new
             GaussianLHPLossModel(hCorrelation,
                 std::vector<Real>(poolSize, recovery))));
         absoluteTolerance.push_back(10.);
@@ -221,28 +228,28 @@ void CdoTest::testHW(unsigned dataSet) {
         TCopulaPolicy::initTraits initTG;
         initTG.tOrders.push_back(hwData7[i].nm);
         initTG.tOrders.push_back(hwData7[i].nz);
-        boost::shared_ptr<TConstantLossLM> TKtLossLM(new TConstantLossLM(
+        ext::shared_ptr<TConstantLossLM> TKtLossLM(new TConstantLossLM(
             hCorrelation, std::vector<Real>(poolSize, recovery),
             LatentModelIntegrationType::GaussianQuadrature,
             poolSize,
             initTG));
         // 1.-inhomogeneous studentT
         modelNames.push_back("Inhomogeneous student");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>( new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>( new
             IHStudentPoolLossModel(TKtLossLM, nBuckets, 5., -5., 15)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.04);
         relativeTolerancePeriod.push_back(0.04);
         // 2.-homogeneous student T
         modelNames.push_back("Homogeneous student");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>( new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>( new
             HomogTPoolLossModel(TKtLossLM, nBuckets, 5., -5., 15)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.04);
         relativeTolerancePeriod.push_back(0.04);
         // 3.-random default student T
         modelNames.push_back("Random default studentT");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>(new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>(new
             RandomDefaultLM<TCopulaPolicy>(TKtLossLM, numSims)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.07);
@@ -260,7 +267,7 @@ void CdoTest::testHW(unsigned dataSet) {
         be this conservative as the polynomial convolution gets shorter and
         faster as the order decreases.
         */
-        boost::shared_ptr<TConstantLossLM> TKtLossLM(new TConstantLossLM(
+        ext::shared_ptr<TConstantLossLM> TKtLossLM(new TConstantLossLM(
             hCorrelation,
             std::vector<Real>(poolSize, recovery),
             LatentModelIntegrationType::GaussianQuadrature,
@@ -268,21 +275,21 @@ void CdoTest::testHW(unsigned dataSet) {
             initTG));
         // 1.-inhomogeneous
         modelNames.push_back("Inhomogeneous student-gaussian");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>( new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>( new
             IHStudentPoolLossModel(TKtLossLM, nBuckets, 5., -5., 15)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.04);
         relativeTolerancePeriod.push_back(0.04);
         // 2.-homogeneous
         modelNames.push_back("Homogeneous student-gaussian");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>( new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>( new
             HomogTPoolLossModel(TKtLossLM, nBuckets, 5., -5., 15)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.04);
         relativeTolerancePeriod.push_back(0.04);
         // 3.-random default
         modelNames.push_back("Random default student-gaussian");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>(new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>(new
             RandomDefaultLM<TCopulaPolicy>(TKtLossLM, numSims)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.07);
@@ -296,7 +303,7 @@ void CdoTest::testHW(unsigned dataSet) {
         TCopulaPolicy::initTraits initTG;
         initTG.tOrders.push_back(45);// pretty close to gaussian
         initTG.tOrders.push_back(hwData7[i].nz);
-        boost::shared_ptr<TConstantLossLM> TKtLossLM(new TConstantLossLM(
+        ext::shared_ptr<TConstantLossLM> TKtLossLM(new TConstantLossLM(
             hCorrelation,
             std::vector<Real>(poolSize, recovery),
             LatentModelIntegrationType::GaussianQuadrature,
@@ -304,21 +311,21 @@ void CdoTest::testHW(unsigned dataSet) {
             initTG));
         // 1.-inhomogeneous gaussian
         modelNames.push_back("Inhomogeneous gaussian-student");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>( new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>( new
             IHStudentPoolLossModel(TKtLossLM, nBuckets, 5., -5., 15)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.04);
         relativeTolerancePeriod.push_back(0.04);
         // 2.-homogeneous gaussian
         modelNames.push_back("Homogeneous gaussian-student");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>( new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>( new
             HomogTPoolLossModel(TKtLossLM, nBuckets, 5., -5., 15)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.04);
         relativeTolerancePeriod.push_back(0.04);
         // 3.-random default gaussian
         modelNames.push_back("Random default gaussian-student");
-        basketModels.push_back(boost::shared_ptr<DefaultLossModel>(new
+        basketModels.push_back(ext::shared_ptr<DefaultLossModel>(new
             RandomDefaultLM<TCopulaPolicy>(TKtLossLM, numSims)));
         absoluteTolerance.push_back(1.);
         relativeToleranceMidp.push_back(0.07);
@@ -333,7 +340,7 @@ void CdoTest::testHW(unsigned dataSet) {
     }
 
     for (Size j = 0; j < LENGTH(hwAttachment); j ++) {
-        boost::shared_ptr<Basket> basketPtr (
+        ext::shared_ptr<Basket> basketPtr (
             new Basket(asofDate, names, nominals, pool,
                 hwAttachment[j], hwDetachment[j]));
         ostringstream trancheId;
@@ -359,13 +366,20 @@ void CdoTest::testHW(unsigned dataSet) {
                 absoluteTolerance[im], relativeTolerancePeriod[im]);
         }
     }
+    #endif
 }
 
 
-test_suite* CdoTest::suite() {
+test_suite* CdoTest::suite(SpeedLevel speed) {
     test_suite* suite = BOOST_TEST_SUITE("CDO tests");
-    for (unsigned i=0; i < LENGTH(hwData7); ++i)
-        suite->add(QUANTLIB_TEST_CASE(
-            boost::bind(&CdoTest::testHW, i)));
+    #ifndef QL_PATCH_SOLARIS
+    if (speed == Slow) {
+        #define BOOST_PP_LOCAL_MACRO(n) \
+            suite->add(QUANTLIB_TEST_CASE(ext::bind(&CdoTest::testHW, n)));
+
+        #define BOOST_PP_LOCAL_LIMITS (0, 4)
+        #include BOOST_PP_LOCAL_ITERATE()
+    }
+    #endif
     return suite;
 }

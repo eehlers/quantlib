@@ -34,9 +34,8 @@ namespace QuantLib {
 
 class FdmZabrUnderlyingPart {
   public:
-    FdmZabrUnderlyingPart(const boost::shared_ptr<FdmMesher> &mesher,
-                          const Real beta, const Real nu, const Real rho,
-                          const Real gamma);
+    FdmZabrUnderlyingPart(
+        const ext::shared_ptr<FdmMesher>& mesher, Real beta, Real nu, Real rho, Real gamma);
 
     void setTime(Time t1, Time t2);
     const TripleBandLinearOp &getMap() const;
@@ -46,14 +45,13 @@ class FdmZabrUnderlyingPart {
     const Array forwardValues_;
     TripleBandLinearOp mapT_;
 
-    const boost::shared_ptr<FdmMesher> mesher_;
+    const ext::shared_ptr<FdmMesher> mesher_;
 };
 
 class FdmZabrVolatilityPart {
   public:
-    FdmZabrVolatilityPart(const boost::shared_ptr<FdmMesher> &mesher,
-                          const Real beta, const Real nu, const Real rho,
-                          const Real gamma);
+    FdmZabrVolatilityPart(
+        const ext::shared_ptr<FdmMesher>& mesher, Real beta, Real nu, Real rho, Real gamma);
 
     void setTime(Time t1, Time t2);
     const TripleBandLinearOp &getMap() const;
@@ -63,15 +61,16 @@ class FdmZabrVolatilityPart {
     const Array forwardValues_;
     TripleBandLinearOp mapT_;
 
-    const boost::shared_ptr<FdmMesher> mesher_;
+    const ext::shared_ptr<FdmMesher> mesher_;
 };
 
 class FdmZabrOp : public FdmLinearOpComposite {
   public:
-    FdmZabrOp(
-        const boost::shared_ptr<FdmMesher> &mesher, const Real beta,
-        const Real nu, const Real rho,
-        const Real gamma = 1.0); // gamma=1.0 recovers the classic sabr model
+    FdmZabrOp(const ext::shared_ptr<FdmMesher>& mesher,
+              Real beta,
+              Real nu,
+              Real rho,
+              Real gamma = 1.0); // gamma=1.0 recovers the classic sabr model
 
     Size size() const;
     void setTime(Time t1, Time t2);

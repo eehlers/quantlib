@@ -21,6 +21,7 @@
 
 #include "basketoption.hpp"
 #include "utilities.hpp"
+#include <ql/quotes/simplequote.hpp>
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/instruments/basketoption.hpp>
 #include <ql/pricingengines/basket/stulzengine.hpp>
@@ -29,16 +30,19 @@
 #include <ql/pricingengines/basket/mcamericanbasketengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/processes/stochasticprocessarray.hpp>
+#include <ql/models/equity/hestonmodel.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
+#include <ql/termstructures/volatility/equityfx/hestonblackvolsurface.hpp>
 #include <ql/pricingengines/basket/fd2dblackscholesvanillaengine.hpp>
 #include <ql/utilities/dataformatters.hpp>
-#include <boost/progress.hpp>
-#include <boost/bind.hpp>
+#include <ql/functional.hpp>
+#include <boost/preprocessor/iteration/local.hpp>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
+#undef REPORT_FAILURE_2
 #define REPORT_FAILURE_2(greekName, basketType, payoff, exercise, \
                          s1, s2, q1, q2, r, today, v1, v2, rho, \
                          expected, calculated, error, tolerance) \
@@ -63,6 +67,7 @@ using namespace boost::unit_test_framework;
         << "    error:            " << error << "\n" \
         << "    tolerance:        " << tolerance);
 
+#undef REPORT_FAILURE_3
 #define REPORT_FAILURE_3(greekName, basketType, payoff, exercise, \
                          s1, s2, s3, r, today, v1, v2, v3, rho, \
                          expected, calculated, error, tolerance) \
@@ -104,16 +109,16 @@ namespace {
         QL_FAIL("unknown basket option type");
     }
 
-    boost::shared_ptr<BasketPayoff> basketTypeToPayoff(
+    ext::shared_ptr<BasketPayoff> basketTypeToPayoff(
                                          BasketType basketType,
-                                         const boost::shared_ptr<Payoff> &p) {
+                                         const ext::shared_ptr<Payoff> &p) {
         switch (basketType) {
           case MinBasket:
-            return boost::shared_ptr<BasketPayoff>(new MinBasketPayoff(p));
+            return ext::shared_ptr<BasketPayoff>(new MinBasketPayoff(p));
           case MaxBasket:
-            return boost::shared_ptr<BasketPayoff>(new MaxBasketPayoff(p));
+            return ext::shared_ptr<BasketPayoff>(new MaxBasketPayoff(p));
           case SpreadBasket:
-            return boost::shared_ptr<BasketPayoff>(new SpreadBasketPayoff(p));
+            return ext::shared_ptr<BasketPayoff>(new SpreadBasketPayoff(p));
         }
         QL_FAIL("unknown basket option type");
     }
@@ -255,32 +260,32 @@ void BasketOptionTest::testEuroTwoValues() {
     DayCounter dc = Actual360();
     Date today = Date::todaysDate();
 
-    boost::shared_ptr<SimpleQuote> spot1(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> spot2(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot1(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot2(new SimpleQuote(0.0));
 
-    boost::shared_ptr<SimpleQuote> qRate1(new SimpleQuote(0.0));
-    boost::shared_ptr<YieldTermStructure> qTS1 = flatRate(today, qRate1, dc);
-    boost::shared_ptr<SimpleQuote> qRate2(new SimpleQuote(0.0));
-    boost::shared_ptr<YieldTermStructure> qTS2 = flatRate(today, qRate2, dc);
+    ext::shared_ptr<SimpleQuote> qRate1(new SimpleQuote(0.0));
+    ext::shared_ptr<YieldTermStructure> qTS1 = flatRate(today, qRate1, dc);
+    ext::shared_ptr<SimpleQuote> qRate2(new SimpleQuote(0.0));
+    ext::shared_ptr<YieldTermStructure> qTS2 = flatRate(today, qRate2, dc);
 
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
-    boost::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
 
-    boost::shared_ptr<SimpleQuote> vol1(new SimpleQuote(0.0));
-    boost::shared_ptr<BlackVolTermStructure> volTS1 = flatVol(today, vol1, dc);
-    boost::shared_ptr<SimpleQuote> vol2(new SimpleQuote(0.0));
-    boost::shared_ptr<BlackVolTermStructure> volTS2 = flatVol(today, vol2, dc);
+    ext::shared_ptr<SimpleQuote> vol1(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS1 = flatVol(today, vol1, dc);
+    ext::shared_ptr<SimpleQuote> vol2(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS2 = flatVol(today, vol2, dc);
 
     const Real mcRelativeErrorTolerance = 0.01;
     const Real fdRelativeErrorTolerance = 0.01;
 
     for (Size i=0; i<LENGTH(values); i++) {
 
-        boost::shared_ptr<PlainVanillaPayoff> payoff(new
+        ext::shared_ptr<PlainVanillaPayoff> payoff(new
             PlainVanillaPayoff(values[i].type, values[i].strike));
 
         Date exDate = today + Integer(values[i].t*360+0.5);
-        boost::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+        ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
 
         spot1 ->setValue(values[i].s1);
         spot2 ->setValue(values[i].s2);
@@ -291,46 +296,46 @@ void BasketOptionTest::testEuroTwoValues() {
         vol2  ->setValue(values[i].v2);
 
         
-        boost::shared_ptr<PricingEngine> analyticEngine;
-        boost::shared_ptr<GeneralizedBlackScholesProcess> p1, p2;
+        ext::shared_ptr<PricingEngine> analyticEngine;
+        ext::shared_ptr<GeneralizedBlackScholesProcess> p1, p2;
         switch(values[i].basketType) {
           case MaxBasket: 
           case MinBasket:
-            p1 = boost::shared_ptr<GeneralizedBlackScholesProcess>(
+            p1 = ext::shared_ptr<GeneralizedBlackScholesProcess>(
                 new BlackScholesMertonProcess(
                                         Handle<Quote>(spot1),
                                         Handle<YieldTermStructure>(qTS1),
                                         Handle<YieldTermStructure>(rTS),
                                         Handle<BlackVolTermStructure>(volTS1)));
-            p2 = boost::shared_ptr<GeneralizedBlackScholesProcess>(
+            p2 = ext::shared_ptr<GeneralizedBlackScholesProcess>(
                 new BlackScholesMertonProcess(
                                         Handle<Quote>(spot2),
                                         Handle<YieldTermStructure>(qTS2),
                                         Handle<YieldTermStructure>(rTS),
                                         Handle<BlackVolTermStructure>(volTS2)));
-            analyticEngine=boost::shared_ptr<PricingEngine>(
+            analyticEngine=ext::shared_ptr<PricingEngine>(
                 new StulzEngine(p1, p2, values[i].rho));
             break;
           case SpreadBasket:
-              p1 = boost::shared_ptr<GeneralizedBlackScholesProcess>(
+              p1 = ext::shared_ptr<GeneralizedBlackScholesProcess>(
                   new BlackProcess(Handle<Quote>(spot1),
                                    Handle<YieldTermStructure>(rTS),
                                    Handle<BlackVolTermStructure>(volTS1)));
-              p2 = boost::shared_ptr<GeneralizedBlackScholesProcess>(
+              p2 = ext::shared_ptr<GeneralizedBlackScholesProcess>(
                   new BlackProcess(Handle<Quote>(spot2),
                                    Handle<YieldTermStructure>(rTS),
                                    Handle<BlackVolTermStructure>(volTS2)));
               
-              analyticEngine=boost::shared_ptr<PricingEngine>(
-                  new KirkEngine(boost::dynamic_pointer_cast<BlackProcess>(p1), 
-                                 boost::dynamic_pointer_cast<BlackProcess>(p2), 
+              analyticEngine=ext::shared_ptr<PricingEngine>(
+                  new KirkEngine(ext::dynamic_pointer_cast<BlackProcess>(p1), 
+                                 ext::dynamic_pointer_cast<BlackProcess>(p2), 
                                  values[i].rho));
             break;
           default:
               QL_FAIL("unknown basket type");
         }
         
-        std::vector<boost::shared_ptr<StochasticProcess1D> > procs;
+        std::vector<ext::shared_ptr<StochasticProcess1D> > procs;
         procs.push_back(p1);
         procs.push_back(p2);
 
@@ -339,16 +344,16 @@ void BasketOptionTest::testEuroTwoValues() {
             correlationMatrix[j][j] = 1.0;
         }
 
-        boost::shared_ptr<StochasticProcessArray> process(
+        ext::shared_ptr<StochasticProcessArray> process(
                          new StochasticProcessArray(procs,correlationMatrix));
 
-        boost::shared_ptr<PricingEngine> mcEngine =
+        ext::shared_ptr<PricingEngine> mcEngine =
             MakeMCEuropeanBasketEngine<PseudoRandom, Statistics>(process)
             .withStepsPerYear(1)
             .withSamples(10000)
             .withSeed(42);
 
-        boost::shared_ptr<PricingEngine> fdEngine(
+        ext::shared_ptr<PricingEngine> fdEngine(
                     new Fd2dBlackScholesVanillaEngine(p1, p2, values[i].rho,
                                                       50, 50, 15));
         
@@ -402,8 +407,6 @@ void BasketOptionTest::testBarraquandThreeValues() {
 
     BOOST_TEST_MESSAGE("Testing three-asset basket options "
                        "against Barraquand's values...");
-
-    QL_TEST_START_TIMING
 
     /*
         Data from:
@@ -489,31 +492,31 @@ void BasketOptionTest::testBarraquandThreeValues() {
     DayCounter dc = Actual360();
     Date today = Date::todaysDate();
 
-    boost::shared_ptr<SimpleQuote> spot1(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> spot2(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> spot3(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot1(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot2(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot3(new SimpleQuote(0.0));
 
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
-    boost::shared_ptr<YieldTermStructure> qTS = flatRate(today, qRate, dc);
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<YieldTermStructure> qTS = flatRate(today, qRate, dc);
 
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
-    boost::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
 
-    boost::shared_ptr<SimpleQuote> vol1(new SimpleQuote(0.0));
-    boost::shared_ptr<BlackVolTermStructure> volTS1 = flatVol(today, vol1, dc);
-    boost::shared_ptr<SimpleQuote> vol2(new SimpleQuote(0.0));
-    boost::shared_ptr<BlackVolTermStructure> volTS2 = flatVol(today, vol2, dc);
-    boost::shared_ptr<SimpleQuote> vol3(new SimpleQuote(0.0));
-    boost::shared_ptr<BlackVolTermStructure> volTS3 = flatVol(today, vol3, dc);
+    ext::shared_ptr<SimpleQuote> vol1(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS1 = flatVol(today, vol1, dc);
+    ext::shared_ptr<SimpleQuote> vol2(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS2 = flatVol(today, vol2, dc);
+    ext::shared_ptr<SimpleQuote> vol3(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS3 = flatVol(today, vol3, dc);
 
     for (Size i=0; i<LENGTH(values); i++) {
 
-        boost::shared_ptr<PlainVanillaPayoff> payoff(new
+        ext::shared_ptr<PlainVanillaPayoff> payoff(new
             PlainVanillaPayoff(values[i].type, values[i].strike));
 
         Date exDate = today + Integer(values[i].t)*30;
-        boost::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
-        boost::shared_ptr<Exercise> amExercise(new AmericanExercise(today,
+        ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+        ext::shared_ptr<Exercise> amExercise(new AmericanExercise(today,
                                                                     exDate));
 
         spot1 ->setValue(values[i].s1);
@@ -524,25 +527,25 @@ void BasketOptionTest::testBarraquandThreeValues() {
         vol2  ->setValue(values[i].v2);
         vol3  ->setValue(values[i].v3);
 
-        boost::shared_ptr<StochasticProcess1D> stochProcess1(new
+        ext::shared_ptr<StochasticProcess1D> stochProcess1(new
             BlackScholesMertonProcess(Handle<Quote>(spot1),
                                       Handle<YieldTermStructure>(qTS),
                                       Handle<YieldTermStructure>(rTS),
                                       Handle<BlackVolTermStructure>(volTS1)));
 
-        boost::shared_ptr<StochasticProcess1D> stochProcess2(new
+        ext::shared_ptr<StochasticProcess1D> stochProcess2(new
             BlackScholesMertonProcess(Handle<Quote>(spot2),
                                       Handle<YieldTermStructure>(qTS),
                                       Handle<YieldTermStructure>(rTS),
                                       Handle<BlackVolTermStructure>(volTS2)));
 
-        boost::shared_ptr<StochasticProcess1D> stochProcess3(new
+        ext::shared_ptr<StochasticProcess1D> stochProcess3(new
             BlackScholesMertonProcess(Handle<Quote>(spot3),
                                       Handle<YieldTermStructure>(qTS),
                                       Handle<YieldTermStructure>(rTS),
                                       Handle<BlackVolTermStructure>(volTS3)));
 
-        std::vector<boost::shared_ptr<StochasticProcess1D> > procs;
+        std::vector<ext::shared_ptr<StochasticProcess1D> > procs;
         procs.push_back(stochProcess1);
         procs.push_back(stochProcess2);
         procs.push_back(stochProcess3);
@@ -553,12 +556,12 @@ void BasketOptionTest::testBarraquandThreeValues() {
         }
 
         // FLOATING_POINT_EXCEPTION
-        boost::shared_ptr<StochasticProcessArray> process(
+        ext::shared_ptr<StochasticProcessArray> process(
                                new StochasticProcessArray(procs,correlation));
 
         // use a 3D sobol sequence...
         // Think long and hard before moving to more than 1 timestep....
-        boost::shared_ptr<PricingEngine> mcQuasiEngine =
+        ext::shared_ptr<PricingEngine> mcQuasiEngine =
             MakeMCEuropeanBasketEngine<LowDiscrepancy>(process)
             .withStepsPerYear(1)
             .withSamples(8091)
@@ -586,7 +589,7 @@ void BasketOptionTest::testBarraquandThreeValues() {
         Size requiredSamples = 1000;
         Size timeSteps = 500;
         BigNatural seed = 1;
-        boost::shared_ptr<PricingEngine> mcLSMCEngine =
+        ext::shared_ptr<PricingEngine> mcLSMCEngine =
             MakeMCAmericanBasketEngine<>(process)
             .withSteps(timeSteps)
             .withAntitheticVariate()
@@ -620,8 +623,6 @@ void BasketOptionTest::testTavellaValues() {
     BOOST_TEST_MESSAGE("Testing three-asset American basket options "
                        "against Tavella's values...");
 
-    QL_TEST_START_TIMING
-
     /*
         Data from:
         "Quantitative Methods in Derivatives Pricing"
@@ -636,22 +637,22 @@ void BasketOptionTest::testTavellaValues() {
     DayCounter dc = Actual360();
     Date today = Date::todaysDate();
 
-    boost::shared_ptr<SimpleQuote> spot1(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> spot2(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> spot3(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot1(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot2(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot3(new SimpleQuote(0.0));
 
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.1));
-    boost::shared_ptr<YieldTermStructure> qTS = flatRate(today, qRate, dc);
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.1));
+    ext::shared_ptr<YieldTermStructure> qTS = flatRate(today, qRate, dc);
 
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.05));
-    boost::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.05));
+    ext::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
 
-    boost::shared_ptr<SimpleQuote> vol1(new SimpleQuote(0.0));
-    boost::shared_ptr<BlackVolTermStructure> volTS1 = flatVol(today, vol1, dc);
-    boost::shared_ptr<SimpleQuote> vol2(new SimpleQuote(0.0));
-    boost::shared_ptr<BlackVolTermStructure> volTS2 = flatVol(today, vol2, dc);
-    boost::shared_ptr<SimpleQuote> vol3(new SimpleQuote(0.0));
-    boost::shared_ptr<BlackVolTermStructure> volTS3 = flatVol(today, vol3, dc);
+    ext::shared_ptr<SimpleQuote> vol1(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS1 = flatVol(today, vol1, dc);
+    ext::shared_ptr<SimpleQuote> vol2(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS2 = flatVol(today, vol2, dc);
+    ext::shared_ptr<SimpleQuote> vol3(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS3 = flatVol(today, vol3, dc);
 
     Real mcRelativeErrorTolerance = 0.01;
     Size requiredSamples = 10000;
@@ -659,11 +660,11 @@ void BasketOptionTest::testTavellaValues() {
     BigNatural seed = 0;
 
 
-    boost::shared_ptr<PlainVanillaPayoff> payoff(new
+    ext::shared_ptr<PlainVanillaPayoff> payoff(new
         PlainVanillaPayoff(values[0].type, values[0].strike));
 
     Date exDate = today + Integer(values[0].t*360+0.5);
-    boost::shared_ptr<Exercise> exercise(new AmericanExercise(today, exDate));
+    ext::shared_ptr<Exercise> exercise(new AmericanExercise(today, exDate));
 
     spot1 ->setValue(values[0].s1);
     spot2 ->setValue(values[0].s2);
@@ -672,25 +673,25 @@ void BasketOptionTest::testTavellaValues() {
     vol2  ->setValue(values[0].v2);
     vol3  ->setValue(values[0].v3);
 
-    boost::shared_ptr<StochasticProcess1D> stochProcess1(new
+    ext::shared_ptr<StochasticProcess1D> stochProcess1(new
         BlackScholesMertonProcess(Handle<Quote>(spot1),
                                   Handle<YieldTermStructure>(qTS),
                                   Handle<YieldTermStructure>(rTS),
                                   Handle<BlackVolTermStructure>(volTS1)));
 
-    boost::shared_ptr<StochasticProcess1D> stochProcess2(new
+    ext::shared_ptr<StochasticProcess1D> stochProcess2(new
         BlackScholesMertonProcess(Handle<Quote>(spot2),
                                   Handle<YieldTermStructure>(qTS),
                                   Handle<YieldTermStructure>(rTS),
                                   Handle<BlackVolTermStructure>(volTS2)));
 
-    boost::shared_ptr<StochasticProcess1D> stochProcess3(new
+    ext::shared_ptr<StochasticProcess1D> stochProcess3(new
         BlackScholesMertonProcess(Handle<Quote>(spot3),
                                   Handle<YieldTermStructure>(qTS),
                                   Handle<YieldTermStructure>(rTS),
                                   Handle<BlackVolTermStructure>(volTS3)));
 
-    std::vector<boost::shared_ptr<StochasticProcess1D> > procs;
+    std::vector<ext::shared_ptr<StochasticProcess1D> > procs;
     procs.push_back(stochProcess1);
     procs.push_back(stochProcess2);
     procs.push_back(stochProcess3);
@@ -706,9 +707,9 @@ void BasketOptionTest::testTavellaValues() {
     correlation[2][1] = 0.3;
     correlation[1][2] = 0.3;
 
-    boost::shared_ptr<StochasticProcessArray> process(
+    ext::shared_ptr<StochasticProcessArray> process(
                                new StochasticProcessArray(procs,correlation));
-    boost::shared_ptr<PricingEngine> mcLSMCEngine =
+    ext::shared_ptr<PricingEngine> mcLSMCEngine =
         MakeMCAmericanBasketEngine<>(process)
         .withSteps(timeSteps)
         .withAntitheticVariate()
@@ -778,46 +779,44 @@ namespace {
     };
 }
 
-void BasketOptionTest::testOneDAmericanValues(unsigned from, unsigned to) {
+void BasketOptionTest::testOneDAmericanValues(std::size_t from, std::size_t to) {
 
     BOOST_TEST_MESSAGE("Testing basket American options against 1-D case "
                        "from " << from << " to " << to-1 <<  "...");
 
-    QL_TEST_START_TIMING
-
     DayCounter dc = Actual360();
     Date today = Date::todaysDate();
 
-    boost::shared_ptr<SimpleQuote> spot1(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot1(new SimpleQuote(0.0));
 
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
-    boost::shared_ptr<YieldTermStructure> qTS = flatRate(today, qRate, dc);
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<YieldTermStructure> qTS = flatRate(today, qRate, dc);
 
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.05));
-    boost::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.05));
+    ext::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
 
-    boost::shared_ptr<SimpleQuote> vol1(new SimpleQuote(0.0));
-    boost::shared_ptr<BlackVolTermStructure> volTS1 = flatVol(today, vol1, dc);
+    ext::shared_ptr<SimpleQuote> vol1(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS1 = flatVol(today, vol1, dc);
 
     Size requiredSamples = 10000;
     Size timeSteps = 52;
     BigNatural seed = 0;
 
-    boost::shared_ptr<StochasticProcess1D> stochProcess1(new
+    ext::shared_ptr<StochasticProcess1D> stochProcess1(new
         BlackScholesMertonProcess(Handle<Quote>(spot1),
                                   Handle<YieldTermStructure>(qTS),
                                   Handle<YieldTermStructure>(rTS),
                                   Handle<BlackVolTermStructure>(volTS1)));
 
-    std::vector<boost::shared_ptr<StochasticProcess1D> > procs;
+    std::vector<ext::shared_ptr<StochasticProcess1D> > procs;
     procs.push_back(stochProcess1);
 
     Matrix correlation(1, 1, 1.0);
 
-    boost::shared_ptr<StochasticProcessArray> process(
+    ext::shared_ptr<StochasticProcessArray> process(
                                new StochasticProcessArray(procs,correlation));
 
-    boost::shared_ptr<PricingEngine> mcLSMCEngine =
+    ext::shared_ptr<PricingEngine> mcLSMCEngine =
         MakeMCAmericanBasketEngine<>(process)
         .withSteps(timeSteps)
         .withAntitheticVariate()
@@ -826,11 +825,11 @@ void BasketOptionTest::testOneDAmericanValues(unsigned from, unsigned to) {
         .withSeed(seed);
 
     for (Size i=from; i<to; i++) {
-        boost::shared_ptr<PlainVanillaPayoff> payoff(new
+        ext::shared_ptr<PlainVanillaPayoff> payoff(new
             PlainVanillaPayoff(oneDataValues[i].type, oneDataValues[i].strike));
 
         Date exDate = today + Integer(oneDataValues[i].t*360+0.5);
-        boost::shared_ptr<Exercise> exercise(new AmericanExercise(today,
+        ext::shared_ptr<Exercise> exercise(new AmericanExercise(today,
                                                                   exDate));
 
         spot1 ->setValue(oneDataValues[i].s);
@@ -866,7 +865,6 @@ void BasketOptionTest::testOddSamples() {
 
     BOOST_TEST_MESSAGE("Testing antithetic engine using odd sample number...");
 
-    QL_TEST_START_TIMING
     Size requiredSamples = 10001; // The important line
     Size timeSteps = 53;
     BasketOptionOneData values[] = {
@@ -877,36 +875,36 @@ void BasketOptionTest::testOddSamples() {
     DayCounter dc = Actual360();
     Date today = Date::todaysDate();
 
-    boost::shared_ptr<SimpleQuote> spot1(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot1(new SimpleQuote(0.0));
 
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
-    boost::shared_ptr<YieldTermStructure> qTS = flatRate(today, qRate, dc);
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<YieldTermStructure> qTS = flatRate(today, qRate, dc);
 
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.05));
-    boost::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.05));
+    ext::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
 
-    boost::shared_ptr<SimpleQuote> vol1(new SimpleQuote(0.0));
-    boost::shared_ptr<BlackVolTermStructure> volTS1 = flatVol(today, vol1, dc);
+    ext::shared_ptr<SimpleQuote> vol1(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS1 = flatVol(today, vol1, dc);
 
 
 
     BigNatural seed = 0;
 
-    boost::shared_ptr<StochasticProcess1D> stochProcess1(new
+    ext::shared_ptr<StochasticProcess1D> stochProcess1(new
         BlackScholesMertonProcess(Handle<Quote>(spot1),
                                   Handle<YieldTermStructure>(qTS),
                                   Handle<YieldTermStructure>(rTS),
                                   Handle<BlackVolTermStructure>(volTS1)));
 
-    std::vector<boost::shared_ptr<StochasticProcess1D> > procs;
+    std::vector<ext::shared_ptr<StochasticProcess1D> > procs;
     procs.push_back(stochProcess1);
 
     Matrix correlation(1, 1, 1.0);
 
-    boost::shared_ptr<StochasticProcessArray> process(
+    ext::shared_ptr<StochasticProcessArray> process(
                                new StochasticProcessArray(procs,correlation));
 
-    boost::shared_ptr<PricingEngine> mcLSMCEngine =
+    ext::shared_ptr<PricingEngine> mcLSMCEngine =
         MakeMCAmericanBasketEngine<>(process)
         .withSteps(timeSteps)
         .withAntitheticVariate()
@@ -915,11 +913,11 @@ void BasketOptionTest::testOddSamples() {
         .withSeed(seed);
 
     for (Size i=0; i<LENGTH(values); i++) {
-        boost::shared_ptr<PlainVanillaPayoff> payoff(new
+        ext::shared_ptr<PlainVanillaPayoff> payoff(new
             PlainVanillaPayoff(values[i].type, values[i].strike));
 
         Date exDate = today + Integer(values[i].t*360+0.5);
-        boost::shared_ptr<Exercise> exercise(new AmericanExercise(today,
+        ext::shared_ptr<Exercise> exercise(new AmericanExercise(today,
                                                                   exDate));
 
         spot1 ->setValue(values[i].s);
@@ -942,26 +940,178 @@ void BasketOptionTest::testOddSamples() {
             BOOST_FAIL("expected value: " << values[i].result << "\n"
                        << "calculated:     " << calculated);
         }
-
     }
 }
 
-test_suite* BasketOptionTest::suite() {
+void BasketOptionTest::testLocalVolatilitySpreadOption() {
+
+    BOOST_TEST_MESSAGE("Testing 2D local-volatility spread-option pricing...");
+
+    const DayCounter dc = Actual360();
+    const Date today = Date(21, September, 2017);
+    const Date maturity = today + Period(3, Months);
+
+    const Handle<YieldTermStructure> riskFreeRate(flatRate(today, 0.07, dc));
+    const Handle<YieldTermStructure> dividendYield(flatRate(today, 0.03, dc));
+
+    const Handle<Quote> s1(ext::make_shared<SimpleQuote>(100));
+    const Handle<Quote> s2(ext::make_shared<SimpleQuote>(110));
+
+    const ext::shared_ptr<HestonModel> hm1(
+        ext::make_shared<HestonModel>(
+            ext::make_shared<HestonProcess>(
+                riskFreeRate, dividendYield,
+                s1, 0.09, 1.0, 0.06, 0.6, -0.75)));
+
+    const ext::shared_ptr<HestonModel> hm2(
+        ext::make_shared<HestonModel>(
+            ext::make_shared<HestonProcess>(
+                riskFreeRate, dividendYield,
+                s2, 0.1, 2.0, 0.07, 0.8, 0.85)));
+
+    const Handle<BlackVolTermStructure> vol1(
+        ext::make_shared<HestonBlackVolSurface>(Handle<HestonModel>(hm1)));
+
+    const Handle<BlackVolTermStructure> vol2(
+        ext::make_shared<HestonBlackVolSurface>(Handle<HestonModel>(hm2)));
+
+    BasketOption basketOption(
+        basketTypeToPayoff(
+            SpreadBasket,
+            ext::make_shared<PlainVanillaPayoff>(
+                    Option::Call, s2->value() - s1->value())),
+        ext::make_shared<EuropeanExercise>(maturity));
+
+    const Real rho = -0.6;
+
+    const ext::shared_ptr<GeneralizedBlackScholesProcess> bs2(
+        ext::make_shared<GeneralizedBlackScholesProcess>(
+            s2, dividendYield, riskFreeRate, vol2));
+
+    const ext::shared_ptr<GeneralizedBlackScholesProcess> bs1(
+        ext::make_shared<GeneralizedBlackScholesProcess>(
+            s1, dividendYield, riskFreeRate, vol1));
+
+    basketOption.setPricingEngine(
+        ext::shared_ptr<Fd2dBlackScholesVanillaEngine>(
+            new Fd2dBlackScholesVanillaEngine(
+                bs1, bs2, rho, 11, 11, 6, 0,
+                FdmSchemeDesc::Hundsdorfer(), true, 0.25)));
+
+    const Real tolerance = 0.01;
+    const Real expected = 2.561;
+    const Real calculated = basketOption.NPV();
+
+    if (std::fabs(expected - calculated) > tolerance) {
+        BOOST_ERROR("Failed to reproduce expected local volatility price"
+                    << "\n    calculated: " << calculated
+                    << "\n    expected:   " << expected
+                    << "\n    tolerance:  " << tolerance);
+    }
+}
+
+void BasketOptionTest::test2DPDEGreeks() {
+
+    BOOST_TEST_MESSAGE("Testing Greeks of two-dimensional PDE engine...");
+
+    const Real s1 = 100;
+    const Real s2 = 100;
+    const Real r = 0.013;
+    const Volatility v = 0.2;
+    const Real rho = 0.5;
+    const Real strike = s1-s2;
+    const Size maturityInDays = 1095;
+
+    const DayCounter dc = Actual365Fixed();
+    const Date today = Date::todaysDate();
+    const Date maturity = today + maturityInDays;
+
+    const ext::shared_ptr<SimpleQuote> spot1(
+        ext::make_shared<SimpleQuote>(s1));
+    const ext::shared_ptr<SimpleQuote> spot2(
+        ext::make_shared<SimpleQuote>(s2));
+
+    const Handle<YieldTermStructure> rTS(flatRate(today, r, dc));
+    const Handle<BlackVolTermStructure> vTS(flatVol(today, v, dc));
+
+    const ext::shared_ptr<BlackProcess> p1(
+        ext::make_shared<BlackProcess>(Handle<Quote>(spot1), rTS, vTS));
+
+    const ext::shared_ptr<BlackProcess> p2(
+        ext::make_shared<BlackProcess>(Handle<Quote>(spot2), rTS, vTS));
+
+    BasketOption option(
+        ext::make_shared<SpreadBasketPayoff>(
+            ext::make_shared<PlainVanillaPayoff>(Option::Call, strike)),
+        ext::make_shared<EuropeanExercise>(maturity));
+
+    option.setPricingEngine(
+        ext::make_shared<Fd2dBlackScholesVanillaEngine>(p1, p2, rho));
+
+    const Real calculatedDelta = option.delta();
+    const Real calculatedGamma = option.gamma();
+
+    option.setPricingEngine(ext::make_shared<KirkEngine>(p1, p2, rho));
+
+    const Real eps = 1.0;
+    const Real npv = option.NPV();
+
+    spot1->setValue(s1 + eps);
+    spot2->setValue(s2 + eps);
+    const Real npvUp = option.NPV();
+
+    spot1->setValue(s1 - eps);
+    spot2->setValue(s2 - eps);
+    const Real npvDown = option.NPV();
+
+    const Real expectedDelta = (npvUp - npvDown)/(2*eps);
+    const Real expectedGamma = (npvUp + npvDown - 2*npv)/(eps*eps);
+
+    const Real tol = 0.0005;
+    if (std::fabs(expectedDelta - calculatedDelta) > tol) {
+        BOOST_FAIL("failed to reproduce delta with 2dim PDE"
+                   << std::fixed << std::setprecision(8)
+                   << "\n    calculated: " << calculatedDelta
+                   << "\n    expected:   " << expectedDelta
+                   << "\n    tolerance:  " << tol);
+    }
+
+    if (std::fabs(expectedGamma - calculatedGamma) > tol) {
+        BOOST_FAIL("failed to reproduce delta with 2dim PDE"
+                   << std::fixed << std::setprecision(8)
+                   << "\n    calculated: " << calculatedGamma
+                   << "\n    expected:   " << expectedGamma
+                   << "\n    tolerance:  " << tol);
+    }
+}
+
+test_suite* BasketOptionTest::suite(SpeedLevel speed) {
     test_suite* suite = BOOST_TEST_SUITE("Basket option tests");
+
     suite->add(QUANTLIB_TEST_CASE(&BasketOptionTest::testEuroTwoValues));
-    // FLOATING_POINT_EXCEPTION
-    suite->add(QUANTLIB_TEST_CASE(
-                               &BasketOptionTest::testBarraquandThreeValues));
     suite->add(QUANTLIB_TEST_CASE(&BasketOptionTest::testTavellaValues));
 
-    const Size nTestCases = std::min(Size(5), LENGTH(oneDataValues));
-    for (Size i=0; i < nTestCases; ++i) {
-        suite->add(QUANTLIB_TEST_CASE(
-            boost::bind(&BasketOptionTest::testOneDAmericanValues,
-                (i    *LENGTH(oneDataValues))/nTestCases,
-                ((i+1)*LENGTH(oneDataValues))/nTestCases)));
-    }
     suite->add(QUANTLIB_TEST_CASE(&BasketOptionTest::testOddSamples));
+    suite->add(QUANTLIB_TEST_CASE(
+        &BasketOptionTest::testLocalVolatilitySpreadOption));
+    suite->add(QUANTLIB_TEST_CASE(&BasketOptionTest::test2DPDEGreeks));
+
+    if (speed <= Fast) {
+        #define N_TEST_CASES 5
+        #define BOOST_PP_LOCAL_MACRO(n)                                \
+            suite->add(QUANTLIB_TEST_CASE(                             \
+                ext::bind(&BasketOptionTest::testOneDAmericanValues, \
+                    (n    *LENGTH(oneDataValues))/N_TEST_CASES,        \
+                    ((n+1)*LENGTH(oneDataValues))/N_TEST_CASES)));
+
+        #define BOOST_PP_LOCAL_LIMITS (0, N_TEST_CASES-1)
+        #include BOOST_PP_LOCAL_ITERATE()
+    }
+
+    if (speed == Slow) {
+        suite->add(QUANTLIB_TEST_CASE(
+            &BasketOptionTest::testBarraquandThreeValues));
+    }
 
     return suite;
 }

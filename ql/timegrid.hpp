@@ -28,6 +28,7 @@
 #include <ql/errors.hpp>
 #include <ql/math/comparison.hpp>
 #include <vector>
+#include <algorithm>
 #include <numeric>
 
 namespace QuantLib {
@@ -51,6 +52,7 @@ namespace QuantLib {
         template <class Iterator>
         TimeGrid(Iterator begin, Iterator end)
         : mandatoryTimes_(begin, end) {
+            QL_REQUIRE(begin != end, "empty time sequence");
             std::sort(mandatoryTimes_.begin(),mandatoryTimes_.end());
             // We seem to assume that the grid begins at 0.
             // Let's enforce the assumption for the time being
@@ -59,7 +61,7 @@ namespace QuantLib {
                        "negative times not allowed");
             std::vector<Time>::iterator e =
                 std::unique(mandatoryTimes_.begin(),mandatoryTimes_.end(),
-                            std::ptr_fun(close_enough));
+                            static_cast<bool (*)(Real, Real)>(close_enough));
             mandatoryTimes_.resize(e - mandatoryTimes_.begin());
 
             if (mandatoryTimes_[0] > 0.0)
@@ -68,6 +70,7 @@ namespace QuantLib {
             times_.insert(times_.end(),
                           mandatoryTimes_.begin(), mandatoryTimes_.end());
 
+            dt_.reserve(times_.size()-1);
             std::adjacent_difference(times_.begin()+1,times_.end(),
                                      std::back_inserter(dt_));
 
@@ -81,6 +84,7 @@ namespace QuantLib {
         template <class Iterator>
         TimeGrid(Iterator begin, Iterator end, Size steps)
         : mandatoryTimes_(begin, end) {
+            QL_REQUIRE(begin != end, "empty time sequence");
             std::sort(mandatoryTimes_.begin(),mandatoryTimes_.end());
             // We seem to assume that the grid begins at 0.
             // Let's enforce the assumption for the time being
@@ -89,7 +93,7 @@ namespace QuantLib {
                        "negative times not allowed");
             std::vector<Time>::iterator e =
                 std::unique(mandatoryTimes_.begin(),mandatoryTimes_.end(),
-                            std::ptr_fun(close_enough));
+                            static_cast<bool (*)(Real, Real)>(close_enough));
             mandatoryTimes_.resize(e - mandatoryTimes_.begin());
 
             Time last = mandatoryTimes_.back();
@@ -113,21 +117,19 @@ namespace QuantLib {
             times_.push_back(periodBegin);
             for (std::vector<Time>::const_iterator t=mandatoryTimes_.begin();
                                                    t<mandatoryTimes_.end();
-                                                   t++) {
+                                                   ++t) {
                 Time periodEnd = *t;
                 if (periodEnd != 0.0) {
-                    // the nearest integer
-                    Size nSteps = Size((periodEnd - periodBegin)/dtMax+0.5);
-                    // at least one time step!
-                    nSteps = (nSteps!=0 ? nSteps : 1);
+                    // the nearest integer, at least 1
+                    Size nSteps = std::max(Size((periodEnd - periodBegin)/dtMax+0.5), Size(1));
                     Time dt = (periodEnd - periodBegin)/nSteps;
-                    times_.reserve(nSteps);
                     for (Size n=1; n<=nSteps; ++n)
                         times_.push_back(periodBegin + n*dt);
                 }
                 periodBegin = periodEnd;
             }
 
+            dt_.reserve(times_.size()-1);
             std::adjacent_difference(times_.begin()+1,times_.end(),
                                      std::back_inserter(dt_));
         }

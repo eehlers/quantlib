@@ -49,10 +49,9 @@ namespace QuantLib {
                                    VanillaOption::arguments,
                                    VanillaOption::results> {
       public:
-        AnalyticPDFHestonEngine(
-            const boost::shared_ptr<HestonModel>& model,
-            Real gaussLobattoEps = 1e-6,
-            Size gaussLobattoIntegrationOrder = 10000ul);
+        explicit AnalyticPDFHestonEngine(const ext::shared_ptr<HestonModel>& model,
+                                         Real gaussLobattoEps = 1e-6,
+                                         Size gaussLobattoIntegrationOrder = 10000UL);
         void calculate() const;
 
 
@@ -68,7 +67,7 @@ namespace QuantLib {
         const Size maxIntegrationIterations_;
         const Real integrationEps_;
 
-        const boost::shared_ptr<HestonModel> model_;
+        const ext::shared_ptr<HestonModel> model_;
     };
 }
 

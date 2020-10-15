@@ -28,12 +28,12 @@
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/utilities/dataformatters.hpp>
-#include <boost/progress.hpp>
 #include <map>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
+#undef REPORT_FAILURE
 #define REPORT_FAILURE(greekName, payoff, exercise, s, q, r, today, \
                        v, expected, calculated, error, tolerance) \
     BOOST_ERROR(exerciseTypeToString(exercise) << " " \
@@ -51,79 +51,79 @@ using namespace boost::unit_test_framework;
                << "    error:            " << error << "\n" \
                << "    tolerance:        " << tolerance);
 
-namespace {
+namespace extended_trees_test {
 
     // utilities
 
     enum EngineType { Analytic,
                       JR, CRR, EQP, TGEO, TIAN, LR, JOSHI };
 
-    boost::shared_ptr<GeneralizedBlackScholesProcess>
-    makeProcess(const boost::shared_ptr<Quote>& u,
-                const boost::shared_ptr<YieldTermStructure>& q,
-                const boost::shared_ptr<YieldTermStructure>& r,
-                const boost::shared_ptr<BlackVolTermStructure>& vol) {
-        return boost::shared_ptr<BlackScholesMertonProcess>(
-           new BlackScholesMertonProcess(Handle<Quote>(u),
+    ext::shared_ptr<GeneralizedBlackScholesProcess>
+    makeProcess(const ext::shared_ptr<Quote>& u,
+                const ext::shared_ptr<YieldTermStructure>& q,
+                const ext::shared_ptr<YieldTermStructure>& r,
+                const ext::shared_ptr<BlackVolTermStructure>& vol) {
+        return ext::make_shared<BlackScholesMertonProcess>(
+           Handle<Quote>(u),
                                          Handle<YieldTermStructure>(q),
                                          Handle<YieldTermStructure>(r),
-                                         Handle<BlackVolTermStructure>(vol)));
+                                         Handle<BlackVolTermStructure>(vol));
     }
 
-    boost::shared_ptr<VanillaOption>
-    makeOption(const boost::shared_ptr<StrikedTypePayoff>& payoff,
-               const boost::shared_ptr<Exercise>& exercise,
-               const boost::shared_ptr<Quote>& u,
-               const boost::shared_ptr<YieldTermStructure>& q,
-               const boost::shared_ptr<YieldTermStructure>& r,
-               const boost::shared_ptr<BlackVolTermStructure>& vol,
+    ext::shared_ptr<VanillaOption>
+    makeOption(const ext::shared_ptr<StrikedTypePayoff>& payoff,
+               const ext::shared_ptr<Exercise>& exercise,
+               const ext::shared_ptr<Quote>& u,
+               const ext::shared_ptr<YieldTermStructure>& q,
+               const ext::shared_ptr<YieldTermStructure>& r,
+               const ext::shared_ptr<BlackVolTermStructure>& vol,
                EngineType engineType,
                Size binomialSteps) {
 
-        boost::shared_ptr<GeneralizedBlackScholesProcess> stochProcess =
+        ext::shared_ptr<GeneralizedBlackScholesProcess> stochProcess =
             makeProcess(u,q,r,vol);
 
-        boost::shared_ptr<PricingEngine> engine;
+        ext::shared_ptr<PricingEngine> engine;
         switch (engineType) {
           case Analytic:
-            engine = boost::shared_ptr<PricingEngine>(
+            engine = ext::shared_ptr<PricingEngine>(
                                     new AnalyticEuropeanEngine(stochProcess));
             break;
           case JR:
-            engine = boost::shared_ptr<PricingEngine>(
+            engine = ext::shared_ptr<PricingEngine>(
                 new BinomialVanillaEngine<ExtendedJarrowRudd>(stochProcess,
                                                               binomialSteps));
             break;
           case CRR:
-            engine = boost::shared_ptr<PricingEngine>(
+            engine = ext::shared_ptr<PricingEngine>(
                 new BinomialVanillaEngine<ExtendedCoxRossRubinstein>(
                                                               stochProcess,
                                                               binomialSteps));
             break;
           case EQP:
-            engine = boost::shared_ptr<PricingEngine>(
+            engine = ext::shared_ptr<PricingEngine>(
                 new BinomialVanillaEngine<ExtendedAdditiveEQPBinomialTree>(
                                                               stochProcess,
                                                               binomialSteps));
             break;
           case TGEO:
-            engine = boost::shared_ptr<PricingEngine>(
+            engine = ext::shared_ptr<PricingEngine>(
                 new BinomialVanillaEngine<ExtendedTrigeorgis>(stochProcess,
                                                               binomialSteps));
             break;
           case TIAN:
-            engine = boost::shared_ptr<PricingEngine>(
+            engine = ext::shared_ptr<PricingEngine>(
                 new BinomialVanillaEngine<ExtendedTian>(stochProcess,
                                                         binomialSteps));
             break;
           case LR:
-            engine = boost::shared_ptr<PricingEngine>(
+            engine = ext::shared_ptr<PricingEngine>(
                       new BinomialVanillaEngine<ExtendedLeisenReimer>(
                                                               stochProcess,
                                                               binomialSteps));
             break;
           case JOSHI:
-            engine = boost::shared_ptr<PricingEngine>(
+            engine = ext::shared_ptr<PricingEngine>(
                 new BinomialVanillaEngine<ExtendedJoshi4>(stochProcess,
                                                           binomialSteps));
             break;
@@ -131,7 +131,7 @@ namespace {
             QL_FAIL("unknown engine type");
         }
 
-        boost::shared_ptr<VanillaOption> option(
+        ext::shared_ptr<VanillaOption> option(
                                         new EuropeanOption(payoff, exercise));
         option->setPricingEngine(engine);
         return option;
@@ -141,13 +141,13 @@ namespace {
 
 namespace {
 
-    void testEngineConsistency(EngineType engine,
+    void testEngineConsistency(extended_trees_test::EngineType engine,
                                Size binomialSteps,
                                std::map<std::string,Real> tolerance) {
 
-        QL_TEST_START_TIMING
+        using namespace extended_trees_test;
 
-            std::map<std::string,Real> calculated, expected;
+        std::map<std::string,Real> calculated, expected;
 
         // test options
         Option::Type types[] = { Option::Call, Option::Put };
@@ -163,28 +163,28 @@ namespace {
         DayCounter dc = Actual360();
         Date today = Date::todaysDate();
 
-        boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
-        boost::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
-        boost::shared_ptr<BlackVolTermStructure> volTS = flatVol(today,vol,dc);
-        boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
-        boost::shared_ptr<YieldTermStructure> qTS = flatRate(today,qRate,dc);
-        boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
-        boost::shared_ptr<YieldTermStructure> rTS = flatRate(today,rRate,dc);
+        ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+        ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+        ext::shared_ptr<BlackVolTermStructure> volTS = flatVol(today,vol,dc);
+        ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+        ext::shared_ptr<YieldTermStructure> qTS = flatRate(today,qRate,dc);
+        ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+        ext::shared_ptr<YieldTermStructure> rTS = flatRate(today,rRate,dc);
 
         for (Size i=0; i<LENGTH(types); i++) {
           for (Size j=0; j<LENGTH(strikes); j++) {
             for (Size k=0; k<LENGTH(lengths); k++) {
               Date exDate = today + lengths[k]*360;
-              boost::shared_ptr<Exercise> exercise(
+              ext::shared_ptr<Exercise> exercise(
                                                 new EuropeanExercise(exDate));
-              boost::shared_ptr<StrikedTypePayoff> payoff(new
+              ext::shared_ptr<StrikedTypePayoff> payoff(new
                                     PlainVanillaPayoff(types[i], strikes[j]));
               // reference option
-              boost::shared_ptr<VanillaOption> refOption =
+              ext::shared_ptr<VanillaOption> refOption =
                   makeOption(payoff, exercise, spot, qTS, rTS, volTS,
                              Analytic, Null<Size>());
               // option to check
-              boost::shared_ptr<VanillaOption> option =
+              ext::shared_ptr<VanillaOption> option =
                   makeOption(payoff, exercise, spot, qTS, rTS, volTS,
                              engine, binomialSteps);
 
@@ -247,6 +247,8 @@ void ExtendedTreesTest::testJRBinomialEngines() {
     BOOST_TEST_MESSAGE("Testing time-dependent JR binomial European engines "
                        "against analytic results...");
 
+    using namespace extended_trees_test;
+
     SavedSettings backup;
 
     EngineType engine = JR;
@@ -263,6 +265,8 @@ void ExtendedTreesTest::testCRRBinomialEngines() {
 
     BOOST_TEST_MESSAGE("Testing time-dependent CRR binomial European engines "
                        "against analytic results...");
+
+    using namespace extended_trees_test;
 
     SavedSettings backup;
 
@@ -281,6 +285,8 @@ void ExtendedTreesTest::testEQPBinomialEngines() {
     BOOST_TEST_MESSAGE("Testing time-dependent EQP binomial European engines "
                        "against analytic results...");
 
+    using namespace extended_trees_test;
+
     SavedSettings backup;
 
     EngineType engine = EQP;
@@ -297,6 +303,8 @@ void ExtendedTreesTest::testTGEOBinomialEngines() {
 
     BOOST_TEST_MESSAGE("Testing time-dependent TGEO binomial European engines "
                        "against analytic results...");
+
+    using namespace extended_trees_test;
 
     SavedSettings backup;
 
@@ -315,6 +323,8 @@ void ExtendedTreesTest::testTIANBinomialEngines() {
     BOOST_TEST_MESSAGE("Testing time-dependent TIAN binomial European engines "
                        "against analytic results...");
 
+    using namespace extended_trees_test;
+
     SavedSettings backup;
 
     EngineType engine = TIAN;
@@ -331,6 +341,8 @@ void ExtendedTreesTest::testLRBinomialEngines() {
 
     BOOST_TEST_MESSAGE("Testing time-dependent LR binomial European engines "
                        "against analytic results...");
+
+    using namespace extended_trees_test;
 
     SavedSettings backup;
 
@@ -349,6 +361,8 @@ void ExtendedTreesTest::testJOSHIBinomialEngines() {
     BOOST_TEST_MESSAGE("Testing time-dependent Joshi binomial European engines "
                        "against analytic results...");
 
+    using namespace extended_trees_test;
+
     SavedSettings backup;
 
     EngineType engine = JOSHI;
@@ -362,7 +376,7 @@ void ExtendedTreesTest::testJOSHIBinomialEngines() {
 }
 
 test_suite* ExtendedTreesTest::suite() {
-    test_suite* suite = BOOST_TEST_SUITE("European option tests");
+    test_suite* suite = BOOST_TEST_SUITE("European option extended trees tests");
 
     suite->add(QUANTLIB_TEST_CASE(&ExtendedTreesTest::testJRBinomialEngines));
     suite->add(QUANTLIB_TEST_CASE(&ExtendedTreesTest::testCRRBinomialEngines));

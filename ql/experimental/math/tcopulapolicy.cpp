@@ -18,7 +18,7 @@
 */
 
 #include <ql/experimental/math/tcopulapolicy.hpp>
-#include <boost/bind.hpp>
+#include <ql/functional.hpp>
 #include <numeric>
 #include <algorithm>
 
@@ -37,7 +37,7 @@ namespace QuantLib {
                 vals.tOrders[iFactor]));
             // inverses T variaces used in normalization of the random factors
             // For low values of the T order this number is very close to zero 
-            // and it enters the expresions dividing them, which introduces 
+            // and it enters the expressions dividing them, which introduces 
             // numerical errors.
             varianceFactors_.push_back(std::sqrt(
                 (vals.tOrders[iFactor]-2.)/vals.tOrders[iFactor]));
@@ -80,15 +80,17 @@ namespace QuantLib {
             "Incompatible sample and latent model sizes");
     #endif
 
+        using namespace ext::placeholders;
+
         std::vector<Real> result(probs.size());
         Size indexSystemic = 0;
         std::transform(probs.begin(), probs.begin() + varianceFactors_.size()-1,
             result.begin(), 
-            bind(&TCopulaPolicy::inverseCumulativeDensity, 
+            ext::bind(&TCopulaPolicy::inverseCumulativeDensity, 
                                 this, _1, indexSystemic++));
         std::transform(probs.begin() + varianceFactors_.size()-1, probs.end(),
             result.begin()+ varianceFactors_.size()-1,
-            boost::bind(&TCopulaPolicy::inverseCumulativeZ, this, _1));
+            ext::bind(&TCopulaPolicy::inverseCumulativeZ, this, _1));
         return result;
     }
 

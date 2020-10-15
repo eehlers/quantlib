@@ -8,6 +8,7 @@
 #include <ql/experimental/math/fireflyalgorithm.hpp>
 #include <ql/experimental/math/frankcopularng.hpp>
 #include <ql/experimental/math/gaussiancopulapolicy.hpp>
+#include <ql/experimental/math/gaussiannoncentralchisquaredpolynomial.hpp>
 #include <ql/experimental/math/hybridsimulatedannealing.hpp>
 #include <ql/experimental/math/hybridsimulatedannealingfunctors.hpp>
 #include <ql/experimental/math/isotropicrandomwalk.hpp>
@@ -17,7 +18,6 @@
 #include <ql/experimental/math/moorepenroseinverse.hpp>
 #include <ql/experimental/math/multidimintegrator.hpp>
 #include <ql/experimental/math/multidimquadrature.hpp>
-#include <ql/experimental/math/numericaldifferentiation.hpp>
 #include <ql/experimental/math/particleswarmoptimization.hpp>
 #include <ql/experimental/math/piecewisefunction.hpp>
 #include <ql/experimental/math/piecewiseintegral.hpp>

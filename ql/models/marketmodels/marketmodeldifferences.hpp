@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2007 François du Vignaud
+ Copyright (C) 2007 FranÃ§ois du Vignaud
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -22,7 +22,7 @@
 #define quantlib_market_model_differences_hpp
 
 #include <ql/types.hpp>
-#include <boost/shared_ptr.hpp>
+#include <ql/shared_ptr.hpp>
 #include <vector>
 
 namespace QuantLib {
@@ -41,7 +41,7 @@ namespace QuantLib {
 
     std::vector<Real> coterminalSwapPseudoRoots(
             const PiecewiseConstantCorrelation&,
-            const std::vector<boost::shared_ptr<PiecewiseConstantVariance> >&,
+            const std::vector<ext::shared_ptr<PiecewiseConstantVariance> >&,
             const std::vector<Time>&);
 }
 

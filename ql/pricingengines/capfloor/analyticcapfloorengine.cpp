@@ -22,7 +22,7 @@
 namespace QuantLib {
 
     AnalyticCapFloorEngine::AnalyticCapFloorEngine(
-                              const boost::shared_ptr<AffineModel>& model,
+                              const ext::shared_ptr<AffineModel>& model,
                               const Handle<YieldTermStructure>& termStructure)
     : GenericModelEngine<AffineModel,
                          CapFloor::arguments,
@@ -38,9 +38,9 @@ namespace QuantLib {
         Date referenceDate;
         DayCounter dayCounter;
 
-        boost::shared_ptr<TermStructureConsistentModel> tsmodel =
-            boost::dynamic_pointer_cast<TermStructureConsistentModel>(*model_);
-        if (tsmodel) {
+        ext::shared_ptr<TermStructureConsistentModel> tsmodel =
+            ext::dynamic_pointer_cast<TermStructureConsistentModel>(*model_);
+        if (tsmodel != 0) {
             referenceDate = tsmodel->termStructure()->referenceDate();
             dayCounter = tsmodel->termStructure()->dayCounter();
         } else {
@@ -57,7 +57,7 @@ namespace QuantLib {
         if (referenceDate == Settings::instance().evaluationDate()) {
             boost::optional<bool> includeTodaysPayments =
                 Settings::instance().includeTodaysCashFlows();
-            if (includeTodaysPayments)
+            if (includeTodaysPayments) // NOLINT(readability-implicit-bool-conversion)
                 includeRefDatePayments = *includeTodaysPayments;
         }
 

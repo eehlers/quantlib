@@ -30,7 +30,7 @@ namespace QuantLib {
                                     const Date& startDate,
                                     const Date& endDate,
                                     Natural fixingDays,
-                                    const boost::shared_ptr<InflationIndex>& index,
+                                    const ext::shared_ptr<InflationIndex>& index,
                                     const Period& observationLag,
                                     const DayCounter& dayCounter,
                                     const Date& refPeriodStart,
@@ -47,12 +47,12 @@ namespace QuantLib {
     }
 
 
-    void InflationCoupon::setPricer(const boost::shared_ptr<InflationCouponPricer>& pricer) {
+    void InflationCoupon::setPricer(const ext::shared_ptr<InflationCouponPricer>& pricer) {
         QL_REQUIRE(checkPricerImpl(pricer),"pricer given is wrong type");
-        if (pricer_)
+        if (pricer_ != 0)
             unregisterWith(pricer_);
         pricer_ = pricer;
-        if (pricer_)
+        if (pricer_ != 0)
             registerWith(pricer_);
         update();
     }

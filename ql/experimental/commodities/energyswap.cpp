@@ -28,13 +28,13 @@ namespace QuantLib {
                       const Currency& receiveCurrency,
                       const PricingPeriods& pricingPeriods,
                       const CommodityType& commodityType,
-                      const boost::shared_ptr<SecondaryCosts>& secondaryCosts)
+                      const ext::shared_ptr<SecondaryCosts>& secondaryCosts)
     : EnergyCommodity(commodityType, secondaryCosts),
       calendar_(calendar), payCurrency_(payCurrency),
       receiveCurrency_(receiveCurrency), pricingPeriods_(pricingPeriods) {}
 
     const CommodityType& EnergySwap::commodityType() const {
-        QL_REQUIRE(pricingPeriods_.size() > 0, "no pricing periods");
+        QL_REQUIRE(!pricingPeriods_.empty(), "no pricing periods");
         return pricingPeriods_[0]->quantity().commodityType();
     }
 

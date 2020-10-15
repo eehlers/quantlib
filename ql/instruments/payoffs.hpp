@@ -54,7 +54,7 @@ namespace QuantLib {
         std::string description() const;
         //@}
       protected:
-        TypePayoff(Option::Type type) : type_(type) {}
+        explicit TypePayoff(Option::Type type) : type_(type) {}
         Option::Type type_;
     };
 
@@ -78,6 +78,7 @@ namespace QuantLib {
         //! \name Payoff interface
         //@{
         std::string name() const { return "FloatingType";}
+        Real operator()(Real price, Real strike) const;
         Real operator()(Real price) const;
         virtual void accept(AcyclicVisitor&);
         //@}

@@ -38,14 +38,17 @@ namespace QuantLib {
     }
 
     //! %log-linear interpolation between discrete points
-    /*! \ingroup interpolations */
+    /*! \ingroup interpolations
+        \warning See the Interpolation class for information about the
+                 required lifetime of the underlying data.
+    */
     class LogLinearInterpolation : public Interpolation {
       public:
         /*! \pre the \f$ x \f$ values must be sorted. */
         template <class I1, class I2>
         LogLinearInterpolation(const I1& xBegin, const I1& xEnd,
                                const I2& yBegin) {
-            impl_ = boost::shared_ptr<Interpolation::Impl>(new
+            impl_ = ext::shared_ptr<Interpolation::Impl>(new
                 detail::LogInterpolationImpl<I1, I2, Linear>(xBegin, xEnd,
                                                              yBegin));
             impl_->update();
@@ -79,7 +82,7 @@ namespace QuantLib {
                               Real leftConditionValue,
                               CubicInterpolation::BoundaryCondition rightC,
                               Real rightConditionValue) {
-            impl_ = boost::shared_ptr<Interpolation::Impl>(new
+            impl_ = ext::shared_ptr<Interpolation::Impl>(new
                 detail::LogInterpolationImpl<I1, I2, Cubic>(
                     xBegin, xEnd, yBegin,
                     Cubic(da, monotonic,
@@ -123,6 +126,29 @@ namespace QuantLib {
 
     // convenience classes
 
+    class DefaultLogCubic : public LogCubic {
+      public:
+        DefaultLogCubic()
+        : LogCubic(CubicInterpolation::Kruger) {}
+    };
+
+    class MonotonicLogCubic : public LogCubic {
+      public:
+        MonotonicLogCubic()
+        : LogCubic(CubicInterpolation::Spline, true,
+                   CubicInterpolation::SecondDerivative, 0.0,
+                   CubicInterpolation::SecondDerivative, 0.0) {}
+    };
+
+    class KrugerLog : public LogCubic {
+      public:
+        KrugerLog()
+        : LogCubic(CubicInterpolation::Kruger, false,
+                   CubicInterpolation::SecondDerivative, 0.0,
+                   CubicInterpolation::SecondDerivative, 0.0) {}
+    };
+
+
     class LogCubicNaturalSpline : public LogCubicInterpolation {
       public:
         /*! \pre the \f$ x \f$ values must be sorted. */
@@ -158,6 +184,19 @@ namespace QuantLib {
                        const I2& yBegin)
         : LogCubicInterpolation(xBegin, xEnd, yBegin,
                                 CubicInterpolation::Kruger, false,
+                                CubicInterpolation::SecondDerivative, 0.0,
+                                CubicInterpolation::SecondDerivative, 0.0) {}
+    };
+
+    class HarmonicLogCubic : public LogCubicInterpolation {
+      public:
+        /*! \pre the \f$ x \f$ values must be sorted. */
+        template <class I1, class I2>
+        HarmonicLogCubic(const I1& xBegin,
+                         const I1& xEnd,
+                         const I2& yBegin)
+        : LogCubicInterpolation(xBegin, xEnd, yBegin,
+                                CubicInterpolation::Harmonic, false,
                                 CubicInterpolation::SecondDerivative, 0.0,
                                 CubicInterpolation::SecondDerivative, 0.0) {}
     };
@@ -216,7 +255,7 @@ namespace QuantLib {
                                          Real leftConditionValue,
                                          CubicInterpolation::BoundaryCondition rightC,
                                          Real rightConditionValue) {
-            impl_ = boost::shared_ptr<Interpolation::Impl>(new
+            impl_ = ext::shared_ptr<Interpolation::Impl>(new
                 detail::LogInterpolationImpl<I1, I2, MixedLinearCubic>(
                     xBegin, xEnd, yBegin,
                     MixedLinearCubic(n, behavior, da, monotonic,
@@ -264,6 +303,38 @@ namespace QuantLib {
     };
 
     // convenience classes
+    
+    class DefaultLogMixedLinearCubic : public LogMixedLinearCubic {
+      public:
+        explicit DefaultLogMixedLinearCubic(const Size n,
+                                            MixedInterpolation::Behavior behavior
+                                            = MixedInterpolation::ShareRanges)
+        : LogMixedLinearCubic(n, behavior,
+                              CubicInterpolation::Kruger) {}
+    };
+
+    class MonotonicLogMixedLinearCubic : public LogMixedLinearCubic {
+      public:
+        explicit MonotonicLogMixedLinearCubic(const Size n,
+                                              MixedInterpolation::Behavior behavior
+                                              = MixedInterpolation::ShareRanges)
+        : LogMixedLinearCubic(n, behavior,
+                              CubicInterpolation::Spline, true,
+                              CubicInterpolation::SecondDerivative, 0.0,
+                              CubicInterpolation::SecondDerivative, 0.0) {}
+    };
+
+    class KrugerLogMixedLinearCubic: public LogMixedLinearCubic {
+      public:
+        explicit KrugerLogMixedLinearCubic(const Size n,
+                                           MixedInterpolation::Behavior behavior
+                                           = MixedInterpolation::ShareRanges)
+        : LogMixedLinearCubic(n, behavior,
+                              CubicInterpolation::Kruger, false,
+                              CubicInterpolation::SecondDerivative, 0.0,
+                              CubicInterpolation::SecondDerivative, 0.0) {}
+    };
+
 
     class LogMixedLinearCubicNaturalSpline : public LogMixedLinearCubicInterpolation {
       public:

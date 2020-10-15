@@ -42,8 +42,8 @@ namespace QuantLib {
                 const UnitOfMeasure& unitOfMeasure,
                 const Calendar& calendar,
                 Real lotQuantity,
-                const boost::shared_ptr<CommodityCurve>& forwardCurve,
-                const boost::shared_ptr<ExchangeContracts>& exchangeContracts,
+                const ext::shared_ptr<CommodityCurve>& forwardCurve,
+                const ext::shared_ptr<ExchangeContracts>& exchangeContracts,
                 int nearbyOffset);
         //! \name Index interface
         //@{
@@ -59,7 +59,7 @@ namespace QuantLib {
         const Currency& currency() const;
         const UnitOfMeasure& unitOfMeasure() const;
         const Calendar& calendar() const;
-        const boost::shared_ptr<CommodityCurve>& forwardCurve() const;
+        const ext::shared_ptr<CommodityCurve>& forwardCurve() const;
         Real lotQuantity() const;
 
         Real price(const Date& date);
@@ -72,13 +72,13 @@ namespace QuantLib {
             std::string tag = name();
             quotes_ = IndexManager::instance().getHistory(tag);
             for (std::map<Date, Real>::const_iterator ii = quotes.begin();
-                 ii != quotes.end (); ii++) {
+                 ii != quotes.end (); ++ii) {
                 quotes_[ii->first] = ii->second;
             }
             IndexManager::instance().setHistory(tag, quotes_);
         }
 
-        void clearQuotes();
+        void clearQuotes() const;
         //! returns TRUE if the quote date is valid
         bool isValidQuoteDate(const Date& quoteDate) const;
         bool empty() const;
@@ -94,9 +94,9 @@ namespace QuantLib {
         Calendar calendar_;
         Real lotQuantity_;
         TimeSeries<Real> quotes_;
-        boost::shared_ptr<CommodityCurve> forwardCurve_;
+        ext::shared_ptr<CommodityCurve> forwardCurve_;
         Real forwardCurveUomConversionFactor_;
-        boost::shared_ptr<ExchangeContracts> exchangeContracts_;
+        ext::shared_ptr<ExchangeContracts> exchangeContracts_;
         Integer nearbyOffset_;
     };
 
@@ -135,7 +135,7 @@ namespace QuantLib {
         return lotQuantity_;
     }
 
-    inline const boost::shared_ptr<CommodityCurve>&
+    inline const ext::shared_ptr<CommodityCurve>&
     CommodityIndex::forwardCurve() const {
         return forwardCurve_;
     }
@@ -147,7 +147,7 @@ namespace QuantLib {
     inline Real CommodityIndex::price(const Date& date) {
         std::map<Date, Real>::const_iterator hq = quotes_.find(date);
         if (hq->second == Null<Real>()) {
-            hq++;
+            ++hq;
             if (hq == quotes_.end())
                 //if (hq->second == Null<Real>())
                 return Null<Real>();
@@ -192,7 +192,7 @@ namespace QuantLib {
         IndexManager::instance().setHistory(tag, quotes_);
     }
 
-    inline void CommodityIndex::clearQuotes() {
+    inline void CommodityIndex::clearQuotes() const {
         IndexManager::instance().clearHistory(name());
     }
 

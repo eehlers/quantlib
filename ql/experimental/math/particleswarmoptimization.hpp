@@ -27,15 +27,12 @@ Computation, 6(2): 58–73.
 #ifndef quantlib_optimization_particleswarmoptimization_hpp
 #define quantlib_optimization_particleswarmoptimization_hpp
 
-#include <ql/qldefines.hpp>
-
-#if BOOST_VERSION >= 104700
-
 #include <ql/math/optimization/problem.hpp>
 #include <ql/math/optimization/constraint.hpp>
 #include <ql/math/randomnumbers/mt19937uniformrng.hpp>
 #include <ql/experimental/math/isotropicrandomwalk.hpp>
 #include <ql/experimental/math/levyflightdistribution.hpp>
+#include <ql/math/randomnumbers/seedgenerator.hpp>
 
 #include <boost/random/mersenne_twister.hpp>
 typedef boost::mt19937 base_generator_type;
@@ -46,31 +43,40 @@ typedef boost::random::uniform_int_distribution<QuantLib::Size> uniform_integer;
 namespace QuantLib {
 
     /*! The process is as follows:
-    M individuals are used to explore the N-dimensional parameter space
-    X_{i}^k = (X_{i, 1}^k, X_{i, 2}^k, \ldots, X_{i, N}^k) is the kth-iteration for the ith-individual
+    M individuals are used to explore the N-dimensional parameter space:
+    \f$ X_{i}^k = (X_{i, 1}^k, X_{i, 2}^k, \ldots, X_{i, N}^k) \f$ is the kth-iteration for the ith-individual.
+
     X is updated via the rule
+    \f[
     X_{i, j}^{k+1} = X_{i, j}^k + V_{i, j}^{k+1}
+    \f]
     with V being the "velocity" that updates the position:
+    \f[
     V_{i, j}^{k+1} = \chi\left(V_{i, j}^k + c_1 r_{i, j}^k (P_{i, j}^k - X_{i, j}^k)
     + c_2 R_{i, j}^k (G_{i, j}^k - X_{i, j}^k)\right)
+    \f]
     where c are constants, r and R are uniformly distributed random numbers in the range [0, 1], and
-    P_{i, j} is the personal best parameter set for individual i up to iteration k
-    G_{i, j} is the global best parameter set for the swarm up to iteration k.
-    c_1 is the self recognition coefficient
-    c_2 is the social recognition coefficient
+    \f$ P_{i, j} \f$ is the personal best parameter set for individual i up to iteration k
+    \f$ G_{i, j} \f$ is the global best parameter set for the swarm up to iteration k.
+    \f$ c_1 \f$ is the self recognition coefficient
+    \f$ c_2 \f$ is the social recognition coefficient
 
     This version is known as the PSO with constriction factor (PSO-Co).
     PSO with inertia factor (PSO-In) updates the velocity according to:
+    \f[
     V_{i, j}^{k+1} = \omega V_{i, j}^k + \hat{c}_1 r_{i, j}^k (P_{i, j}^k - X_{i, j}^k)
     + \hat{c}_2 R_{i, j}^k (G_{i, j}^k - X_{i, j}^k)
-    and is accessible from PSO-Co by setting \omega = \chi, and \hat{c}_{1,2} = \chi c_{1,2}
+    \f]
+    and is accessible from PSO-Co by setting \f$ \omega = \chi \f$,
+    and \f$ \hat{c}_{1,2} = \chi c_{1,2} \f$.
 
     These two versions of PSO are normally referred to as canonical PSO.
 
-    Convergence of PSO-Co is improved if \chi is chosen as
-    \chi = \frac{2}{\vert 2-\phi-\sqrt{\phi^2 - 4\phi}\vert}, with \phi = c_1 + c_2
-    Stable convergence is achieved if \phi >= 4. Clerc and Kennedy recommend
-    c_1 = c_2 = 2.05 and \phi = 4.1
+    Convergence of PSO-Co is improved if \f$ \chi \f$ is chosen as
+    \f$ \chi = \frac{2}{\vert 2-\phi-\sqrt{\phi^2 - 4\phi}\vert} \f$,
+    with \f$ \phi = c_1 + c_2 \f$.
+    Stable convergence is achieved if \f$ \phi >= 4 \f$. Clerc and Kennedy recommend
+    \f$ c_1 = c_2 = 2.05 \f$ and \f$ \phi = 4.1 \f$.
 
     Different topologies can be chosen for G, e.g. instead of it being the best
     of the swarm, it is the best of the nearest neighbours, or some other form.
@@ -94,15 +100,18 @@ namespace QuantLib {
         friend class Inertia;
         friend class Topology;
         ParticleSwarmOptimization(Size M,
-            boost::shared_ptr<Topology> topology,
-            boost::shared_ptr<Inertia> inertia,
-            Real c1 = 2.05, Real c2 = 2.05,
-            unsigned long seed = 0);
-        ParticleSwarmOptimization(const Size M,
-            boost::shared_ptr<Topology> topology,
-            boost::shared_ptr<Inertia> inertia,
-            Real omega, Real c1, Real c2,
-            unsigned long seed = 0);
+                                  const ext::shared_ptr<Topology>& topology,
+                                  const ext::shared_ptr<Inertia>& inertia,
+                                  Real c1 = 2.05,
+                                  Real c2 = 2.05,
+                                  unsigned long seed = SeedGenerator::instance().get());
+        explicit ParticleSwarmOptimization(Size M,
+                                           const ext::shared_ptr<Topology>& topology,
+                                           const ext::shared_ptr<Inertia>& inertia,
+                                           Real omega,
+                                           Real c1,
+                                           Real c2,
+                                           unsigned long seed = SeedGenerator::instance().get());
         void startState(Problem &P, const EndCriteria &endCriteria);
         EndCriteria::Type minimize(Problem &P, const EndCriteria &endCriteria);
 
@@ -113,8 +122,8 @@ namespace QuantLib {
         Size M_, N_;
         Real c0_, c1_, c2_;
         MersenneTwisterUniformRng rng_;
-        boost::shared_ptr<Topology> topology_;
-        boost::shared_ptr<Inertia> inertia_;
+        ext::shared_ptr<Topology> topology_;
+        ext::shared_ptr<Inertia> inertia_;
     };
 
     //! Base inertia class used to alter the PSO state
@@ -134,8 +143,8 @@ namespace QuantLib {
         std::vector<Array> *X_, *V_, *pBX_, *gBX_;
         Array *pBF_, *gBF_;
         Array *lX_, *uX_;
-      private:
-        void init(ParticleSwarmOptimization *pso) {
+
+        virtual void init(ParticleSwarmOptimization *pso) {
             pso_ = pso;
             X_ = &pso_->X_;
             V_ = &pso_->V_;
@@ -169,13 +178,13 @@ namespace QuantLib {
 
     //! Simple Random Inertia
     /*     Inertia value gets multiplied with a random number
-    between (threshhold, 1)
+    between (threshold, 1)
     */
     class SimpleRandomInertia : public ParticleSwarmOptimization::Inertia {
       public:
-        SimpleRandomInertia(Real threshhold = 0.5, unsigned long seed = 0)
-            : threshhold_(threshhold), rng_(seed) {
-            QL_REQUIRE(threshhold_ >= 0.0 && threshhold_ < 1.0, "Threshhold must be a Real in [0, 1)");
+        SimpleRandomInertia(Real threshold = 0.5, unsigned long seed = SeedGenerator::instance().get())
+            : threshold_(threshold), rng_(seed) {
+            QL_REQUIRE(threshold_ >= 0.0 && threshold_ < 1.0, "Threshold must be a Real in [0, 1)");
         }
         inline void setSize(Size M, Size N, Real c0, const EndCriteria &endCriteria) {
             M_ = M;
@@ -183,25 +192,25 @@ namespace QuantLib {
         }
         inline void setValues() {
             for (Size i = 0; i < M_; i++) {
-                Real val = c0_*(threshhold_ + (1.0 - threshhold_)*rng_.nextReal());
+                Real val = c0_*(threshold_ + (1.0 - threshold_)*rng_.nextReal());
                 (*V_)[i] *= val;
             }
         }
       private:
-        Real c0_, threshhold_;
+        Real c0_, threshold_;
         Size M_;
         MersenneTwisterUniformRng rng_;
     };
 
     //! Decreasing Inertia
     /*     Inertia value gets decreased every iteration until it reaches
-    a value of threshhold when iteration reaches the maximum level
+    a value of threshold when iteration reaches the maximum level
     */
     class DecreasingInertia : public ParticleSwarmOptimization::Inertia {
       public:
-        DecreasingInertia(Real threshhold = 0.5)
-            : threshhold_(threshhold) {
-            QL_REQUIRE(threshhold_ >= 0.0 && threshhold_ < 1.0, "Threshhold must be a Real in [0, 1)");
+        DecreasingInertia(Real threshold = 0.5)
+            : threshold_(threshold) {
+            QL_REQUIRE(threshold_ >= 0.0 && threshold_ < 1.0, "Threshold must be a Real in [0, 1)");
         }
         inline void setSize(Size M, Size N, Real c0, const EndCriteria &endCriteria) {
             N_ = N;
@@ -210,13 +219,13 @@ namespace QuantLib {
             maxIterations_ = endCriteria.maxIterations();
         }
         inline void setValues() {
-            Real c0 = c0_*(threshhold_ + (1.0 - threshhold_)*(maxIterations_ - iteration_) / maxIterations_);
+            Real c0 = c0_*(threshold_ + (1.0 - threshold_)*(maxIterations_ - iteration_) / maxIterations_);
             for (Size i = 0; i < M_; i++) {
                 (*V_)[i] *= c0;
             }
         }
       private:
-        Real c0_, threshhold_;
+        Real c0_, threshold_;
         Size M_, N_, maxIterations_, iteration_;
     };
 
@@ -255,18 +264,16 @@ namespace QuantLib {
     class LevyFlightInertia : public ParticleSwarmOptimization::Inertia {
       public:
         typedef IsotropicRandomWalk<LevyFlightDistribution, base_generator_type> IsotropicLevyFlight;
-        LevyFlightInertia(Real alpha, Size threshhold, 
-                          unsigned long seed = 0)
-            :flight_(base_generator_type(seed), LevyFlightDistribution(1.0, alpha), 
+        LevyFlightInertia(Real alpha, Size threshold,
+                          unsigned long seed = SeedGenerator::instance().get())
+            :rng_(seed), flight_(base_generator_type(seed), LevyFlightDistribution(1.0, alpha),
                 1, Array(1, 1.0), seed),
-            threshhold_(threshhold) {};
+            threshold_(threshold) {};
         inline void setSize(Size M, Size N, Real c0, const EndCriteria &endCriteria) {
             M_ = M;
             N_ = N;
             c0_ = c0;
-            personalBestF_ = *pBF_;
             adaptiveCounter_ = std::vector<Size>(M_, 0);
-            flight_.setDimension(N_, *lX_, *uX_);
         }
         inline void setValues() {
             for (Size i = 0; i < M_; i++) {
@@ -277,16 +284,22 @@ namespace QuantLib {
                 else {
                     adaptiveCounter_[i]++;
                 }
-                if (adaptiveCounter_[i] <= threshhold_) {
+                if (adaptiveCounter_[i] <= threshold_) {
                     //Simple Random Inertia
                     (*V_)[i] *= c0_*(0.5 + 0.5*rng_.nextReal());
                 }
                 else {
-                    //If particle has not found a new personal best after threshhold_ iterations
+                    //If particle has not found a new personal best after threshold_ iterations
                     //then trigger a Levy flight pattern for the speed
                     flight_.nextReal<Real *>(&(*V_)[i][0]);
                 }
             }
+        }
+      protected:
+        void init(ParticleSwarmOptimization *pso) {
+            ParticleSwarmOptimization::Inertia::init(pso);
+            personalBestF_ = *pBF_;
+            flight_.setDimension(N_, *lX_, *uX_);
         }
       private:
         MersenneTwisterUniformRng rng_;
@@ -295,7 +308,7 @@ namespace QuantLib {
         std::vector<Size> adaptiveCounter_;
         Real c0_;
         Size M_, N_;
-        Size threshhold_;
+        Size threshold_;
     };
 
     //! Base topology class used to determine the personal and global best
@@ -367,8 +380,7 @@ namespace QuantLib {
         }
         inline void setSize(Size M) {
             M_ = M;
-            if (M_ < 2 * K_ + 1)
-                K_ = (M_ - 1) / 2;
+            QL_ENSURE(K_ < M, "Number of neighbors need to be smaller than total particles in swarm");
         }
         void findSocialBest();
 
@@ -390,7 +402,7 @@ namespace QuantLib {
       public:
         ClubsTopology(Size defaultClubs, Size totalClubs,
             Size maxClubs, Size minClubs,
-            Size resetIteration, unsigned long seed = 0);
+            Size resetIteration, unsigned long seed = SeedGenerator::instance().get());
         void setSize(Size M);
         void findSocialBest();
 
@@ -410,7 +422,5 @@ namespace QuantLib {
     };
 
 }
-
-#endif
 
 #endif

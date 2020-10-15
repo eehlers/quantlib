@@ -34,6 +34,7 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
+#undef REPORT_FAILURE
 #define REPORT_FAILURE(greekName, payoffM, payoffD, exerciseM,    \
                        exerciseD, s, q, r, today,                 \
                        v, expected, calculated, error, tolerance) \
@@ -54,7 +55,7 @@ using namespace boost::unit_test_framework;
                "\nerror:                " << error << \
                "\ntolerance:            " << tolerance);
 
-namespace {
+namespace compound_option_test {
 
     Integer timeToDays(Time t) {
         return Integer(t*360+0.5);
@@ -86,6 +87,8 @@ void CompoundOptionTest::testPutCallParity(){
 
     BOOST_TEST_MESSAGE("Testing compound-option put-call parity...");
 
+    using namespace compound_option_test;
+
     // Test Put Call Parity for compound options.
     // Formula taken from: "Foreign Exchange Risk", Wystup, Risk 2002
     // Page 81, Equation 9.5
@@ -113,39 +116,39 @@ void CompoundOptionTest::testPutCallParity(){
     DayCounter dc = Actual360();
     Date todaysDate = Settings::instance().evaluationDate();
 
-    boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
 
-    boost::shared_ptr<YieldTermStructure> rTS(
+    ext::shared_ptr<YieldTermStructure> rTS(
               new FlatForward(0, NullCalendar(), Handle<Quote>(rRate), dc));
 
-    boost::shared_ptr<YieldTermStructure> qTS(
+    ext::shared_ptr<YieldTermStructure> qTS(
               new FlatForward(0, NullCalendar(), Handle<Quote>(qRate), dc));
 
-    boost::shared_ptr<BlackVolTermStructure> volTS(
+    ext::shared_ptr<BlackVolTermStructure> volTS(
                               new BlackConstantVol(todaysDate, NullCalendar(),
                                                    Handle<Quote>(vol), dc));
 
     for (Size i=0; i<LENGTH(values); i++) {
 
-        boost::shared_ptr<StrikedTypePayoff> payoffMotherCall(
+        ext::shared_ptr<StrikedTypePayoff> payoffMotherCall(
                 new PlainVanillaPayoff(Option::Call, values[i].strikeMother));
 
-        boost::shared_ptr<StrikedTypePayoff> payoffMotherPut(
+        ext::shared_ptr<StrikedTypePayoff> payoffMotherPut(
                 new PlainVanillaPayoff(Option::Put, values[i].strikeMother));
 
-        boost::shared_ptr<StrikedTypePayoff> payoffDaughter(
+        ext::shared_ptr<StrikedTypePayoff> payoffDaughter(
                             new PlainVanillaPayoff(values[i].typeDaughter,
                                                    values[i].strikeDaughter));
 
         Date matDateMom = todaysDate + timeToDays(values[i].tMother);
         Date matDateDaughter = todaysDate + timeToDays(values[i].tDaughter);
 
-        boost::shared_ptr<Exercise> exerciseCompound(
+        ext::shared_ptr<Exercise> exerciseCompound(
                                             new EuropeanExercise(matDateMom));
-        boost::shared_ptr<Exercise> exerciseDaughter(
+        ext::shared_ptr<Exercise> exerciseDaughter(
                                        new EuropeanExercise(matDateDaughter));
 
         spot ->setValue(values[i].s);
@@ -162,7 +165,7 @@ void CompoundOptionTest::testPutCallParity(){
         VanillaOption vanillaOption(EuropeanOption(payoffDaughter,
                                                    exerciseDaughter));
 
-        boost::shared_ptr<BlackScholesMertonProcess> stochProcess(
+        ext::shared_ptr<BlackScholesMertonProcess> stochProcess(
             new BlackScholesMertonProcess(
                       Handle<Quote>(spot),
                       Handle<YieldTermStructure>(qTS),
@@ -170,10 +173,10 @@ void CompoundOptionTest::testPutCallParity(){
                       Handle<BlackVolTermStructure>(volTS)));
 
 
-        boost::shared_ptr<PricingEngine> engineCompound(
+        ext::shared_ptr<PricingEngine> engineCompound(
                               new AnalyticCompoundOptionEngine(stochProcess));
 
-        boost::shared_ptr<PricingEngine> engineEuropean(
+        ext::shared_ptr<PricingEngine> engineEuropean(
                                      new AnalyticEuropeanEngine(stochProcess));
 
         compoundOptionCall.setPricingEngine(engineCompound);
@@ -204,6 +207,8 @@ void CompoundOptionTest::testPutCallParity(){
 void CompoundOptionTest::testValues(){
 
     BOOST_TEST_MESSAGE("Testing compound-option values and greeks...");
+
+    using namespace compound_option_test;
 
     CompoundOptionData values[] = {
         // type Mother, typeDaughter, strike Mother, strike Daughter,  spot,    q,    r,    t Mother, t Daughter,  vol,   value,    tol, delta, gamma, vega, theta
@@ -248,37 +253,37 @@ void CompoundOptionTest::testValues(){
     DayCounter dc = Actual360();
     Date todaysDate = Settings::instance().evaluationDate();
 
-    boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
 
-    boost::shared_ptr<YieldTermStructure> rTS(
+    ext::shared_ptr<YieldTermStructure> rTS(
               new FlatForward(0, NullCalendar(), Handle<Quote>(rRate), dc));
 
-    boost::shared_ptr<YieldTermStructure> qTS(
+    ext::shared_ptr<YieldTermStructure> qTS(
               new FlatForward(0, NullCalendar(), Handle<Quote>(qRate), dc));
 
-    boost::shared_ptr<BlackVolTermStructure> volTS(
+    ext::shared_ptr<BlackVolTermStructure> volTS(
                               new BlackConstantVol(todaysDate, NullCalendar(),
                                                    Handle<Quote>(vol), dc));
 
     for (Size i=0; i<LENGTH(values); i++) {
 
-        boost::shared_ptr<StrikedTypePayoff> payoffMother(
+        ext::shared_ptr<StrikedTypePayoff> payoffMother(
                     new PlainVanillaPayoff(values[i].typeMother,
                                            values[i].strikeMother));
 
-        boost::shared_ptr<StrikedTypePayoff> payoffDaughter(
+        ext::shared_ptr<StrikedTypePayoff> payoffDaughter(
                     new PlainVanillaPayoff(values[i].typeDaughter,
                                            values[i].strikeDaughter));
 
         Date matDateMom = todaysDate + timeToDays(values[i].tMother);
         Date matDateDaughter = todaysDate + timeToDays(values[i].tDaughter);
 
-        boost::shared_ptr<Exercise> exerciseMother(
+        ext::shared_ptr<Exercise> exerciseMother(
                                             new EuropeanExercise(matDateMom));
-        boost::shared_ptr<Exercise> exerciseDaughter(
+        ext::shared_ptr<Exercise> exerciseDaughter(
                                        new EuropeanExercise(matDateDaughter));
 
         spot ->setValue(values[i].s);
@@ -289,14 +294,14 @@ void CompoundOptionTest::testValues(){
         CompoundOption compoundOption(payoffMother,exerciseMother,
                                       payoffDaughter, exerciseDaughter);
 
-        boost::shared_ptr<BlackScholesMertonProcess> stochProcess(
+        ext::shared_ptr<BlackScholesMertonProcess> stochProcess(
             new BlackScholesMertonProcess(
                       Handle<Quote>(spot),
                       Handle<YieldTermStructure>(qTS),
                       Handle<YieldTermStructure>(rTS),
                       Handle<BlackVolTermStructure>(volTS)));
 
-        boost::shared_ptr<PricingEngine> engineCompound(
+        ext::shared_ptr<PricingEngine> engineCompound(
                               new AnalyticCompoundOptionEngine(stochProcess));
 
         compoundOption.setPricingEngine(engineCompound);

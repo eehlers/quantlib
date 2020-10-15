@@ -23,6 +23,7 @@
 #include <ql/time/calendars/target.hpp>
 #include <ql/time/calendars/japan.hpp>
 #include <ql/time/calendars/unitedstates.hpp>
+#include <ql/time/calendars/weekendsonly.hpp>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
@@ -242,6 +243,45 @@ void ScheduleTest::testDoubleFirstDateWithEomAdjustment() {
     check_dates(s, expected);
 }
 
+void ScheduleTest::testCDS2015Convention() {
+    BOOST_TEST_MESSAGE("Testing CDS2015 semi-annual rolling convention...");
+    //From September 20th 2016 to March 19th 2017 of the next Year,
+    //end date is December 20th 2021 for a 5 year Swap
+    Schedule s1 =
+        MakeSchedule().from(Date(12, December, 2016))
+                      .to(Date(12, December, 2016) + Period(5, Years))
+                      .withCalendar(WeekendsOnly())
+                      .withTenor(3*Months)
+                      .withConvention(ModifiedFollowing)
+                      .withTerminationDateConvention(Unadjusted)
+                      .withRule(DateGeneration::CDS2015);
+    BOOST_CHECK(s1.startDate() == Date(20, September, 2016));
+    BOOST_CHECK(s1.endDate() == Date(20, December, 2021));
+    Schedule s2 =
+        MakeSchedule().from(Date(1, March, 2017))
+                      .to(Date(1, March, 2017) + Period(5, Years))
+                      .withCalendar(WeekendsOnly())
+                      .withTenor(3*Months)
+                      .withConvention(ModifiedFollowing)
+                      .withTerminationDateConvention(Unadjusted)
+                      .withRule(DateGeneration::CDS2015);
+    BOOST_CHECK(s2.startDate() == Date(20, December, 2016));
+    BOOST_CHECK(s2.endDate() == Date(20, December, 2021));
+    //From March 20th 2017 to September 19th 2017
+    //end date is June 20th 2022 for a 5 year Swap
+    Schedule s3 =
+        MakeSchedule().from(Date(20, March, 2017))
+                      .to(Date(20, March, 2017) + Period(5, Years))
+                      .withCalendar(WeekendsOnly())
+                      .withTenor(3*Months)
+                      .withConvention(ModifiedFollowing)
+                      .withTerminationDateConvention(Unadjusted)
+                      .withRule(DateGeneration::CDS2015);
+    BOOST_CHECK(s3.startDate() == Date(20, March, 2017));
+    BOOST_CHECK(s3.endDate() == Date(20, June, 2022));
+
+}
+
 void ScheduleTest::testDateConstructor() {
     BOOST_TEST_MESSAGE("Testing the constructor taking a vector of dates and "
                        "possibly additional meta information...");
@@ -299,7 +339,7 @@ void ScheduleTest::testDateConstructor() {
     if (schedule2.rule() != DateGeneration::Backward)
         BOOST_ERROR("schedule2 has rule " << schedule2.rule()
                                           << ", expected Backward");
-    if (schedule2.endOfMonth() != true)
+    if (!schedule2.endOfMonth())
         BOOST_ERROR("schedule2 has end of month flag false, expected true");
 }
 
@@ -320,6 +360,195 @@ void ScheduleTest::testFourWeeksTenor() {
     }
 }
 
+void ScheduleTest::testScheduleAlwaysHasAStartDate() {
+    BOOST_TEST_MESSAGE("Testing that variations of MakeSchedule "
+                       "always produce a schedule with a start date...");
+    // Attempt to establish whether the first coupoun payment date is
+    // always the second element of the constructor.
+    Calendar calendar = UnitedStates();
+    Schedule schedule = MakeSchedule()
+        .from(Date(10, January, 2017))
+        .withFirstDate(Date(31, August, 2017))
+        .to(Date(28, February, 2026))
+        .withFrequency(Semiannual)
+        .withCalendar(calendar)
+        .withConvention(Unadjusted)
+        .backwards().endOfMonth(false);
+    QL_ASSERT(schedule.date(0) == Date(10, January, 2017),
+              "The first element should always be the start date");
+    schedule = MakeSchedule()
+        .from(Date(10, January, 2017))
+        .to(Date(28, February, 2026))
+        .withFrequency(Semiannual)
+        .withCalendar(calendar)
+        .withConvention(Unadjusted)
+        .backwards().endOfMonth(false);
+    QL_ASSERT(schedule.date(0) == Date(10, January, 2017),
+              "The first element should always be the start date");
+    schedule = MakeSchedule()
+        .from(Date(31, August, 2017))
+        .to(Date(28, February, 2026))
+        .withFrequency(Semiannual)
+        .withCalendar(calendar)
+        .withConvention(Unadjusted)
+        .backwards().endOfMonth(false);
+    QL_ASSERT(schedule.date(0) == Date(31, August, 2017),
+              "The first element should always be the start date");
+}
+
+void ScheduleTest::testShortEomSchedule() {
+    BOOST_TEST_MESSAGE("Testing short end-of-month schedule...");
+    Schedule s;
+    // seg-faults in 1.15
+    BOOST_REQUIRE_NO_THROW(s = MakeSchedule()
+                                   .from(Date(21, Feb, 2019))
+                                   .to(Date(28, Feb, 2019))
+                                   .withCalendar(TARGET())
+                                   .withTenor(1 * Years)
+                                   .withConvention(ModifiedFollowing)
+                                   .withTerminationDateConvention(ModifiedFollowing)
+                                   .backwards()
+                                   .endOfMonth(true));
+    BOOST_REQUIRE(s.size() == 2);
+    BOOST_CHECK(s[0] == Date(21, Feb, 2019));
+    BOOST_CHECK(s[1] == Date(28, Feb, 2019));
+}
+
+void ScheduleTest::testFirstDateOnMaturity() {
+    BOOST_TEST_MESSAGE("Testing schedule with first date on maturity...");
+    Schedule schedule = MakeSchedule()
+        .from(Date(20, September, 2016))
+        .to(Date(20, December, 2016))
+        .withFirstDate(Date(20, December, 2016))
+        .withFrequency(Quarterly)
+        .withCalendar(UnitedStates())
+        .withConvention(Unadjusted)
+        .backwards();
+
+    std::vector<Date> expected(2);
+    expected[0] = Date(20,September,2016);
+    expected[1] = Date(20,December,2016);
+
+    check_dates(schedule, expected);
+
+    schedule = MakeSchedule()
+        .from(Date(20, September, 2016))
+        .to(Date(20, December, 2016))
+        .withFirstDate(Date(20, December, 2016))
+        .withFrequency(Quarterly)
+        .withCalendar(UnitedStates())
+        .withConvention(Unadjusted)
+        .forwards();
+
+    check_dates(schedule, expected);
+}
+
+void ScheduleTest::testNextToLastDateOnStart() {
+    BOOST_TEST_MESSAGE("Testing schedule with next-to-last date on start date...");
+    Schedule schedule = MakeSchedule()
+        .from(Date(20, September, 2016))
+        .to(Date(20, December, 2016))
+        .withNextToLastDate(Date(20, September, 2016))
+        .withFrequency(Quarterly)
+        .withCalendar(UnitedStates())
+        .withConvention(Unadjusted)
+        .backwards();
+
+    std::vector<Date> expected(2);
+    expected[0] = Date(20,September,2016);
+    expected[1] = Date(20,December,2016);
+
+    check_dates(schedule, expected);
+
+    schedule = MakeSchedule()
+        .from(Date(20, September, 2016))
+        .to(Date(20, December, 2016))
+        .withNextToLastDate(Date(20, September, 2016))
+        .withFrequency(Quarterly)
+        .withCalendar(UnitedStates())
+        .withConvention(Unadjusted)
+        .backwards();
+
+    check_dates(schedule, expected);
+}
+
+void ScheduleTest::testTruncation() {
+    BOOST_TEST_MESSAGE("Testing schedule truncation...");
+    Schedule s = MakeSchedule().from(Date(30, September, 2009))
+        .to(Date(15, June, 2020))
+        .withCalendar(Japan())
+        .withTenor(6 * Months)
+        .withConvention(Following)
+        .withTerminationDateConvention(Following)
+        .forwards()
+        .endOfMonth();
+
+    Schedule t;
+    std::vector<Date> expected;
+
+    // Until
+    t = s.until(Date(1, Jan, 2014));
+    expected = std::vector<Date>(10);
+    expected[0] = Date(30, September, 2009);
+    expected[1] = Date(31, March, 2010);
+    expected[2] = Date(30, September, 2010);
+    expected[3] = Date(31, March, 2011);
+    expected[4] = Date(30, September, 2011);
+    expected[5] = Date(30, March, 2012);
+    expected[6] = Date(28, September, 2012);
+    expected[7] = Date(29, March, 2013);
+    expected[8] = Date(30, September, 2013);
+    expected[9] = Date(1, January, 2014);
+    check_dates(t, expected);
+    BOOST_CHECK(t.isRegular().back() == false);
+
+    // Until, with truncation date falling on a schedule date
+    t = s.until(Date(30, September, 2013));
+    expected = std::vector<Date>(9);
+    expected[0] = Date(30, September, 2009);
+    expected[1] = Date(31, March, 2010);
+    expected[2] = Date(30, September, 2010);
+    expected[3] = Date(31, March, 2011);
+    expected[4] = Date(30, September, 2011);
+    expected[5] = Date(30, March, 2012);
+    expected[6] = Date(28, September, 2012);
+    expected[7] = Date(29, March, 2013);
+    expected[8] = Date(30, September, 2013);
+    check_dates(t, expected);
+    BOOST_CHECK(t.isRegular().back() == true);
+
+    // After
+    t = s.after(Date(1, Jan, 2014));
+    expected = std::vector<Date>(15);
+    expected[0] = Date(1, January, 2014);
+    expected[1] = Date(31, March, 2014);
+    expected[2] = Date(30, September, 2014);
+    expected[3] = Date(31, March, 2015);
+    expected[4] = Date(30, September, 2015);
+    expected[5] = Date(31, March, 2016);
+    expected[6] = Date(30, September, 2016);
+    expected[7] = Date(31, March, 2017);
+    expected[8] = Date(29, September, 2017);
+    expected[9] = Date(30, March, 2018);
+    expected[10] = Date(28, September, 2018);
+    expected[11] = Date(29, March, 2019);
+    expected[12] = Date(30, September, 2019);
+    expected[13] = Date(31, March, 2020);
+    expected[14] = Date(30, June, 2020);
+    check_dates(t, expected);
+    BOOST_CHECK(t.isRegular().front() == false);
+
+    // After, with truncation date falling on a schedule date
+    t = s.after(Date(28, September, 2018));
+    expected = std::vector<Date>(5);
+    expected[0] = Date(28, September, 2018);
+    expected[1] = Date(29, March, 2019);
+    expected[2] = Date(30, September, 2019);
+    expected[3] = Date(31, March, 2020);
+    expected[4] = Date(30, June, 2020);
+    check_dates(t, expected);
+    BOOST_CHECK(t.isRegular().front() == true);
+}
 
 test_suite* ScheduleTest::suite() {
     test_suite* suite = BOOST_TEST_SUITE("Schedule tests");
@@ -335,8 +564,13 @@ test_suite* ScheduleTest::suite() {
         &ScheduleTest::testBackwardDatesWithEomAdjustment));
     suite->add(QUANTLIB_TEST_CASE(
         &ScheduleTest::testDoubleFirstDateWithEomAdjustment));
+    suite->add(QUANTLIB_TEST_CASE(&ScheduleTest::testCDS2015Convention));
     suite->add(QUANTLIB_TEST_CASE(&ScheduleTest::testDateConstructor));
     suite->add(QUANTLIB_TEST_CASE(&ScheduleTest::testFourWeeksTenor));
+    suite->add(QUANTLIB_TEST_CASE(&ScheduleTest::testScheduleAlwaysHasAStartDate));
+    suite->add(QUANTLIB_TEST_CASE(&ScheduleTest::testShortEomSchedule));
+    suite->add(QUANTLIB_TEST_CASE(&ScheduleTest::testFirstDateOnMaturity));
+    suite->add(QUANTLIB_TEST_CASE(&ScheduleTest::testNextToLastDateOnStart));
+    suite->add(QUANTLIB_TEST_CASE(&ScheduleTest::testTruncation));
     return suite;
 }
-

@@ -19,25 +19,26 @@
  */
 
 #include <ql/termstructures/inflation/inflationhelpers.hpp>
+#include <ql/cashflows/inflationcouponpricer.hpp>
 #include <ql/indexes/inflationindex.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
-
 #include <ql/utilities/null_deleter.hpp>
 
 namespace QuantLib {
 
     ZeroCouponInflationSwapHelper::ZeroCouponInflationSwapHelper(
         const Handle<Quote>& quote,
-        const Period& swapObsLag,   // <= index availability lag
+        const Period& swapObsLag,
         const Date& maturity,
-        const Calendar& calendar,   // index may have null calendar as valid on every day
+        const Calendar& calendar,
         BusinessDayConvention paymentConvention,
         const DayCounter& dayCounter,
-        const boost::shared_ptr<ZeroInflationIndex>& zii)
+        const ext::shared_ptr<ZeroInflationIndex>& zii,
+        const Handle<YieldTermStructure>& nominalTermStructure)
     : BootstrapHelper<ZeroInflationTermStructure>(quote),
-    swapObsLag_(swapObsLag), maturity_(maturity), calendar_(calendar),
-    paymentConvention_(paymentConvention), dayCounter_(dayCounter),
-    zii_(zii) {
+      swapObsLag_(swapObsLag), maturity_(maturity), calendar_(calendar),
+      paymentConvention_(paymentConvention), dayCounter_(dayCounter),
+      zii_(zii), nominalTermStructure_(nominalTermStructure) {
 
         if (zii_->interpolated()) {
             // if interpolated then simple
@@ -70,7 +71,9 @@ namespace QuantLib {
         }
 
         registerWith(Settings::instance().evaluationDate());
+        registerWith(nominalTermStructure_);
     }
+
 
     Real ZeroCouponInflationSwapHelper::impliedQuote() const {
         // what does the term structure imply?
@@ -79,6 +82,7 @@ namespace QuantLib {
         zciis_->recalculate();
         return zciis_->fairRate();
     }
+
 
     void ZeroCouponInflationSwapHelper::setTermStructure(
             ZeroInflationTermStructure* z) {
@@ -93,12 +97,15 @@ namespace QuantLib {
         // The effect of the new inflation term structure is
         // felt via the effect on the inflation index
         Handle<ZeroInflationTermStructure> zits(
-            boost::shared_ptr<ZeroInflationTermStructure>(z, null_deleter()), own);
+            ext::shared_ptr<ZeroInflationTermStructure>(z, null_deleter()), own);
 
-        boost::shared_ptr<ZeroInflationIndex> new_zii = zii_->clone(zits);
+        ext::shared_ptr<ZeroInflationIndex> new_zii = zii_->clone(zits);
+
+        Handle<YieldTermStructure> nominalTS =
+            !nominalTermStructure_.empty() ? nominalTermStructure_ : z->nominalTermStructure();
 
         Real nominal = 1000000.0;   // has to be something but doesn't matter what
-        Date start = z->nominalTermStructure()->referenceDate();
+        Date start = nominalTS->referenceDate();
         zciis_.reset(new ZeroCouponInflationSwap(
                                 ZeroCouponInflationSwap::Payer,
                                 nominal, start, maturity_,
@@ -106,8 +113,8 @@ namespace QuantLib {
                                 new_zii, swapObsLag_));
         // Because very simple instrument only takes
         // standard discounting swap engine.
-        zciis_->setPricingEngine(boost::shared_ptr<PricingEngine>(
-                new DiscountingSwapEngine(z->nominalTermStructure())));
+        zciis_->setPricingEngine(ext::shared_ptr<PricingEngine>(
+                new DiscountingSwapEngine(nominalTS)));
     }
 
 
@@ -118,11 +125,12 @@ namespace QuantLib {
         const Calendar& calendar,
         BusinessDayConvention paymentConvention,
         const DayCounter& dayCounter,
-        const boost::shared_ptr<YoYInflationIndex>& yii)
+        const ext::shared_ptr<YoYInflationIndex>& yii,
+        const Handle<YieldTermStructure>& nominalTermStructure)
     : BootstrapHelper<YoYInflationTermStructure>(quote),
-    swapObsLag_(swapObsLag), maturity_(maturity),
-    calendar_(calendar), paymentConvention_(paymentConvention),
-    dayCounter_(dayCounter), yii_(yii) {
+      swapObsLag_(swapObsLag), maturity_(maturity),
+      calendar_(calendar), paymentConvention_(paymentConvention),
+      dayCounter_(dayCounter), yii_(yii), nominalTermStructure_(nominalTermStructure) {
 
         if (yii_->interpolated()) {
             // if interpolated then simple
@@ -155,16 +163,15 @@ namespace QuantLib {
         }
 
         registerWith(Settings::instance().evaluationDate());
+        registerWith(nominalTermStructure_);
     }
 
 
     Real YearOnYearInflationSwapHelper::impliedQuote() const {
-        // what does the term structure imply?
-        // in this case just the same value ... trivial case
-        // (would not be so for an inflation-linked bond)
         yyiis_->recalculate();
         return yyiis_->fairRate();
     }
+
 
     void YearOnYearInflationSwapHelper::setTermStructure(
                 YoYInflationTermStructure* y) {
@@ -178,9 +185,9 @@ namespace QuantLib {
         // The effect of the new inflation term structure is
         // felt via the effect on the inflation index
         Handle<YoYInflationTermStructure> yyts(
-            boost::shared_ptr<YoYInflationTermStructure>(y, null_deleter()), own);
+            ext::shared_ptr<YoYInflationTermStructure>(y, null_deleter()), own);
 
-        boost::shared_ptr<YoYInflationIndex> new_yii = yii_->clone(yyts);
+        ext::shared_ptr<YoYInflationIndex> new_yii = yii_->clone(yyts);
 
         // always works because tenor is always 1 year so
         // no problem with different days-in-month
@@ -191,7 +198,7 @@ namespace QuantLib {
                                     .withConvention(Unadjusted)
                                     .withCalendar(calendar_)// fixed leg gets cal from sched
                                     .backwards();
-        Schedule yoySchedule = fixedSchedule;
+        const Schedule& yoySchedule = fixedSchedule;
         Spread spread = 0.0;
         Rate fixedRate = quote()->value();
 
@@ -210,10 +217,16 @@ namespace QuantLib {
                                                     paymentConvention_));
 
 
-        // Because very simple instrument only takes
-        // standard discounting swap engine.
-        yyiis_->setPricingEngine(boost::shared_ptr<PricingEngine>(
-                    new DiscountingSwapEngine(y->nominalTermStructure())));
+        // The instrument takes a standard discounting swap engine.
+        // The inflation-related work is done by the coupons via the pricer.
+        Handle<YieldTermStructure> nominalTS =
+            !nominalTermStructure_.empty() ?
+            nominalTermStructure_ :
+            y->nominalTermStructure(); 
+        yyiis_->setPricingEngine(ext::shared_ptr<PricingEngine>(
+                    new DiscountingSwapEngine(nominalTS)));
+        setCouponPricer(yyiis_->yoyLeg(),
+                        ext::make_shared<YoYInflationCouponPricer>(nominalTS));
     }
 
 }

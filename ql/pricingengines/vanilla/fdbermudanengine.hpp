@@ -31,14 +31,18 @@
 namespace QuantLib {
 
     //! Finite-differences Bermudan engine
-    /*! \ingroup vanillaengines */
+    /*! \deprecated Use FdBlackScholesVanillaEngine instead.
+                    Deprecated in version 1.17.
+
+        \ingroup vanillaengines
+    */
     template <template <class> class Scheme = CrankNicolson>
-    class FDBermudanEngine : public VanillaOption::engine,
-                             public FDMultiPeriodEngine<Scheme> {
+    class QL_DEPRECATED FDBermudanEngine : public VanillaOption::engine,
+                                           public FDMultiPeriodEngine<Scheme> {
       public:
         // constructor
         FDBermudanEngine(
-             const boost::shared_ptr<GeneralizedBlackScholesProcess>& process,
+             const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
              Size timeSteps = 100,
              Size gridPoints = 100,
              bool timeDependent = false)
@@ -54,7 +58,7 @@ namespace QuantLib {
         Real extraTermInBermudan ;
         void initializeStepCondition() const {
             this->stepCondition_ =
-                boost::shared_ptr<StandardStepCondition>(
+                ext::shared_ptr<StandardStepCondition>(
                                                   new NullCondition<Array>());
         };
         void executeIntermediateStep(Size ) const {

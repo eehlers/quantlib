@@ -30,7 +30,7 @@ namespace QuantLib {
                     Option::Type type,
                     Real strike,
                     const std::vector<DiscountFactor>& discounts,
-                    const boost::shared_ptr<StochasticProcess1D>& diffProcess,
+                    const ext::shared_ptr<StochasticProcess1D>& diffProcess,
                     const PseudoRandom::ursg_type& sequenceGen)
     : barrierType_(barrierType), barrier_(barrier),
       rebate_(rebate), diffProcess_(diffProcess),
@@ -54,7 +54,7 @@ namespace QuantLib {
         Real new_asset_price;
         Real x, y;
         Volatility vol;
-        TimeGrid timeGrid = path.timeGrid();
+        const TimeGrid& timeGrid = path.timeGrid();
         Time dt;
         std::vector<Real> u = sequenceGen_.nextSequence().value;
         Size i;

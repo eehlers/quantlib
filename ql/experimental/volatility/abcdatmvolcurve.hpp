@@ -28,6 +28,7 @@
 #include <ql/experimental/volatility/blackatmvolcurve.hpp>
 #include <ql/patterns/lazyobject.hpp>
 #include <ql/math/interpolations/abcdinterpolation.hpp>
+#include <ql/time/daycounters/actual365fixed.hpp>
 
 namespace QuantLib {
 
@@ -44,7 +45,7 @@ namespace QuantLib {
                         const Calendar& cal,
                         const std::vector<Period>& optionTenors,
                         const std::vector<Handle<Quote> >& volsHandles,
-                        const std::vector<bool> inclusionInInterpolationFlag
+                        const std::vector<bool>& inclusionInInterpolationFlag
                             = std::vector<bool>(1, true),
                         BusinessDayConvention bdc = Following,
                         const DayCounter& dc = Actual365Fixed());
@@ -113,7 +114,7 @@ namespace QuantLib {
 
         mutable std::vector<bool> inclusionInInterpolation_;
 
-        boost::shared_ptr<AbcdInterpolation> interpolation_;
+        ext::shared_ptr<AbcdInterpolation> interpolation_;
     };
 
     // inline
@@ -138,7 +139,7 @@ namespace QuantLib {
 
     inline Volatility AbcdAtmVolCurve::atmVolImpl(Time t) const {
         calculate();
-        return k(t) * interpolation_->operator() (t, true);
+        return k(t) * (*interpolation_)(t, true);
     }
 
     inline const std::vector<Period>& AbcdAtmVolCurve::optionTenors() const {

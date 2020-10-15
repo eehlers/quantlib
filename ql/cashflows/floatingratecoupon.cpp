@@ -6,7 +6,7 @@
  Copyright (C) 2006 Ferdinando Ametrano
  Copyright (C) 2000, 2001, 2002, 2003 RiskMap srl
  Copyright (C) 2003, 2004 StatPro Italia srl
- Copyright (C) 2003 Nicolas Di Césaré
+ Copyright (C) 2003 Nicolas Di CÃ©sarÃ©
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -35,15 +35,15 @@ namespace QuantLib {
                             const Date& startDate,
                             const Date& endDate,
                             Natural fixingDays,
-                            const boost::shared_ptr<InterestRateIndex>& index,
+                            const ext::shared_ptr<InterestRateIndex>& index,
                             Real gearing,
                             Spread spread,
                             const Date& refPeriodStart,
                             const Date& refPeriodEnd,
                             const DayCounter& dayCounter,
-                            bool isInArrears)
-    : Coupon(paymentDate, nominal,
-             startDate, endDate, refPeriodStart, refPeriodEnd),
+                            bool isInArrears,
+                            const Date& exCouponDate)
+    : Coupon(paymentDate, nominal, startDate, endDate, refPeriodStart, refPeriodEnd, exCouponDate),
       index_(index), dayCounter_(dayCounter),
       fixingDays_(fixingDays==Null<Natural>() ? index->fixingDays() : fixingDays),
       gearing_(gearing), spread_(spread),
@@ -59,19 +59,25 @@ namespace QuantLib {
     }
 
     void FloatingRateCoupon::setPricer(
-                const boost::shared_ptr<FloatingRateCouponPricer>& pricer) {
-        if (pricer_)
+                const ext::shared_ptr<FloatingRateCouponPricer>& pricer) {
+        if (pricer_ != 0)
             unregisterWith(pricer_);
         pricer_ = pricer;
-        if (pricer_)
+        if (pricer_ != 0)
             registerWith(pricer_);
         update();
     }
 
     Real FloatingRateCoupon::accruedAmount(const Date& d) const {
         if (d <= accrualStartDate_ || d > paymentDate_) {
+            // out of coupon range
             return 0.0;
+        } else if (tradingExCoupon(d)) {
+            return -nominal() * rate() *
+                   dayCounter().yearFraction(d, std::max(d, accrualEndDate_),
+                                             refPeriodStart_, refPeriodEnd_);
         } else {
+            // usual case
             return nominal() * rate() *
                 dayCounter().yearFraction(accrualStartDate_,
                                           std::min(d, accrualEndDate_),

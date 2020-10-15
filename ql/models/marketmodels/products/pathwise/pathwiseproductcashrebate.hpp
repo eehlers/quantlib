@@ -18,8 +18,8 @@
 */
 
 
-#ifndef quantlib_market_model_pathwise_swaption_hpp
-#define quantlib_market_model_pathwise_swaption_hpp
+#ifndef quantlib_market_model_pathwise_cash_rebate_hpp
+#define quantlib_market_model_pathwise_cash_rebate_hpp
 
 #include <ql/types.hpp>
 #include <ql/models/marketmodels/pathwisemultiproduct.hpp>
@@ -62,7 +62,11 @@ namespace QuantLib {
                                   std::vector<Size>& numberCashFlowsThisStep,
                                   std::vector<std::vector<MarketModelPathwiseMultiProduct::CashFlow> >& cashFlowsGenerated);
 
+        #if defined(QL_USE_STD_UNIQUE_PTR)
+        virtual std::unique_ptr<MarketModelPathwiseMultiProduct> clone() const;
+        #else
         virtual std::auto_ptr<MarketModelPathwiseMultiProduct> clone() const;
+        #endif
 
       private:
         EvolutionDescription evolution_;

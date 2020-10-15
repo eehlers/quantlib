@@ -27,7 +27,7 @@
 
 #include <ql/termstructures/yield/fittedbonddiscountcurve.hpp>
 #include <ql/math/bspline.hpp>
-#include <boost/shared_ptr.hpp>
+#include <ql/shared_ptr.hpp>
 
 namespace QuantLib {
 
@@ -48,9 +48,21 @@ namespace QuantLib {
       public:
         ExponentialSplinesFitting(bool constrainAtZero = true,
                                   const Array& weights = Array(),
-                                  boost::shared_ptr<OptimizationMethod> optimizationMethod
-                                          = boost::shared_ptr<OptimizationMethod>());
+                                  const ext::shared_ptr<OptimizationMethod>& optimizationMethod =
+                                      ext::shared_ptr<OptimizationMethod>(),
+                                  const Array& l2 = Array(),
+                                  Real minCutoffTime = 0.0,
+                                  Real maxCutoffTime = QL_MAX_REAL);
+        ExponentialSplinesFitting(bool constrainAtZero,
+                                  const Array& weights,
+                                  const Array& l2,
+                                  Real minCutoffTime = 0.0,
+                                  Real maxCutoffTime = QL_MAX_REAL);
+        #if defined(QL_USE_STD_UNIQUE_PTR)
+        std::unique_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #else
         std::auto_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #endif
       private:
         Size size() const;
         DiscountFactor discountFunction(const Array& x, Time t) const;
@@ -61,7 +73,7 @@ namespace QuantLib {
     /*! Fits a discount function to the form
         \f$ d(t) = \exp^{-r t}, \f$ where the zero rate \f$r\f$ is defined as
         \f[
-        r \equiv c_0 + (c_0 + c_1)*(1 - exp^{-\kappa*t}/(\kappa t) -
+        r \equiv c_0 + (c_1 + c_2)*(1 - exp^{-\kappa*t})/(\kappa t) -
         c_2 exp^{ - \kappa t}.
         \f]
         See: Nelson, C. and A. Siegel (1985): "Parsimonious modeling of yield
@@ -71,9 +83,20 @@ namespace QuantLib {
         : public FittedBondDiscountCurve::FittingMethod {
       public:
         NelsonSiegelFitting(const Array& weights = Array(),
-                            boost::shared_ptr<OptimizationMethod> optimizationMethod
-                                          = boost::shared_ptr<OptimizationMethod>());
+                            const ext::shared_ptr<OptimizationMethod>& optimizationMethod =
+                                ext::shared_ptr<OptimizationMethod>(),
+                            const Array& l2 = Array(),
+                            Real minCutoffTime = 0.0,
+                            Real maxCutoffTime = QL_MAX_REAL);
+        NelsonSiegelFitting(const Array& weights,
+                            const Array& l2,
+                            Real minCutoffTime = 0.0,
+                            Real maxCutoffTime = QL_MAX_REAL);
+        #if defined(QL_USE_STD_UNIQUE_PTR)
+        std::unique_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #else
         std::auto_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #endif
       private:
         Size size() const;
         DiscountFactor discountFunction(const Array& x, Time t) const;
@@ -96,9 +119,20 @@ namespace QuantLib {
         : public FittedBondDiscountCurve::FittingMethod {
       public:
         SvenssonFitting(const Array& weights = Array(),
-                        boost::shared_ptr<OptimizationMethod> optimizationMethod
-                               = boost::shared_ptr<OptimizationMethod>());
+                        const ext::shared_ptr<OptimizationMethod>& optimizationMethod =
+                            ext::shared_ptr<OptimizationMethod>(),
+                        const Array& l2 = Array(),
+                        Real minCutoffTime = 0.0,
+                        Real maxCutoffTime = QL_MAX_REAL);
+        SvenssonFitting(const Array& weights,
+                        const Array& l2,
+                        Real minCutoffTime = 0.0,
+                        Real maxCutoffTime = QL_MAX_REAL);
+        #if defined(QL_USE_STD_UNIQUE_PTR)
+        std::unique_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #else
         std::auto_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #endif
       private:
         Size size() const;
         DiscountFactor discountFunction(const Array& x, Time t) const;
@@ -130,11 +164,24 @@ namespace QuantLib {
         CubicBSplinesFitting(const std::vector<Time>& knotVector,
                              bool constrainAtZero = true,
                              const Array& weights = Array(),
-                             boost::shared_ptr<OptimizationMethod> optimizationMethod
-                                     = boost::shared_ptr<OptimizationMethod>());
+                             const ext::shared_ptr<OptimizationMethod>& optimizationMethod =
+                                 ext::shared_ptr<OptimizationMethod>(),
+                             const Array& l2 = Array(),
+                             Real minCutoffTime = 0.0,
+                             Real maxCutoffTime = QL_MAX_REAL);
+        CubicBSplinesFitting(const std::vector<Time>& knotVector,
+                             bool constrainAtZero,
+                             const Array& weights,
+                             const Array& l2,
+                             Real minCutoffTime = 0.0,
+                             Real maxCutoffTime = QL_MAX_REAL);
         //! cubic B-spline basis functions
         Real basisFunction(Integer i, Time t) const;
+        #if defined(QL_USE_STD_UNIQUE_PTR)
+        std::unique_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #else
         std::auto_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #endif
       private:
         Size size() const;
         DiscountFactor discountFunction(const Array& x, Time t) const;
@@ -161,9 +208,22 @@ namespace QuantLib {
         SimplePolynomialFitting(Natural degree,
                                 bool constrainAtZero = true,
                                 const Array& weights = Array(),
-                                boost::shared_ptr<OptimizationMethod> optimizationMethod
-                                       = boost::shared_ptr<OptimizationMethod>());
+                                const ext::shared_ptr<OptimizationMethod>& optimizationMethod =
+                                    ext::shared_ptr<OptimizationMethod>(),
+                                const Array& l2 = Array(),
+                                Real minCutoffTime = 0.0,
+                                Real maxCutoffTime = QL_MAX_REAL);
+        SimplePolynomialFitting(Natural degree,
+                                bool constrainAtZero,
+                                const Array& weights,
+                                const Array& l2,
+                                Real minCutoffTime = 0.0,
+                                Real maxCutoffTime = QL_MAX_REAL);
+        #if defined(QL_USE_STD_UNIQUE_PTR)
+        std::unique_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #else
         std::auto_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #endif
       private:
         Size size() const;
         DiscountFactor discountFunction(const Array& x, Time t) const;
@@ -177,16 +237,22 @@ namespace QuantLib {
     class SpreadFittingMethod
         : public FittedBondDiscountCurve::FittingMethod {
       public:
-         SpreadFittingMethod(boost::shared_ptr<FittingMethod> method,
-                        Handle<YieldTermStructure> discountCurve);
+        SpreadFittingMethod(const ext::shared_ptr<FittingMethod>& method,
+                            const Handle<YieldTermStructure>& discountCurve,
+                            Real minCutoffTime = 0.0,
+                            Real maxCutoffTime = QL_MAX_REAL);
+        #if defined(QL_USE_STD_UNIQUE_PTR)
+        std::unique_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
+        #else
         std::auto_ptr<FittedBondDiscountCurve::FittingMethod> clone() const;
-	protected:
-		void init();
-	  private:
+        #endif
+    protected:
+        void init();
+      private:
         Size size() const;
         DiscountFactor discountFunction(const Array& x, Time t) const;
-		// underlying parametric method
-		boost::shared_ptr<FittingMethod> method_;
+        // underlying parametric method
+        ext::shared_ptr<FittingMethod> method_;
         // adjustment in case underlying discount curve has different reference date
         DiscountFactor rebase_;
         // discount curve from on top of which the spread will be calculated

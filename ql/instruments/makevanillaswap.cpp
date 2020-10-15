@@ -5,6 +5,7 @@
  Copyright (C) 2006 Katiuscia Manzoni
  Copyright (C) 2006 StatPro Italia srl
  Copyright (C) 2015 Paolo Mazzocchi
+ Copyright (C) 2018 Matthias Groncki
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -31,18 +32,17 @@
 #include <ql/currencies/asia.hpp>
 #include <ql/currencies/europe.hpp>
 #include <ql/currencies/oceania.hpp>
-
-using boost::shared_ptr;
+#include <ql/utilities/null.hpp>
 
 namespace QuantLib {
 
     MakeVanillaSwap::MakeVanillaSwap(const Period& swapTenor,
-                                     const shared_ptr<IborIndex>& index,
+                                     const ext::shared_ptr<IborIndex>& index,
                                      Rate fixedRate,
                                      const Period& forwardStart)
     : swapTenor_(swapTenor), iborIndex_(index),
       fixedRate_(fixedRate), forwardStart_(forwardStart),
-      settlementDays_(iborIndex_->fixingDays()),
+      settlementDays_(Null<Natural>()),
       fixedCalendar_(index->fixingCalendar()),
       floatCalendar_(index->fixingCalendar()),
       type_(VanillaSwap::Payer), nominal_(1.0),
@@ -59,11 +59,11 @@ namespace QuantLib {
       floatDayCount_(index->dayCounter()) {}
 
     MakeVanillaSwap::operator VanillaSwap() const {
-        shared_ptr<VanillaSwap> swap = *this;
+        ext::shared_ptr<VanillaSwap> swap = *this;
         return *swap;
     }
 
-    MakeVanillaSwap::operator shared_ptr<VanillaSwap>() const {
+    MakeVanillaSwap::operator ext::shared_ptr<VanillaSwap>() const {
 
         Date startDate;
         if (effectiveDate_ != Date())
@@ -73,15 +73,21 @@ namespace QuantLib {
             // if the evaluation date is not a business day
             // then move to the next business day
             refDate = floatCalendar_.adjust(refDate);
-            Date spotDate = floatCalendar_.advance(refDate,
-                                                   settlementDays_*Days);
+            // use index valueDate interface wherever possible to estimate spot date.
+            // Unless we pass an explicit settlementDays_ which does not match the index-defined number of fixing days.
+            Date spotDate;
+            if (settlementDays_ == Null<Natural>())
+                spotDate = iborIndex_->valueDate(refDate);
+            else
+                spotDate = floatCalendar_.advance(refDate, settlementDays_ * Days);
             startDate = spotDate+forwardStart_;
             if (forwardStart_.length()<0)
                 startDate = floatCalendar_.adjust(startDate,
                                                   Preceding);
-            else
+            else if (forwardStart_.length()>0)
                 startDate = floatCalendar_.adjust(startDate,
                                                   Following);
+            // no explicit date adjustment needed for forwardStart_.length()==0 (already handled by spotDate arithmetic above)
         }
 
         Date endDate = terminationDate_;
@@ -141,7 +147,8 @@ namespace QuantLib {
                      curr == SEKCurrency())
                 fixedDayCount = Thirty360(Thirty360::BondBasis);
             else if (curr == GBPCurrency() || curr == JPYCurrency() ||
-                     curr == AUDCurrency() || curr == HKDCurrency())
+                     curr == AUDCurrency() || curr == HKDCurrency() ||
+                     curr == THBCurrency())
                 fixedDayCount = Actual365Fixed();
             else
                 QL_FAIL("unknown fixed leg day counter for " << curr);
@@ -162,7 +169,7 @@ namespace QuantLib {
                            "null term structure set to this instance of " <<
                            iborIndex_->name());
                 bool includeSettlementDateFlows = false;
-                shared_ptr<PricingEngine> engine(new
+                ext::shared_ptr<PricingEngine> engine(new
                     DiscountingSwapEngine(disc, includeSettlementDateFlows));
                 temp.setPricingEngine(engine);
             } else
@@ -171,7 +178,7 @@ namespace QuantLib {
             usedFixedRate = temp.fairRate();
         }
 
-        shared_ptr<VanillaSwap> swap(new
+        ext::shared_ptr<VanillaSwap> swap(new
             VanillaSwap(type_, nominal_,
                         fixedSchedule,
                         usedFixedRate, fixedDayCount,
@@ -182,7 +189,7 @@ namespace QuantLib {
             Handle<YieldTermStructure> disc =
                                     iborIndex_->forwardingTermStructure();
             bool includeSettlementDateFlows = false;
-            shared_ptr<PricingEngine> engine(new
+            ext::shared_ptr<PricingEngine> engine(new
                 DiscountingSwapEngine(disc, includeSettlementDateFlows));
             swap->setPricingEngine(engine);
         } else
@@ -234,13 +241,13 @@ namespace QuantLib {
     MakeVanillaSwap& MakeVanillaSwap::withDiscountingTermStructure(
                                         const Handle<YieldTermStructure>& d) {
         bool includeSettlementDateFlows = false;
-        engine_ = shared_ptr<PricingEngine>(new
+        engine_ = ext::shared_ptr<PricingEngine>(new
             DiscountingSwapEngine(d, includeSettlementDateFlows));
         return *this;
     }
 
     MakeVanillaSwap& MakeVanillaSwap::withPricingEngine(
-                             const shared_ptr<PricingEngine>& engine) {
+                             const ext::shared_ptr<PricingEngine>& engine) {
         engine_ = engine;
         return *this;
     }

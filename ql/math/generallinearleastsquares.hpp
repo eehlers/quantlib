@@ -31,7 +31,6 @@
 #include <ql/math/matrixutilities/svd.hpp>
 #include <ql/math/array.hpp>
 #include <ql/math/functional.hpp>
-#include <boost/function.hpp>
 #include <boost/type_traits.hpp>
 #include <vector>
 
@@ -49,7 +48,7 @@ namespace QuantLib {
     public:
         template <class xContainer, class yContainer, class vContainer>
         GeneralLinearLeastSquares(const xContainer & x,
-                                  const yContainer &y, const vContainer & v);
+                                  const yContainer & y, const vContainer & v);
 
         template<class xIterator, class yIterator, class vIterator>
         GeneralLinearLeastSquares(xIterator xBegin, xIterator xEnd,
@@ -75,18 +74,18 @@ namespace QuantLib {
         void calculate(
             xIterator xBegin, xIterator xEnd,
             yIterator yBegin, yIterator yEnd,
-            vIterator vBegin, vIterator vEnd);
+            vIterator vBegin);
     };
 
     template <class xContainer, class yContainer, class vContainer> inline
     GeneralLinearLeastSquares::GeneralLinearLeastSquares(const xContainer & x,
-                                                         const yContainer &y,
+                                                         const yContainer & y,
                                                          const vContainer & v)
     : a_(v.size(), 0.0),
       err_(v.size(), 0.0),
       residuals_(y.size()),
       standardErrors_(v.size()) {
-        calculate(x.begin(), x.end(), y.begin(), y.end(), v.begin(), v.end());
+        calculate(x.begin(), x.end(), y.begin(), y.end(), v.begin());
     }
 
     template<class xIterator, class yIterator, class vIterator> inline
@@ -98,14 +97,14 @@ namespace QuantLib {
       err_(a_.size(), 0.0),
       residuals_(std::distance(yBegin, yEnd)),
       standardErrors_(a_.size()) {
-        calculate(xBegin, xEnd, yBegin, yEnd, vBegin, vEnd);
+        calculate(xBegin, xEnd, yBegin, yEnd, vBegin);
     }
 
 
     template <class xIterator, class yIterator, class vIterator>
     void GeneralLinearLeastSquares::calculate(xIterator xBegin, xIterator xEnd,
                                               yIterator yBegin, yIterator yEnd,
-                                              vIterator vBegin, vIterator vEnd) {
+                                              vIterator vBegin) {
 
         const Size n = residuals_.size();
         const Size m = err_.size();
@@ -147,9 +146,9 @@ namespace QuantLib {
             = std::inner_product(residuals_.begin(), residuals_.end(),
             residuals_.begin(), 0.0);
         std::transform(err_.begin(), err_.end(), standardErrors_.begin(),
-            std::bind1st(std::multiplies<Real>(),
-            std::sqrt(chiSq/(n-2))));
+                       multiply_by<Real>(std::sqrt(chiSq/(n-2))));
     }
+
 }
 
 #endif

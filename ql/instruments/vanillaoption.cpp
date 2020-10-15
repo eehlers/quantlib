@@ -22,22 +22,21 @@
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/instruments/impliedvolatility.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
-#include <ql/pricingengines/vanilla/fdamericanengine.hpp>
-#include <ql/pricingengines/vanilla/fdbermudanengine.hpp>
+#include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/exercise.hpp>
 #include <boost/scoped_ptr.hpp>
 
 namespace QuantLib {
 
     VanillaOption::VanillaOption(
-        const boost::shared_ptr<StrikedTypePayoff>& payoff,
-        const boost::shared_ptr<Exercise>& exercise)
+        const ext::shared_ptr<StrikedTypePayoff>& payoff,
+        const ext::shared_ptr<Exercise>& exercise)
     : OneAssetOption(payoff, exercise) {}
 
 
     Volatility VanillaOption::impliedVolatility(
              Real targetValue,
-             const boost::shared_ptr<GeneralizedBlackScholesProcess>& process,
+             const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
              Real accuracy,
              Size maxEvaluations,
              Volatility minVol,
@@ -45,9 +44,9 @@ namespace QuantLib {
 
         QL_REQUIRE(!isExpired(), "option expired");
 
-        boost::shared_ptr<SimpleQuote> volQuote(new SimpleQuote);
+        ext::shared_ptr<SimpleQuote> volQuote(new SimpleQuote);
 
-        boost::shared_ptr<GeneralizedBlackScholesProcess> newProcess =
+        ext::shared_ptr<GeneralizedBlackScholesProcess> newProcess =
             detail::ImpliedVolatilityHelper::clone(process, volQuote);
 
         // engines are built-in for the time being
@@ -57,10 +56,8 @@ namespace QuantLib {
             engine.reset(new AnalyticEuropeanEngine(newProcess));
             break;
           case Exercise::American:
-            engine.reset(new FDAmericanEngine<CrankNicolson>(newProcess));
-            break;
           case Exercise::Bermudan:
-            engine.reset(new FDBermudanEngine<CrankNicolson>(newProcess));
+            engine.reset(new FdBlackScholesVanillaEngine(newProcess));
             break;
           default:
             QL_FAIL("unknown exercise type");

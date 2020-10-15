@@ -25,7 +25,7 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-namespace {
+namespace rounding_test {
 
     struct TestCase {
         Decimal x;
@@ -68,13 +68,15 @@ void RoundingTest::testClosest() {
 
     BOOST_TEST_MESSAGE("Testing closest decimal rounding...");
 
+    using namespace rounding_test;
+
     for (Size i=0; i<LENGTH(testData); i++) {
         Integer digits = testData[i].precision;
         ClosestRounding closest(digits);
         Real calculated = closest(testData[i].x);
         Real expected = testData[i].closest;
         if (!close(calculated,expected,1))
-            BOOST_ERROR(QL_FIXED << std::setprecision(8)
+            BOOST_ERROR(std::fixed << std::setprecision(8)
                         << "Original number: " << testData[i].x << "\n"
                         << std::setprecision(digits)
                         << "Expected:        " << expected << "\n"
@@ -86,13 +88,15 @@ void RoundingTest::testUp() {
 
     BOOST_TEST_MESSAGE("Testing upward decimal rounding...");
 
+    using namespace rounding_test;
+
     for (Size i=0; i<LENGTH(testData); i++) {
         Integer digits = testData[i].precision;
         UpRounding up(digits);
         Real calculated = up(testData[i].x);
         Real expected = testData[i].up;
         if (!close(calculated,expected,1))
-            BOOST_ERROR(QL_FIXED << std::setprecision(8)
+            BOOST_ERROR(std::fixed << std::setprecision(8)
                         << "Original number: " << testData[i].x << "\n"
                         << std::setprecision(digits)
                         << "Expected:        " << expected << "\n"
@@ -104,13 +108,15 @@ void RoundingTest::testDown() {
 
     BOOST_TEST_MESSAGE("Testing downward decimal rounding...");
 
+    using namespace rounding_test;
+
     for (Size i=0; i<LENGTH(testData); i++) {
         Integer digits = testData[i].precision;
         DownRounding down(digits);
         Real calculated = down(testData[i].x);
         Real expected = testData[i].down;
         if (!close(calculated,expected,1))
-            BOOST_ERROR(QL_FIXED << std::setprecision(8)
+            BOOST_ERROR(std::fixed << std::setprecision(8)
                         << "Original number: " << testData[i].x << "\n"
                         << std::setprecision(digits)
                         << "Expected:        " << expected << "\n"
@@ -122,13 +128,15 @@ void RoundingTest::testFloor() {
 
     BOOST_TEST_MESSAGE("Testing floor decimal rounding...");
 
+    using namespace rounding_test;
+
     for (Size i=0; i<LENGTH(testData); i++) {
         Integer digits = testData[i].precision;
         FloorTruncation floor(digits);
         Real calculated = floor(testData[i].x);
         Real expected = testData[i].floor;
         if (!close(calculated,expected,1))
-            BOOST_ERROR(QL_FIXED << std::setprecision(8)
+            BOOST_ERROR(std::fixed << std::setprecision(8)
                         << "Original number: " << testData[i].x << "\n"
                         << std::setprecision(digits)
                         << "Expected:        " << expected << "\n"
@@ -140,13 +148,15 @@ void RoundingTest::testCeiling() {
 
     BOOST_TEST_MESSAGE("Testing ceiling decimal rounding...");
 
+    using namespace rounding_test;
+
     for (Size i=0; i<LENGTH(testData); i++) {
         Integer digits = testData[i].precision;
         CeilingTruncation ceiling(digits);
         Real calculated = ceiling(testData[i].x);
         Real expected = testData[i].ceiling;
         if (!close(calculated,expected,1))
-            BOOST_ERROR(QL_FIXED << std::setprecision(8)
+            BOOST_ERROR(std::fixed << std::setprecision(8)
                         << "Original number: " << testData[i].x << "\n"
                         << std::setprecision(digits)
                         << "Expected:        " << expected << "\n"

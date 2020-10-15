@@ -2,6 +2,8 @@
 
 /*
  Copyright (C) 2003 RiskMap srl
+ Copyright (C) 2020 Leonardo Arcari
+ Copyright (C) 2020 Kline s.r.l.
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -21,6 +23,7 @@
 #define quantlib_test_dates_hpp
 
 #include <boost/test/unit_test.hpp>
+#include "speedlevel.hpp"
 
 /* remember to document new and/or updated tests in the Doxygen
    comment block of the corresponding class */
@@ -34,7 +37,8 @@ class DateTest {
     static void isoDates();
     static void parseDates();
     static void intraday();
-    static boost::unit_test_framework::test_suite* suite();
+    static void canHash();
+    static boost::unit_test_framework::test_suite* suite(SpeedLevel);
 };
 
 

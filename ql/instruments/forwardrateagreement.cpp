@@ -29,30 +29,25 @@ namespace QuantLib {
                            Position::Type type,
                            Rate strikeForwardRate,
                            Real notionalAmount,
-                           const boost::shared_ptr<IborIndex>& index,
-                           const Handle<YieldTermStructure>& discountCurve)
+                           const ext::shared_ptr<IborIndex>& index,
+                           const Handle<YieldTermStructure>& discountCurve,
+                           bool useIndexedCoupon)
     : Forward(index->dayCounter(), index->fixingCalendar(),
               index->businessDayConvention(),
-              index->fixingDays(), boost::shared_ptr<Payoff>(),
+              index->fixingDays(), ext::shared_ptr<Payoff>(),
               valueDate, maturityDate, discountCurve),
-      fraType_(type), notionalAmount_(notionalAmount), index_(index) {
+      fraType_(type), notionalAmount_(notionalAmount), index_(index),
+      useIndexedCoupon_(useIndexedCoupon) {
 
         QL_REQUIRE(notionalAmount > 0.0, "notionalAmount must be positive");
 
-        // do I adjust this ?
-        // valueDate_ = calendar_.adjust(valueDate_,businessDayConvention_);
-        Date fixingDate = calendar_.advance(valueDate_,
-            -static_cast<Integer>(settlementDays_), Days);
-        forwardRate_ = InterestRate(index->fixing(fixingDate),
-                                    index->dayCounter(),
-                                    Simple, Once);
         strikeForwardRate_ = InterestRate(strikeForwardRate,
                                           index->dayCounter(),
                                           Simple, Once);
         Real strike = notionalAmount_ *
                       strikeForwardRate_.compoundFactor(valueDate_,
                                                         maturityDate_);
-        payoff_ = boost::shared_ptr<Payoff>(new ForwardTypePayoff(fraType_,
+        payoff_ = ext::shared_ptr<Payoff>(new ForwardTypePayoff(fraType_,
                                                                   strike));
         // incomeDiscountCurve_ is irrelevant to an FRA
         incomeDiscountCurve_ = discountCurve_;
@@ -64,6 +59,11 @@ namespace QuantLib {
     Date ForwardRateAgreement::settlementDate() const {
         return calendar_.advance(Settings::instance().evaluationDate(),
                                  settlementDays_, Days);
+    }
+
+    Date ForwardRateAgreement::fixingDate() const {
+        return calendar_.advance(valueDate_,
+                                 -static_cast<Integer>(settlementDays_), Days);
     }
 
     bool ForwardRateAgreement::isExpired() const {
@@ -93,15 +93,29 @@ namespace QuantLib {
         return forwardRate_;
     }
 
+    void ForwardRateAgreement::setupExpired() const {
+        Forward::setupExpired();
+        calculateForwardRate();
+    }
+
     void ForwardRateAgreement::performCalculations() const {
-        Date fixingDate = calendar_.advance(valueDate_,
-            -static_cast<Integer>(settlementDays_), Days);
-        forwardRate_ = InterestRate(index_->fixing(fixingDate),
-                                    index_->dayCounter(),
-                                    Simple, Once);
+        calculateForwardRate();
         underlyingSpotValue_ = spotValue();
         underlyingIncome_    = 0.0;
         Forward::performCalculations();
     }
 
+    void ForwardRateAgreement::calculateForwardRate() const {
+        if (useIndexedCoupon_)
+            forwardRate_ =
+                InterestRate(index_->fixing(fixingDate()), index_->dayCounter(), Simple, Once);
+        else
+            // par coupon approximation
+            forwardRate_ =
+                InterestRate((index_->forwardingTermStructure()->discount(valueDate_) /
+                                  index_->forwardingTermStructure()->discount(maturityDate_) -
+                              1.0) /
+                                 index_->dayCounter().yearFraction(valueDate_, maturityDate_),
+                             index_->dayCounter(), Simple, Once);
+    }
 }

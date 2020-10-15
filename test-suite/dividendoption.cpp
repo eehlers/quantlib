@@ -28,20 +28,20 @@
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/instruments/dividendvanillaoption.hpp>
 #include <ql/instruments/vanillaoption.hpp>
-#include <ql/pricingengines/vanilla/fddividendeuropeanengine.hpp>
-#include <ql/pricingengines/vanilla/fddividendamericanengine.hpp>
 #include <ql/pricingengines/vanilla/fddividendshoutengine.hpp>
+#include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
+#include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/utilities/dataformatters.hpp>
 #include <map>
-#include <iostream>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
+#undef REPORT_FAILURE
 #define REPORT_FAILURE(greekName, payoff, exercise, s, q, r, today, \
                        v, expected, calculated, error, tolerance) \
     BOOST_ERROR(exerciseTypeToString(exercise) << " " \
@@ -82,19 +82,19 @@ void DividendOptionTest::testEuropeanValues() {
     Date today = Date::todaysDate();
     Settings::instance().evaluationDate() = today;
 
-    boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> qTS(flatRate(qRate, dc));
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> rTS(flatRate(rRate, dc));
-    boost::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
     Handle<BlackVolTermStructure> volTS(flatVol(vol, dc));
 
     for (Size i=0; i<LENGTH(types); i++) {
       for (Size j=0; j<LENGTH(strikes); j++) {
         for (Size k=0; k<LENGTH(lengths); k++) {
           Date exDate = today + lengths[k]*Years;
-          boost::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+          ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
 
           std::vector<Date> dividendDates;
           std::vector<Real> dividends;
@@ -105,17 +105,17 @@ void DividendOptionTest::testEuropeanValues() {
               dividends.push_back(0.0);
           }
 
-          boost::shared_ptr<StrikedTypePayoff> payoff(
+          ext::shared_ptr<StrikedTypePayoff> payoff(
                                 new PlainVanillaPayoff(types[i], strikes[j]));
 
-          boost::shared_ptr<BlackScholesMertonProcess> stochProcess(
+          ext::shared_ptr<BlackScholesMertonProcess> stochProcess(
                             new BlackScholesMertonProcess(Handle<Quote>(spot),
                                                           qTS, rTS, volTS));
 
-          boost::shared_ptr<PricingEngine> ref_engine(
+          ext::shared_ptr<PricingEngine> ref_engine(
                                     new AnalyticEuropeanEngine(stochProcess));
 
-          boost::shared_ptr<PricingEngine> engine(
+          ext::shared_ptr<PricingEngine> engine(
                             new AnalyticDividendEuropeanEngine(stochProcess));
 
           DividendVanillaOption option(payoff, exercise,
@@ -174,16 +174,16 @@ void DividendOptionTest::testEuropeanKnownValue() {
     Date today = Date::todaysDate();
     Settings::instance().evaluationDate() = today;
 
-    boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> qTS(flatRate(qRate, dc));
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> rTS(flatRate(rRate, dc));
-    boost::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
     Handle<BlackVolTermStructure> volTS(flatVol(vol, dc));
 
     Date exDate = today + 6*Months;
-    boost::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+    ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
 
     std::vector<Date> dividendDates;
     std::vector<Real> dividends;
@@ -192,14 +192,14 @@ void DividendOptionTest::testEuropeanKnownValue() {
     dividendDates.push_back(today + 5*Months);
     dividends.push_back(0.50);
 
-    boost::shared_ptr<StrikedTypePayoff> payoff(
+    ext::shared_ptr<StrikedTypePayoff> payoff(
             new PlainVanillaPayoff(Option::Call, 40.0));
 
-    boost::shared_ptr<BlackScholesMertonProcess> stochProcess(
+    ext::shared_ptr<BlackScholesMertonProcess> stochProcess(
                             new BlackScholesMertonProcess(Handle<Quote>(spot),
                                                           qTS, rTS, volTS));
 
-    boost::shared_ptr<PricingEngine> engine(
+    ext::shared_ptr<PricingEngine> engine(
                             new AnalyticDividendEuropeanEngine(stochProcess));
 
     DividendVanillaOption option(payoff, exercise,
@@ -248,36 +248,36 @@ void DividendOptionTest::testEuropeanStartLimit() {
     Date today = Date::todaysDate();
     Settings::instance().evaluationDate() = today;
 
-    boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> qTS(flatRate(qRate, dc));
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> rTS(flatRate(rRate, dc));
-    boost::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
     Handle<BlackVolTermStructure> volTS(flatVol(vol, dc));
 
     for (Size i=0; i<LENGTH(types); i++) {
       for (Size j=0; j<LENGTH(strikes); j++) {
         for (Size k=0; k<LENGTH(lengths); k++) {
           Date exDate = today + lengths[k]*Years;
-          boost::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+          ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
 
           std::vector<Date> dividendDates;
           std::vector<Real> dividends;
           dividendDates.push_back(today);
           dividends.push_back(dividendValue);
 
-          boost::shared_ptr<StrikedTypePayoff> payoff(
+          ext::shared_ptr<StrikedTypePayoff> payoff(
                                 new PlainVanillaPayoff(types[i], strikes[j]));
 
-          boost::shared_ptr<BlackScholesMertonProcess> stochProcess(
+          ext::shared_ptr<BlackScholesMertonProcess> stochProcess(
                             new BlackScholesMertonProcess(Handle<Quote>(spot),
                                                           qTS, rTS, volTS));
 
-          boost::shared_ptr<PricingEngine> engine(
+          ext::shared_ptr<PricingEngine> engine(
                             new AnalyticDividendEuropeanEngine(stochProcess));
 
-          boost::shared_ptr<PricingEngine> ref_engine(
+          ext::shared_ptr<PricingEngine> ref_engine(
                                     new AnalyticEuropeanEngine(stochProcess));
 
           DividendVanillaOption option(payoff, exercise,
@@ -341,42 +341,42 @@ void DividendOptionTest::testEuropeanEndLimit() {
     Date today = Date::todaysDate();
     Settings::instance().evaluationDate() = today;
 
-    boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> qTS(flatRate(qRate, dc));
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> rTS(flatRate(rRate, dc));
-    boost::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
     Handle<BlackVolTermStructure> volTS(flatVol(vol, dc));
 
     for (Size i=0; i<LENGTH(types); i++) {
       for (Size j=0; j<LENGTH(strikes); j++) {
         for (Size k=0; k<LENGTH(lengths); k++) {
           Date exDate = today + lengths[k]*Years;
-          boost::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+          ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
 
           std::vector<Date> dividendDates;
           std::vector<Real> dividends;
           dividendDates.push_back(exercise->lastDate());
           dividends.push_back(dividendValue);
 
-          boost::shared_ptr<StrikedTypePayoff> payoff(
+          ext::shared_ptr<StrikedTypePayoff> payoff(
                                 new PlainVanillaPayoff(types[i], strikes[j]));
 
 
-          boost::shared_ptr<StrikedTypePayoff> refPayoff(
+          ext::shared_ptr<StrikedTypePayoff> refPayoff(
                                 new PlainVanillaPayoff(types[i],
                                                        strikes[j] +
                                                        dividendValue));
 
-          boost::shared_ptr<BlackScholesMertonProcess> stochProcess(
+          ext::shared_ptr<BlackScholesMertonProcess> stochProcess(
                             new BlackScholesMertonProcess(Handle<Quote>(spot),
                                                           qTS, rTS, volTS));
 
-          boost::shared_ptr<PricingEngine> engine(
+          ext::shared_ptr<PricingEngine> engine(
                             new AnalyticDividendEuropeanEngine(stochProcess));
 
-          boost::shared_ptr<PricingEngine> ref_engine(
+          ext::shared_ptr<PricingEngine> ref_engine(
                                     new AnalyticEuropeanEngine(stochProcess));
 
           DividendVanillaOption option(payoff, exercise,
@@ -443,19 +443,19 @@ void DividendOptionTest::testEuropeanGreeks() {
     Date today = Date::todaysDate();
     Settings::instance().evaluationDate() = today;
 
-    boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> qTS(flatRate(qRate, dc));
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> rTS(flatRate(rRate, dc));
-    boost::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
     Handle<BlackVolTermStructure> volTS(flatVol(vol, dc));
 
     for (Size i=0; i<LENGTH(types); i++) {
       for (Size j=0; j<LENGTH(strikes); j++) {
         for (Size k=0; k<LENGTH(lengths); k++) {
           Date exDate = today + lengths[k]*Years;
-          boost::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+          ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
 
           std::vector<Date> dividendDates;
           std::vector<Real> dividends;
@@ -466,14 +466,14 @@ void DividendOptionTest::testEuropeanGreeks() {
               dividends.push_back(5.0);
           }
 
-          boost::shared_ptr<StrikedTypePayoff> payoff(
+          ext::shared_ptr<StrikedTypePayoff> payoff(
                                 new PlainVanillaPayoff(types[i], strikes[j]));
 
-          boost::shared_ptr<BlackScholesMertonProcess> stochProcess(
+          ext::shared_ptr<BlackScholesMertonProcess> stochProcess(
                             new BlackScholesMertonProcess(Handle<Quote>(spot),
                                                           qTS, rTS, volTS));
 
-          boost::shared_ptr<PricingEngine> engine(
+          ext::shared_ptr<PricingEngine> engine(
                             new AnalyticDividendEuropeanEngine(stochProcess));
 
           DividendVanillaOption option(payoff, exercise,
@@ -574,15 +574,13 @@ void DividendOptionTest::testFdEuropeanValues() {
     SavedSettings backup;
 
     Real tolerance = 1.0e-2;
-    Size gridPoints = 300;
+    Size gridPoints = 400;
     Size timeSteps = 40;
 
     Option::Type types[] = { Option::Call, Option::Put };
     Real strikes[] = { 50.0, 99.5, 100.0, 100.5, 150.0 };
     Real underlyings[] = { 100.0 };
-    // Rate qRates[] = { 0.00, 0.10, 0.30 };
-    // Analytic dividend may not be handling q correctly
-    Rate qRates[] = { 0.00 };
+    Rate qRates[] = { 0.00, 0.10, 0.30 };
     Rate rRates[] = { 0.01, 0.05, 0.15 };
     Integer lengths[] = { 1, 2 };
     Volatility vols[] = { 0.05, 0.20, 0.40 };
@@ -591,19 +589,19 @@ void DividendOptionTest::testFdEuropeanValues() {
     Date today = Date::todaysDate();
     Settings::instance().evaluationDate() = today;
 
-    boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
-    boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> qTS(flatRate(qRate, dc));
-    boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
     Handle<YieldTermStructure> rTS(flatRate(rRate, dc));
-    boost::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
     Handle<BlackVolTermStructure> volTS(flatVol(vol, dc));
 
     for (Size i=0; i<LENGTH(types); i++) {
       for (Size j=0; j<LENGTH(strikes); j++) {
         for (Size k=0; k<LENGTH(lengths); k++) {
           Date exDate = today + lengths[k]*Years;
-          boost::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+          ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
 
           std::vector<Date> dividendDates;
           std::vector<Real> dividends;
@@ -614,19 +612,20 @@ void DividendOptionTest::testFdEuropeanValues() {
               dividends.push_back(5.0);
           }
 
-          boost::shared_ptr<StrikedTypePayoff> payoff(
+          ext::shared_ptr<StrikedTypePayoff> payoff(
                                 new PlainVanillaPayoff(types[i], strikes[j]));
 
-          boost::shared_ptr<BlackScholesMertonProcess> stochProcess(
+          ext::shared_ptr<BlackScholesMertonProcess> stochProcess(
                             new BlackScholesMertonProcess(Handle<Quote>(spot),
                                                           qTS, rTS, volTS));
 
-          boost::shared_ptr<PricingEngine> engine(
-              new FDDividendEuropeanEngine<CrankNicolson>(stochProcess,
-                                                          timeSteps,
-                                                          gridPoints));
+          ext::shared_ptr<PricingEngine> engine =
+              MakeFdBlackScholesVanillaEngine(stochProcess)
+              .withTGrid(timeSteps)
+              .withXGrid(gridPoints)
+              .withCashDividendModel(FdBlackScholesVanillaEngine::Escrowed);
 
-          boost::shared_ptr<PricingEngine> ref_engine(
+          ext::shared_ptr<PricingEngine> ref_engine(
                             new AnalyticDividendEuropeanEngine(stochProcess));
 
           DividendVanillaOption option(payoff, exercise,
@@ -673,9 +672,9 @@ void DividendOptionTest::testFdEuropeanValues() {
 
 namespace {
 
-    template <class Engine>
     void testFdGreeks(const Date& today,
-                      const boost::shared_ptr<Exercise>& exercise) {
+                      const ext::shared_ptr<Exercise>& exercise,
+                      FdBlackScholesVanillaEngine::CashDividendModel model) {
 
         std::map<std::string,Real> calculated, expected, tolerance;
         tolerance["delta"] = 5.0e-3;
@@ -689,14 +688,14 @@ namespace {
         Rate rRates[] = { 0.01, 0.05, 0.15 };
         Volatility vols[] = { 0.05, 0.20, 0.50 };
 
-        DayCounter dc = Actual360();
+        DayCounter dc = Actual365Fixed();
 
-        boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
-        boost::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+        ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+        ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
         Handle<YieldTermStructure> qTS(flatRate(qRate, dc));
-        boost::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+        ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
         Handle<YieldTermStructure> rTS(flatRate(rRate, dc));
-        boost::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+        ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
         Handle<BlackVolTermStructure> volTS(flatVol(vol, dc));
 
         for (Size i=0; i<LENGTH(types); i++) {
@@ -711,15 +710,17 @@ namespace {
                     dividends.push_back(5.0);
                 }
 
-                boost::shared_ptr<StrikedTypePayoff> payoff(
+                ext::shared_ptr<StrikedTypePayoff> payoff(
                                 new PlainVanillaPayoff(types[i], strikes[j]));
 
-                boost::shared_ptr<BlackScholesMertonProcess> stochProcess(
+                ext::shared_ptr<BlackScholesMertonProcess> stochProcess(
                             new BlackScholesMertonProcess(Handle<Quote>(spot),
                                                           qTS, rTS, volTS));
 
-                boost::shared_ptr<PricingEngine> engine(
-                                                    new Engine(stochProcess));
+                ext::shared_ptr<PricingEngine> engine =
+                    MakeFdBlackScholesVanillaEngine(stochProcess)
+                    .withCashDividendModel(model);
+
                 DividendVanillaOption option(payoff, exercise,
                                              dividendDates, dividends);
                 option.setPricingEngine(engine);
@@ -741,7 +742,6 @@ namespace {
                         Real value = option.NPV();
                         calculated["delta"]  = option.delta();
                         calculated["gamma"]  = option.gamma();
-                        // calculated["theta"]  = option.theta();
 
                         if (value > spot->value()*1.0e-5) {
                           // perturb spot and get delta and gamma
@@ -807,8 +807,9 @@ void DividendOptionTest::testFdEuropeanGreeks() {
 
     for (Size i=0; i<LENGTH(lengths); i++) {
         Date exDate = today + lengths[i]*Years;
-        boost::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
-        testFdGreeks<FDDividendEuropeanEngine<CrankNicolson> >(today,exercise);
+        ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+        testFdGreeks(today,exercise,FdBlackScholesVanillaEngine::Spot);
+        testFdGreeks(today,exercise,FdBlackScholesVanillaEngine::Escrowed);
     }
 }
 
@@ -824,36 +825,38 @@ void DividendOptionTest::testFdAmericanGreeks() {
 
     for (Size i=0; i<LENGTH(lengths); i++) {
         Date exDate = today + lengths[i]*Years;
-        boost::shared_ptr<Exercise> exercise(
-                                          new AmericanExercise(today,exDate));
-        testFdGreeks<FDDividendAmericanEngine<CrankNicolson> >(today,exercise);
+        ext::shared_ptr<Exercise> exercise(new AmericanExercise(today,exDate));
+        testFdGreeks(today,exercise,FdBlackScholesVanillaEngine::Spot);
     }
 }
 
 
 namespace {
 
-    template <class Engine>
     void testFdDegenerate(const Date& today,
-                          const boost::shared_ptr<Exercise>& exercise) {
+                          const ext::shared_ptr<Exercise>& exercise,
+                          FdBlackScholesVanillaEngine::CashDividendModel model) {
 
         DayCounter dc = Actual360();
-        boost::shared_ptr<SimpleQuote> spot(new SimpleQuote(54.625));
+        ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(54.625));
         Handle<YieldTermStructure> rTS(flatRate(0.052706, dc));
         Handle<YieldTermStructure> qTS(flatRate(0.0, dc));
         Handle<BlackVolTermStructure> volTS(flatVol(0.282922, dc));
 
-        boost::shared_ptr<BlackScholesMertonProcess> process(
+        ext::shared_ptr<BlackScholesMertonProcess> process(
                             new BlackScholesMertonProcess(Handle<Quote>(spot),
                                                           qTS, rTS, volTS));
 
-        Size timeSteps = 300;
+        Size timeSteps = 100;
         Size gridPoints = 300;
 
-        boost::shared_ptr<PricingEngine> engine(
-                                    new Engine(process,timeSteps,gridPoints));
+        ext::shared_ptr<PricingEngine> engine =
+              MakeFdBlackScholesVanillaEngine(process)
+              .withTGrid(timeSteps)
+              .withXGrid(gridPoints)
+              .withCashDividendModel(model);
 
-        boost::shared_ptr<StrikedTypePayoff> payoff(
+        ext::shared_ptr<StrikedTypePayoff> payoff(
                                   new PlainVanillaPayoff(Option::Call, 55.0));
 
         Real tolerance = 3.0e-3;
@@ -865,10 +868,9 @@ namespace {
                                       dividendDates, dividends);
         option1.setPricingEngine(engine);
 
-        // FLOATING_POINT_EXCEPTION
         Real refValue = option1.NPV();
 
-        for (Size i=0; i<=6; i++) {
+        for (Size i=1; i<=6; i++) {
 
             dividends.push_back(0.0);
             dividendDates.push_back(today+i);
@@ -900,9 +902,10 @@ void DividendOptionTest::testFdEuropeanDegenerate() {
     Settings::instance().evaluationDate() = today;
     Date exDate(13,April,2005);
 
-    boost::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+    ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
 
-    testFdDegenerate<FDDividendEuropeanEngine<CrankNicolson> >(today,exercise);
+    testFdDegenerate(today,exercise,FdBlackScholesVanillaEngine::Spot);
+    testFdDegenerate(today,exercise,FdBlackScholesVanillaEngine::Escrowed);
 }
 
 void DividendOptionTest::testFdAmericanDegenerate() {
@@ -916,11 +919,194 @@ void DividendOptionTest::testFdAmericanDegenerate() {
     Settings::instance().evaluationDate() = today;
     Date exDate(13,April,2005);
 
-    boost::shared_ptr<Exercise> exercise(new AmericanExercise(today,exDate));
+    ext::shared_ptr<Exercise> exercise(new AmericanExercise(today,exDate));
 
-    testFdDegenerate<FDDividendAmericanEngine<CrankNicolson> >(today,exercise);
+    testFdDegenerate(today,exercise,FdBlackScholesVanillaEngine::Spot);
+    testFdDegenerate(today,exercise,FdBlackScholesVanillaEngine::Escrowed);
 }
 
+
+namespace {
+
+    void testFdDividendAtTZero(const Date& today,
+                               const ext::shared_ptr<Exercise>& exercise,
+                               FdBlackScholesVanillaEngine::CashDividendModel model) {
+
+        DayCounter dc = Actual360();
+        ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(54.625));
+        Handle<YieldTermStructure> rTS(flatRate(0.0, dc));
+        Handle<BlackVolTermStructure> volTS(flatVol(0.282922, dc));
+
+        ext::shared_ptr<BlackScholesMertonProcess> process(
+                            new BlackScholesMertonProcess(Handle<Quote>(spot),
+                                                          rTS, rTS, volTS));
+
+        Size timeSteps = 50;
+        Size gridPoints = 400;
+
+        ext::shared_ptr<PricingEngine> engine =
+              MakeFdBlackScholesVanillaEngine(process)
+              .withTGrid(timeSteps)
+              .withXGrid(gridPoints)
+              .withCashDividendModel(model);
+
+        ext::shared_ptr<StrikedTypePayoff> payoff(
+                                  new PlainVanillaPayoff(Option::Call, 55.0));
+
+        // today's dividend must by taken into account
+        std::vector<Rate> dividends(1, 1.0);
+        std::vector<Date> dividendDates(1, today);
+
+        DividendVanillaOption option(payoff, exercise,
+                                     dividendDates, dividends);
+        option.setPricingEngine(engine);
+        Real calculated = option.NPV();
+
+        switch(model) {
+          case FdBlackScholesVanillaEngine::Spot:
+            BOOST_CHECK_THROW(option.theta(), QuantLib::Error);
+            break;
+          case FdBlackScholesVanillaEngine::Escrowed:
+            BOOST_CHECK_NO_THROW(option.theta());
+            break;
+          default:
+            QL_FAIL("unknown dividend model type");
+        }
+
+        ext::shared_ptr<Exercise> europeanExercise =
+            ext::make_shared<EuropeanExercise>(exercise->lastDate());
+        DividendVanillaOption europeanOption(
+            payoff, europeanExercise, dividendDates, dividends);
+
+        europeanOption.setPricingEngine(
+            ext::make_shared<AnalyticDividendEuropeanEngine>(process));
+
+        Real expected = europeanOption.NPV();
+
+        const Real tol = 1e-4;
+
+        if (std::fabs(calculated-expected) > tol) {
+            BOOST_ERROR("Can not reproduce reference values "
+                        "from analytic dividend engine :\n"
+                       << "    calculated: " << calculated << "\n"
+                       << "    expected  : " << expected << "\n"
+                       << "    diff:       " << tol);
+        }
+    }
+}
+
+
+void DividendOptionTest::testFdEuropeanWithDividendToday() {
+
+    BOOST_TEST_MESSAGE(
+         "Testing finite-differences dividend European option with dividend on today's date...");
+
+    SavedSettings backup;
+
+    Date today = Date(27,February,2005);
+    Settings::instance().evaluationDate() = today;
+    Date exDate(13,April,2005);
+
+    ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+
+    testFdDividendAtTZero(today,exercise,FdBlackScholesVanillaEngine::Spot);
+    testFdDividendAtTZero(today,exercise,FdBlackScholesVanillaEngine::Escrowed);
+}
+
+void DividendOptionTest::testFdAmericanWithDividendToday() {
+
+    BOOST_TEST_MESSAGE(
+         "Testing finite-differences dividend American option with dividend on today's date...");
+
+    SavedSettings backup;
+
+    Date today = Date(27,February,2005);
+    Settings::instance().evaluationDate() = today;
+    Date exDate(13,April,2005);
+
+    ext::shared_ptr<Exercise> exercise(new AmericanExercise(today,exDate));
+
+    testFdDividendAtTZero(today,exercise,FdBlackScholesVanillaEngine::Spot);
+}
+
+
+void DividendOptionTest::testEscrowedDividendModel() {
+    BOOST_TEST_MESSAGE("Testing finite-difference European engine "
+                       "with the escrowed dividend model...");
+
+    SavedSettings backup;
+
+    const DayCounter dc = Actual365Fixed();
+    const Date today = Date(12, October, 2019);
+
+    Settings::instance().evaluationDate() = today;
+
+    const Handle<Quote> spot(ext::make_shared<SimpleQuote>(100.0));
+    const Handle<YieldTermStructure> qTS(flatRate(today, 0.063, dc));
+    const Handle<YieldTermStructure> rTS(flatRate(today, 0.094, dc));
+    const Handle<BlackVolTermStructure> volTS(flatVol(today, 0.3, dc));
+
+    const Date maturity = today + Period(1, Years);
+
+    const ext::shared_ptr<BlackScholesMertonProcess> process =
+        ext::make_shared<BlackScholesMertonProcess>(
+            spot, qTS, rTS, volTS);
+
+    const ext::shared_ptr<PlainVanillaPayoff> payoff(
+        ext::make_shared<PlainVanillaPayoff>(Option::Put, spot->value()));
+
+    const ext::shared_ptr<Exercise> exercise(
+        ext::make_shared<EuropeanExercise>(maturity));
+
+    std::vector<Date> dividendDates;
+    dividendDates.push_back(Date(today + Period(3, Months)));
+    dividendDates.push_back(Date(today + Period(9, Months)));
+
+    std::vector<Real> dividendAmounts;
+    dividendAmounts.push_back(8.3);
+    dividendAmounts.push_back(6.8);
+
+    DividendVanillaOption option(
+        payoff, exercise, dividendDates, dividendAmounts);
+
+    option.setPricingEngine(
+        ext::make_shared<AnalyticDividendEuropeanEngine>(process));
+
+    const Real analyticNPV = option.NPV();
+    const Real analyticDelta = option.delta();
+
+    option.setPricingEngine(
+        MakeFdBlackScholesVanillaEngine(process)
+            .withTGrid(50)
+            .withXGrid(200)
+            .withDampingSteps(1)
+            .withCashDividendModel(FdBlackScholesVanillaEngine::Escrowed)
+        );
+
+    const Real pdeNPV = option.NPV();
+    const Real pdeDelta = option.delta();
+
+    const Real tol = 0.0025;
+    if (std::fabs(pdeNPV - analyticNPV) > tol) {
+        BOOST_FAIL("Failed to reproduce European option values "
+                "with the escrowed dividend model and the "
+                "FdBlackScholesVanillaEngine engine"
+                   << "\n    calculated: " << pdeNPV
+                   << "\n    expected:   " << analyticNPV
+                   << "\n    difference: " << std::fabs(pdeNPV - analyticNPV)
+                   << "\n    tolerance:  " << tol);
+    }
+
+    if (std::fabs(pdeDelta - analyticDelta) > tol) {
+        BOOST_FAIL("Failed to reproduce European option deltas "
+                "with the escrowed dividend model and the "
+                "FdBlackScholesVanillaEngine engine"
+                   << "\n    calculated: " << pdeNPV
+                   << "\n    expected:   " << analyticNPV
+                   << "\n    difference: " << std::fabs(pdeNPV - analyticNPV)
+                   << "\n    tolerance:  " << tol);
+    }
+}
 
 test_suite* DividendOptionTest::suite() {
     test_suite* suite = BOOST_TEST_SUITE("Dividend European option tests");
@@ -929,20 +1115,22 @@ test_suite* DividendOptionTest::suite() {
     //  suite->add(QUANTLIB_TEST_CASE(&DividendOptionTest::testEuropeanKnownValue));
     suite->add(QUANTLIB_TEST_CASE(&DividendOptionTest::testEuropeanStartLimit));
     // Doesn't quite work.  Need to use discounted values
-    // suite->add(QUANTLIB_TEST_CASE(&DividendOptionTest::testEuropeanEndLimit));
+    //suite->add(QUANTLIB_TEST_CASE(&DividendOptionTest::testEuropeanEndLimit));
     suite->add(QUANTLIB_TEST_CASE(&DividendOptionTest::testEuropeanGreeks));
-    // FLOATING_POINT_EXCEPTION
     suite->add(QUANTLIB_TEST_CASE(&DividendOptionTest::testFdEuropeanValues));
-    // FLOATING_POINT_EXCEPTION
     suite->add(QUANTLIB_TEST_CASE(&DividendOptionTest::testFdEuropeanGreeks));
-    // FLOATING_POINT_EXCEPTION
     suite->add(QUANTLIB_TEST_CASE(&DividendOptionTest::testFdAmericanGreeks));
-    // FLOATING_POINT_EXCEPTION
     suite->add(QUANTLIB_TEST_CASE(
                               &DividendOptionTest::testFdEuropeanDegenerate));
-    // FLOATING_POINT_EXCEPTION
     suite->add(QUANTLIB_TEST_CASE(
                               &DividendOptionTest::testFdAmericanDegenerate));
+    suite->add(QUANTLIB_TEST_CASE(
+                              &DividendOptionTest::testFdEuropeanWithDividendToday));
+    suite->add(QUANTLIB_TEST_CASE(
+                              &DividendOptionTest::testFdAmericanWithDividendToday));
+    suite->add(QUANTLIB_TEST_CASE(
+                 &DividendOptionTest::testEscrowedDividendModel));
+
     return suite;
 }
 

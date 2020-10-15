@@ -17,28 +17,24 @@ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include <ql/qldefines.hpp>
-
-#if BOOST_VERSION >= 104700
-
 #include <ql/experimental/math/fireflyalgorithm.hpp>
 #include <ql/math/randomnumbers/sobolrsg.hpp>
-
+#include <boost/math/special_functions/fpclassify.hpp>
 #include <algorithm>
 
 namespace QuantLib {
-    FireflyAlgorithm::FireflyAlgorithm(Size M, 
-        boost::shared_ptr<Intensity> intensity,
-        boost::shared_ptr<RandomWalk> randomWalk,
-        Size Mde, Real mutation,
-        Real crossover, unsigned long seed):
-        mutation_(mutation), crossover_(crossover),
-        M_(M), Mde_(Mde), Mfa_(M_-Mde_), 
-        intensity_(intensity),
-        randomWalk_(randomWalk),
-        drawIndex_(base_generator_type(seed), uniform_integer(Mfa_, M_-1)),
-        rng_(seed){
-        QL_REQUIRE(M_ >= Mde_, 
+    FireflyAlgorithm::FireflyAlgorithm(Size M,
+                                       const ext::shared_ptr<Intensity>& intensity,
+                                       const ext::shared_ptr<RandomWalk>& randomWalk,
+                                       Size Mde,
+                                       Real mutation,
+                                       Real crossover,
+                                       unsigned long seed)
+    : mutation_(mutation), crossover_(crossover), M_(M), Mde_(Mde), Mfa_(M_ - Mde_),
+      intensity_(intensity), randomWalk_(randomWalk),
+      drawIndex_(base_generator_type(seed), uniform_integer(Mfa_, Mde > 0 ? M_ - 1 : M_)),
+      rng_(seed) {
+        QL_REQUIRE(M_ >= Mde_,
             "Differential Evolution subpopulation cannot be larger than total population");
     }
 
@@ -86,7 +82,7 @@ namespace QuantLib {
         
         startState(P, endCriteria);
 
-        bool isFA = Mfa_ > 0 ? true : false;
+        bool isFA = Mfa_ > 0;
         //Variables for DE
         Array z(N_, 0.0);
         Size indexR1, indexR2;
@@ -144,6 +140,13 @@ namespace QuantLib {
                         } else {
                             z[j] = x[j];
                         }
+                        //Enforce bounds on positions
+                        if (z[j] < lX_[j]) {
+                            z[j] = lX_[j];
+                        }
+                        else if (z[j] > uX_[j]) {
+                            z[j] = uX_[j];
+                        }
                     }
                     Real val = P.value(z);
                     if (val < values_[index].first) {
@@ -178,22 +181,28 @@ namespace QuantLib {
                     //Loop over dimensions
                     for (Size j = 0; j < N_; j++) {
                         //Update position
-                        x[j] += xI[j] + xRW[j];
+                        z[j] = x[j] + xI[j] + xRW[j];
                         //Enforce bounds on positions
-                        if (x[j] < lX_[j]) {
-                            x[j] = lX_[j];
+                        if (z[j] < lX_[j]) {
+                            z[j] = lX_[j];
                         }
-                        else if (x[j] > uX_[j]) {
-                            x[j] = uX_[j];
+                        else if (z[j] > uX_[j]) {
+                            z[j] = uX_[j];
                         }
                     }
-                    //Evaluate x & mark best
-                    values_[index].first = P.value(x);
-                    if (values_[index].first < bestValue) {
-                        bestValue = values_[index].first;
-                        bestX = x;
-                        iterationStat = 0;
-                    }
+                    Real val = P.value(z);
+                    if(!boost::math::isnan(val))
+					{
+						//Accept new point
+                        x = z;
+                        values_[index].first = val;
+                        //mark best
+                        if (val < bestValue) {
+                            bestValue = val;
+                            bestX = x;
+                            iterationStat = 0;
+                        }
+					}
                 }
             }
         } while (true);
@@ -233,6 +242,4 @@ namespace QuantLib {
         }
     }
 }
-
-#endif
 

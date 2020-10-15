@@ -26,31 +26,35 @@
 
 #include <ql/models/calibrationhelper.hpp>
 #include <ql/instruments/capfloor.hpp>
+#include <ql/termstructures/volatility/volatilitytype.hpp>
 
 namespace QuantLib {
 
     //! calibration helper for ATM cap
 
-    class CapHelper : public CalibrationHelper {
+    class CapHelper : public BlackCalibrationHelper {
       public:
         CapHelper(const Period& length,
                   const Handle<Quote>& volatility,
-                  const boost::shared_ptr<IborIndex>& index,
+                  const ext::shared_ptr<IborIndex>& index,
                   // data for ATM swap-rate calculation
                   Frequency fixedLegFrequency,
                   const DayCounter& fixedLegDayCounter,
                   bool includeFirstSwaplet,
                   const Handle<YieldTermStructure>& termStructure,
-                  CalibrationHelper::CalibrationErrorType errorType
-                                    = CalibrationHelper::RelativePriceError);
+                  BlackCalibrationHelper::CalibrationErrorType errorType =
+                      BlackCalibrationHelper::RelativePriceError,
+                  VolatilityType type = ShiftedLognormal,
+                  Real shift = 0.0);
         virtual void addTimesTo(std::list<Time>& times) const;
         virtual Real modelValue() const;
         virtual Real blackPrice(Volatility volatility) const;
       private:
         void performCalculations() const;
-        mutable boost::shared_ptr<Cap> cap_;
+        mutable ext::shared_ptr<Cap> cap_;
         const Period length_;
-        const boost::shared_ptr<IborIndex> index_;
+        const ext::shared_ptr<IborIndex> index_;
+        const Handle<YieldTermStructure> termStructure_;
         const Frequency fixedLegFrequency_;
         const DayCounter fixedLegDayCounter_;
         const bool includeFirstSwaplet_;

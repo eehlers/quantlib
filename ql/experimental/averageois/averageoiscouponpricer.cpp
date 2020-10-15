@@ -18,10 +18,12 @@
 */
 
 #include <ql/experimental/averageois/averageoiscouponpricer.hpp>
+#include <cmath>
 
 using std::vector;
-using boost::shared_ptr;
-using boost::dynamic_pointer_cast;
+using std::exp;
+using std::pow;
+using std::log;
 
 namespace QuantLib {
 
@@ -33,8 +35,8 @@ namespace QuantLib {
 
     Rate ArithmeticAveragedOvernightIndexedCouponPricer::swapletRate() const {
 
-        shared_ptr<OvernightIndex> index =
-            dynamic_pointer_cast<OvernightIndex>(coupon_->index());
+        ext::shared_ptr<OvernightIndex> index =
+            ext::dynamic_pointer_cast<OvernightIndex>(coupon_->index());
 
         const vector<Date>& fixingDates = coupon_->fixingDates();
         const vector<Time>& dt = coupon_->dt();

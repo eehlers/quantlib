@@ -2,7 +2,7 @@
 
 /*
  Copyright (C) 2007 Cristina Duminuco
- Copyright (C) 2006 François du Vignaud
+ Copyright (C) 2006 FranÃ§ois du Vignaud
  Copyright (C) 2015 Peter Caspers
 
  This file is part of QuantLib, a free-software/open-source library
@@ -42,42 +42,48 @@ namespace QuantLib {
         //@{
         //! all market data are quotes
         SabrInterpolatedSmileSection(
-                           const Date& optionDate,
-                           const Handle<Quote>& forward,
-                           const std::vector<Rate>& strikes,
-                           bool hasFloatingStrikes,
-                           const Handle<Quote>& atmVolatility,
-                           const std::vector<Handle<Quote> >& volHandles,
-                           Real alpha, Real beta, Real nu, Real rho,
-                           bool isAlphaFixed = false, bool isBetaFixed = false,
-                           bool isNuFixed = false, bool isRhoFixed = false,
-                           bool vegaWeighted = true,
-                           const boost::shared_ptr<EndCriteria>& endCriteria
-                            = boost::shared_ptr<EndCriteria>(),
-                           const boost::shared_ptr<OptimizationMethod>& method
-                            = boost::shared_ptr<OptimizationMethod>(),
-                           const DayCounter& dc = Actual365Fixed(),
-                           const Real shift = 0.0
-                           );
+            const Date& optionDate,
+            const Handle<Quote>& forward,
+            const std::vector<Rate>& strikes,
+            bool hasFloatingStrikes,
+            const Handle<Quote>& atmVolatility,
+            const std::vector<Handle<Quote> >& volHandles,
+            Real alpha,
+            Real beta,
+            Real nu,
+            Real rho,
+            bool isAlphaFixed = false,
+            bool isBetaFixed = false,
+            bool isNuFixed = false,
+            bool isRhoFixed = false,
+            bool vegaWeighted = true,
+            const ext::shared_ptr<EndCriteria>& endCriteria = ext::shared_ptr<EndCriteria>(),
+            const ext::shared_ptr<OptimizationMethod>& method =
+                ext::shared_ptr<OptimizationMethod>(),
+            const DayCounter& dc = Actual365Fixed(),
+            Real shift = 0.0);
         //! no quotes
         SabrInterpolatedSmileSection(
-                           const Date& optionDate,
-                           const Rate& forward,
-                           const std::vector<Rate>& strikes,
-                           bool hasFloatingStrikes,
-                           const Volatility& atmVolatility,
-                           const std::vector<Volatility>& vols,
-                           Real alpha, Real beta, Real nu, Real rho,
-                           bool isAlphaFixed = false, bool isBetaFixed = false,
-                           bool isNuFixed = false, bool isRhoFixed = false,
-                           bool vegaWeighted = true,
-                           const boost::shared_ptr<EndCriteria>& endCriteria
-                            = boost::shared_ptr<EndCriteria>(),
-                           const boost::shared_ptr<OptimizationMethod>& method
-                            = boost::shared_ptr<OptimizationMethod>(),
-                           const DayCounter& dc = Actual365Fixed(),
-                           const Real shift = 0.0
-                           );
+            const Date& optionDate,
+            const Rate& forward,
+            const std::vector<Rate>& strikes,
+            bool hasFloatingStrikes,
+            const Volatility& atmVolatility,
+            const std::vector<Volatility>& vols,
+            Real alpha,
+            Real beta,
+            Real nu,
+            Real rho,
+            bool isAlphaFixed = false,
+            bool isBetaFixed = false,
+            bool isNuFixed = false,
+            bool isRhoFixed = false,
+            bool vegaWeighted = true,
+            const ext::shared_ptr<EndCriteria>& endCriteria = ext::shared_ptr<EndCriteria>(),
+            const ext::shared_ptr<OptimizationMethod>& method =
+                ext::shared_ptr<OptimizationMethod>(),
+            const DayCounter& dc = Actual365Fixed(),
+            Real shift = 0.0);
         //@}
         //! \name LazyObject interface
         //@{
@@ -107,7 +113,7 @@ namespace QuantLib {
 
         //! Creates the mutable SABRInterpolation
         void createInterpolation() const;
-        mutable boost::shared_ptr<SABRInterpolation> sabrInterpolation_;
+        mutable ext::shared_ptr<SABRInterpolation> sabrInterpolation_;
 
         //! Market data
         const Handle<Quote> forward_;
@@ -125,8 +131,8 @@ namespace QuantLib {
         //! Sabr interpolation settings
         bool isAlphaFixed_, isBetaFixed_, isNuFixed_, isRhoFixed_;
         bool vegaWeighted_;
-        const boost::shared_ptr<EndCriteria> endCriteria_;
-        const boost::shared_ptr<OptimizationMethod> method_;
+        const ext::shared_ptr<EndCriteria> endCriteria_;
+        const ext::shared_ptr<OptimizationMethod> method_;
 
         mutable Date evaluationDate_;
     };

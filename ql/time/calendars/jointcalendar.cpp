@@ -3,6 +3,7 @@
 /*
  Copyright (C) 2003 RiskMap srl
  Copyright (C) 2007 StatPro Italia srl
+ Copyright (C) 2020 Piotr Siejda
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -32,6 +33,7 @@ namespace QuantLib {
         calendars_[1] = c2;
     }
 
+
     JointCalendar::Impl::Impl(const Calendar& c1,
                               const Calendar& c2,
                               const Calendar& c3,
@@ -52,6 +54,11 @@ namespace QuantLib {
         calendars_[1] = c2;
         calendars_[2] = c3;
         calendars_[3] = c4;
+    }
+
+    JointCalendar::Impl::Impl(const std::vector<Calendar> &cv,
+                              JointCalendarRule r)
+    : rule_(r), calendars_(cv){
     }
 
     std::string JointCalendar::Impl::name() const {
@@ -118,7 +125,7 @@ namespace QuantLib {
     JointCalendar::JointCalendar(const Calendar& c1,
                                  const Calendar& c2,
                                  JointCalendarRule r) {
-        impl_ = boost::shared_ptr<Calendar::Impl>(
+        impl_ = ext::shared_ptr<Calendar::Impl>(
                                             new JointCalendar::Impl(c1,c2,r));
     }
 
@@ -126,7 +133,7 @@ namespace QuantLib {
                                  const Calendar& c2,
                                  const Calendar& c3,
                                  JointCalendarRule r) {
-        impl_ = boost::shared_ptr<Calendar::Impl>(
+        impl_ = ext::shared_ptr<Calendar::Impl>(
                                          new JointCalendar::Impl(c1,c2,c3,r));
     }
 
@@ -135,9 +142,14 @@ namespace QuantLib {
                                  const Calendar& c3,
                                  const Calendar& c4,
                                  JointCalendarRule r) {
-        impl_ = boost::shared_ptr<Calendar::Impl>(
+        impl_ = ext::shared_ptr<Calendar::Impl>(
                                       new JointCalendar::Impl(c1,c2,c3,c4,r));
     }
 
-}
+    JointCalendar::JointCalendar(const std::vector<Calendar> &cv,
+                                 JointCalendarRule r) {
+        impl_ = ext::shared_ptr<Calendar::Impl>(
+                                      new JointCalendar::Impl(cv,r));
+    }
 
+}

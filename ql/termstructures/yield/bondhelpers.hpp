@@ -46,8 +46,16 @@ namespace QuantLib {
                      helper has sole ownership of it.
         */
         BondHelper(const Handle<Quote>& price,
-                   const boost::shared_ptr<Bond>& bond,
-                   bool useCleanPrice = true);
+                   const ext::shared_ptr<Bond>& bond,
+                   Bond::Price::Type priceType = Bond::Price::Clean);
+
+        /*! \deprecated Use the other overload instead.
+                        Deprecated in version 1.18.
+        */
+        QL_DEPRECATED
+        BondHelper(const Handle<Quote>& price,
+                   const ext::shared_ptr<Bond>& bond,
+                   bool useCleanPrice);
         //! \name RateHelper interface
         //@{
         Real impliedQuote() const;
@@ -55,18 +63,26 @@ namespace QuantLib {
         //@}
         //! \name Additional inspectors
         //@{
-        boost::shared_ptr<Bond> bond() const;
+        ext::shared_ptr<Bond> bond() const;
+
+        /*! \deprecated Use the priceType() method instead.
+                        Deprecated in version 1.18.
+        */
+        QL_DEPRECATED
         bool useCleanPrice() const;
+
+        Bond::Price::Type priceType() const;
         //@}
         //! \name Visitability
         //@{
         void accept(AcyclicVisitor&);
         //@}
       protected:
-        boost::shared_ptr<Bond> bond_;
+        ext::shared_ptr<Bond> bond_;
         RelinkableHandle<YieldTermStructure> termStructureHandle_;
-        bool useCleanPrice_;        
+        Bond::Price::Type priceType_;
     };
+
 
     //! Fixed-coupon bond helper for curve bootstrap
     class FixedRateBondHelper : public BondHelper {
@@ -83,76 +99,126 @@ namespace QuantLib {
                             const Calendar& paymentCalendar = Calendar(),
                             const Period& exCouponPeriod = Period(),
                             const Calendar& exCouponCalendar = Calendar(),
-                            const BusinessDayConvention exCouponConvention = Unadjusted,
+                            BusinessDayConvention exCouponConvention = Unadjusted,
                             bool exCouponEndOfMonth = false,
-                            const bool useCleanPrice = true);
+                            Bond::Price::Type priceType = Bond::Price::Clean);
+
+        /*! \deprecated Use the other overload instead.
+                        Deprecated in version 1.18.
+        */
+        QL_DEPRECATED
+        FixedRateBondHelper(const Handle<Quote>& price,
+                            Natural settlementDays,
+                            Real faceAmount,
+                            const Schedule& schedule,
+                            const std::vector<Rate>& coupons,
+                            const DayCounter& dayCounter,
+                            BusinessDayConvention paymentConv,
+                            Real redemption,
+                            const Date& issueDate,
+                            const Calendar& paymentCalendar,
+                            const Period& exCouponPeriod,
+                            const Calendar& exCouponCalendar,
+                            BusinessDayConvention exCouponConvention,
+                            bool exCouponEndOfMonth,
+                            bool useCleanPrice);
+
         //! \name Additional inspectors
         //@{
-        boost::shared_ptr<FixedRateBond> fixedRateBond() const;
+        ext::shared_ptr<FixedRateBond> fixedRateBond() const;
         //@}
         //! \name Visitability
         //@{
         void accept(AcyclicVisitor&);
         //@}
       protected:
-        boost::shared_ptr<FixedRateBond> fixedRateBond_;
+        ext::shared_ptr<FixedRateBond> fixedRateBond_;
     };
 
-
-    // inline
-
-    inline boost::shared_ptr<Bond> BondHelper::bond() const {
-        return bond_;
-    }
-
-    inline bool BondHelper::useCleanPrice() const {
-        return useCleanPrice_;
-    }
-
-    inline boost::shared_ptr<FixedRateBond>
-    FixedRateBondHelper::fixedRateBond() const {
-        return fixedRateBond_;
-    }
 
     //! CPI bond helper for curve bootstrap
     class CPIBondHelper : public BondHelper {
       public:
         CPIBondHelper(const Handle<Quote>& price,
-                            Natural settlementDays,
-                            Real faceAmount,
-                            const bool growthOnly,
-                            Real baseCPI,
-                            const Period& observationLag,
-                            const boost::shared_ptr<ZeroInflationIndex>& cpiIndex,
-                            CPI::InterpolationType observationInterpolation,
-                            const Schedule& schedule,
-                            const std::vector<Rate>& fixedRate,
-                            const DayCounter& accrualDayCounter,
-                            BusinessDayConvention paymentConvention = Following,
-                            const Date& issueDate = Date(),
-                            const Calendar& paymentCalendar = Calendar(),
-                            const Period& exCouponPeriod = Period(),
-                            const Calendar& exCouponCalendar = Calendar(),
-                            const BusinessDayConvention exCouponConvention = Unadjusted,
-                            bool exCouponEndOfMonth = false,
-                            const bool useCleanPrice = true);
+                      Natural settlementDays,
+                      Real faceAmount,
+                      bool growthOnly,
+                      Real baseCPI,
+                      const Period& observationLag,
+                      const ext::shared_ptr<ZeroInflationIndex>& cpiIndex,
+                      CPI::InterpolationType observationInterpolation,
+                      const Schedule& schedule,
+                      const std::vector<Rate>& fixedRate,
+                      const DayCounter& accrualDayCounter,
+                      BusinessDayConvention paymentConvention = Following,
+                      const Date& issueDate = Date(),
+                      const Calendar& paymentCalendar = Calendar(),
+                      const Period& exCouponPeriod = Period(),
+                      const Calendar& exCouponCalendar = Calendar(),
+                      BusinessDayConvention exCouponConvention = Unadjusted,
+                      bool exCouponEndOfMonth = false,
+                      Bond::Price::Type priceType = Bond::Price::Clean);
+
+        /*! \deprecated Use the other overload instead.
+                        Deprecated in version 1.18.
+        */
+        QL_DEPRECATED
+        CPIBondHelper(const Handle<Quote>& price,
+                      Natural settlementDays,
+                      Real faceAmount,
+                      bool growthOnly,
+                      Real baseCPI,
+                      const Period& observationLag,
+                      const ext::shared_ptr<ZeroInflationIndex>& cpiIndex,
+                      CPI::InterpolationType observationInterpolation,
+                      const Schedule& schedule,
+                      const std::vector<Rate>& fixedRate,
+                      const DayCounter& accrualDayCounter,
+                      BusinessDayConvention paymentConvention,
+                      const Date& issueDate,
+                      const Calendar& paymentCalendar,
+                      const Period& exCouponPeriod,
+                      const Calendar& exCouponCalendar,
+                      BusinessDayConvention exCouponConvention,
+                      bool exCouponEndOfMonth,
+                      bool useCleanPrice);
         //! \name Additional inspectors
         //@{
-        boost::shared_ptr<CPIBond> cpiBond() const;
+        ext::shared_ptr<CPIBond> cpiBond() const;
         //@}
         //! \name Visitability
         //@{
         void accept(AcyclicVisitor&);
         //@}
       protected:
-        boost::shared_ptr<CPIBond> cpiBond_;
+        ext::shared_ptr<CPIBond> cpiBond_;
     };
 
 
-    inline boost::shared_ptr<CPIBond>
+    // inline
+
+    inline ext::shared_ptr<Bond> BondHelper::bond() const {
+        return bond_;
+    }
+
+    inline bool BondHelper::useCleanPrice() const {
+        return priceType_ == Bond::Price::Clean;
+    }
+
+    inline Bond::Price::Type BondHelper::priceType() const {
+        return priceType_;
+    }
+
+    inline ext::shared_ptr<FixedRateBond>
+    FixedRateBondHelper::fixedRateBond() const {
+        return fixedRateBond_;
+    }
+
+    inline ext::shared_ptr<CPIBond>
     CPIBondHelper::cpiBond() const {
         return cpiBond_;
     }
+
 }
 
 #endif

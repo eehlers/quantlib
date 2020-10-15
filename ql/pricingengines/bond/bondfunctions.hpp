@@ -27,10 +27,12 @@
 #ifndef quantlib_bond_functions_hpp
 #define quantlib_bond_functions_hpp
 
+#include <ql/cashflows/cashflows.hpp>
 #include <ql/cashflows/duration.hpp>
 #include <ql/cashflow.hpp>
 #include <ql/interestrate.hpp>
-#include <boost/shared_ptr.hpp>
+#include <ql/instruments/bond.hpp>
+#include <ql/shared_ptr.hpp>
 
 namespace QuantLib {
 
@@ -145,14 +147,45 @@ namespace QuantLib {
                         Frequency frequency,
                         Date settlementDate = Date());
         static Rate yield(const Bond& bond,
-                          Real cleanPrice,
+                          Real price,
                           const DayCounter& dayCounter,
                           Compounding compounding,
                           Frequency frequency,
                           Date settlementDate = Date(),
                           Real accuracy = 1.0e-10,
                           Size maxIterations = 100,
-                          Rate guess = 0.05);
+                          Rate guess = 0.05,
+                          Bond::Price::Type priceType = Bond::Price::Clean);
+        template <typename Solver>
+        static Rate yield(const Solver& solver,
+                          const Bond& bond,
+                          Real price,
+                          const DayCounter& dayCounter,
+                          Compounding compounding,
+                          Frequency frequency,
+                          Date settlementDate = Date(),
+                          Real accuracy = 1.0e-10,
+                          Rate guess = 0.05,
+                          Bond::Price::Type priceType = Bond::Price::Clean) {
+            if (settlementDate == Date())
+                settlementDate = bond.settlementDate();
+
+            QL_REQUIRE(BondFunctions::isTradable(bond, settlementDate),
+                       "non tradable at " << settlementDate <<
+                       " (maturity being " << bond.maturityDate() << ")");
+
+            Real dirtyPrice = price;
+
+            if (priceType == Bond::Price::Clean)
+                dirtyPrice += bond.accruedAmount(settlementDate);
+
+            dirtyPrice /= 100.0 / bond.notional(settlementDate);
+
+            return CashFlows::yield<Solver>(solver, bond.cashflows(),
+                                            dirtyPrice, dayCounter, compounding,
+                                            frequency, false, settlementDate,
+                                            settlementDate, accuracy, guess);
+        }
         static Time duration(const Bond& bond,
                              const InterestRate& yield,
                              Duration::Type type = Duration::Modified,
@@ -196,7 +229,7 @@ namespace QuantLib {
         //! \name Z-spread functions
         //@{
         static Real cleanPrice(const Bond& bond,
-                               const boost::shared_ptr<YieldTermStructure>& discount,
+                               const ext::shared_ptr<YieldTermStructure>& discount,
                                Spread zSpread,
                                const DayCounter& dayCounter,
                                Compounding compounding,
@@ -204,7 +237,7 @@ namespace QuantLib {
                                Date settlementDate = Date());
         static Spread zSpread(const Bond& bond,
                               Real cleanPrice,
-                              const boost::shared_ptr<YieldTermStructure>&,
+                              const ext::shared_ptr<YieldTermStructure>&,
                               const DayCounter& dayCounter,
                               Compounding compounding,
                               Frequency frequency,

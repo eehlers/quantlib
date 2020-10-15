@@ -2,8 +2,8 @@
 
 /*
  Copyright (C) 2006 Ferdinando Ametrano
- Copyright (C) 2001, 2002, 2003 Nicolas Di Césaré
- Copyright (C) 2009 Frédéric Degraeve
+ Copyright (C) 2001, 2002, 2003 Nicolas Di CÃ©sarÃ©
+ Copyright (C) 2009 FrÃ©dÃ©ric Degraeve
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -46,8 +46,8 @@ namespace QuantLib {
     */
     class ConjugateGradient: public LineSearchBasedMethod {
       public:
-        ConjugateGradient(const boost::shared_ptr<LineSearch>& lineSearch =
-                                            boost::shared_ptr<LineSearch>())
+        ConjugateGradient(const ext::shared_ptr<LineSearch>& lineSearch =
+                                            ext::shared_ptr<LineSearch>())
         : LineSearchBasedMethod(lineSearch) {}
       private:
         //! \name LineSearchBasedMethod interface

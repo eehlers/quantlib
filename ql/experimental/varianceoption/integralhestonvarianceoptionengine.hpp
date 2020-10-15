@@ -37,11 +37,11 @@ namespace QuantLib {
     */
     class IntegralHestonVarianceOptionEngine : public VarianceOption::engine  {
       public:
-        IntegralHestonVarianceOptionEngine(
-                    const boost::shared_ptr<HestonProcess>&);
+        explicit IntegralHestonVarianceOptionEngine(
+                    const ext::shared_ptr<HestonProcess>&);
         void calculate() const;
       private:
-        boost::shared_ptr<HestonProcess> process_;
+        ext::shared_ptr<HestonProcess> process_;
     };
 
 }

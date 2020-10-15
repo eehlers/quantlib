@@ -25,7 +25,6 @@
 #include <ql/instruments/swaption.hpp>
 #include <ql/math/matrixutilities/svd.hpp>
 #include <ql/math/solvers1d/bisection.hpp>
-#include <ql/time/daycounters/all.hpp>
 #include <ql/cashflows/cashflows.hpp>
 #include <ql/cashflows/couponpricer.hpp>
 #include <ql/math/distributions/normaldistribution.hpp>
@@ -38,83 +37,71 @@ namespace QuantLib {
     // Implementation of helper class HaganIrregularSwaptionEngine::Basket  //
     //////////////////////////////////////////////////////////////////////////
 
-    HaganIrregularSwaptionEngine::Basket::Basket(boost::shared_ptr<IrregularSwap> swap,
+    HaganIrregularSwaptionEngine::Basket::Basket(
+        const ext::shared_ptr<IrregularSwap>& swap,
         const Handle<YieldTermStructure>& termStructure,
         const Handle<SwaptionVolatilityStructure>& volatilityStructure)
-        :swap_(swap),termStructure_(termStructure),volatilityStructure_(volatilityStructure),targetNPV_(0.0),lambda_(0.0){
+    : swap_(swap), termStructure_(termStructure), volatilityStructure_(volatilityStructure),
+      targetNPV_(0.0), lambda_(0.0) {
 
-            engine_ = boost::shared_ptr<PricingEngine>(new DiscountingSwapEngine(termStructure_));
+        engine_ = ext::shared_ptr<PricingEngine>(new DiscountingSwapEngine(termStructure_));
 
-            //store swap npv 
-            swap_->setPricingEngine(engine_);
-            targetNPV_ = swap_->NPV();
+        // store swap npv
+        swap_->setPricingEngine(engine_);
+        targetNPV_ = swap_->NPV();
 
-            //build standard swaps 
+        // build standard swaps
 
-            const Leg& fixedLeg = swap_->fixedLeg();
-            const Leg& floatLeg = swap_->floatingLeg();
+        const Leg& fixedLeg = swap_->fixedLeg();
+        const Leg& floatLeg = swap_->floatingLeg();
 
-            Leg fixedCFS,floatCFS;
+        Leg fixedCFS, floatCFS;
 
-            for(Size i = 0; i < fixedLeg.size(); ++i)  
-            {
-                //retrieve fixed rate coupon from fixed leg
-                boost::shared_ptr<FixedRateCoupon> coupon = boost::dynamic_pointer_cast<FixedRateCoupon>(fixedLeg[i]);
-                QL_REQUIRE(coupon,"dynamic cast of fixed leg coupon failed.");
+        for (Size i = 0; i < fixedLeg.size(); ++i) {
+            // retrieve fixed rate coupon from fixed leg
+            ext::shared_ptr<FixedRateCoupon> coupon =
+                ext::dynamic_pointer_cast<FixedRateCoupon>(fixedLeg[i]);
+            QL_REQUIRE(coupon, "dynamic cast of fixed leg coupon failed.");
 
-                expiries_.push_back(coupon->date());
+            expiries_.push_back(coupon->date());
 
-                boost::shared_ptr<FixedRateCoupon> newCpn = boost::shared_ptr<FixedRateCoupon> (
-                    new  FixedRateCoupon(coupon->date(),
-                    1.0,
-                    coupon->rate(),
-                    coupon->dayCounter(),
-                    coupon->accrualStartDate(),
-                    coupon->accrualEndDate(),
-                    coupon->referencePeriodStart(),
-                    coupon->referencePeriodEnd())); 
+            ext::shared_ptr<FixedRateCoupon> newCpn = ext::make_shared<FixedRateCoupon>(
+                coupon->date(), 1.0, coupon->rate(), coupon->dayCounter(),
+                coupon->accrualStartDate(), coupon->accrualEndDate(),
+                coupon->referencePeriodStart(), coupon->referencePeriodEnd());
 
-                fixedCFS.push_back(newCpn);
+            fixedCFS.push_back(newCpn);
 
-                annuities_.push_back(10000*CashFlows::bps(fixedCFS,**termStructure_,true));
+            annuities_.push_back(10000 * CashFlows::bps(fixedCFS, **termStructure_, true));
 
-                floatCFS.clear();
+            floatCFS.clear();
 
-                for(Size j = 0; j < floatLeg.size(); ++j){
-                    //retrieve ibor coupon from floating leg
-                    boost::shared_ptr<IborCoupon> coupon = boost::dynamic_pointer_cast<IborCoupon>(floatLeg[j]);
-                    QL_REQUIRE(coupon,"dynamic cast of float leg coupon failed.");
+            for (Size j = 0; j < floatLeg.size(); ++j) {
+                // retrieve ibor coupon from floating leg
+                ext::shared_ptr<IborCoupon> coupon =
+                    ext::dynamic_pointer_cast<IborCoupon>(floatLeg[j]);
+                QL_REQUIRE(coupon, "dynamic cast of float leg coupon failed.");
 
-                    if( coupon->date() <= expiries_[i] ){
-                        boost::shared_ptr<IborCoupon> newCpn = boost::shared_ptr<IborCoupon> (
-                            new  IborCoupon(coupon->date(),
-                            1.0,
-                            coupon->accrualStartDate(),
-                            coupon->accrualEndDate(),
-                            coupon->fixingDays(),
-                            coupon->iborIndex(),
-                            1.0,
-                            coupon->spread(),
-                            coupon->referencePeriodStart(),
-                            coupon->referencePeriodEnd(),
-                            coupon->dayCounter(),
-                            coupon->isInArrears())); 
+                if (coupon->date() <= expiries_[i]) {
+                    ext::shared_ptr<IborCoupon> newCpn = ext::shared_ptr<IborCoupon>(new IborCoupon(
+                        coupon->date(), 1.0, coupon->accrualStartDate(), coupon->accrualEndDate(),
+                        coupon->fixingDays(), coupon->iborIndex(), 1.0, coupon->spread(),
+                        coupon->referencePeriodStart(), coupon->referencePeriodEnd(),
+                        coupon->dayCounter(), coupon->isInArrears()));
 
 
-                        if (!newCpn->isInArrears())
-                            newCpn->setPricer(
-                                         boost::shared_ptr<FloatingRateCouponPricer>(
-                                                  new BlackIborCouponPricer()));
+                    if (!newCpn->isInArrears())
+                        newCpn->setPricer(
+                            ext::shared_ptr<FloatingRateCouponPricer>(new BlackIborCouponPricer()));
 
-                        floatCFS.push_back(newCpn);
-                    }
+                    floatCFS.push_back(newCpn);
                 }
-
-                Real floatLegNPV = CashFlows::npv(floatCFS,**termStructure_,true);
-
-                fairRates_.push_back(floatLegNPV/annuities_[i]);
-
             }
+
+            Real floatLegNPV = CashFlows::npv(floatCFS, **termStructure_, true);
+
+            fairRates_.push_back(floatLegNPV / annuities_[i]);
+        }
 
     }
 
@@ -137,7 +124,7 @@ namespace QuantLib {
         for(Size r = 0; r < n; ++r)
         {
 
-            boost::shared_ptr<FixedRateCoupon> cpn_r = boost::dynamic_pointer_cast<FixedRateCoupon>(swap_->fixedLeg()[r]);
+            ext::shared_ptr<FixedRateCoupon> cpn_r = ext::dynamic_pointer_cast<FixedRateCoupon>(swap_->fixedLeg()[r]);
                         QL_REQUIRE(cpn_r,"Cast to fixed rate coupon failed.");
 
             //looping over columns
@@ -154,14 +141,14 @@ namespace QuantLib {
 
         for(Size r = 0; r < n; ++r)
         {
-            boost::shared_ptr<FixedRateCoupon> cpn_r = boost::dynamic_pointer_cast<FixedRateCoupon>(swap_->fixedLeg()[r]);
+            ext::shared_ptr<FixedRateCoupon> cpn_r = ext::dynamic_pointer_cast<FixedRateCoupon>(swap_->fixedLeg()[r]);
 
             // set inhomogenity of lse
             Real N_r = cpn_r->nominal();
 
             if(r < n - 1){
 
-                boost::shared_ptr<FixedRateCoupon> cpn_rp1 = boost::dynamic_pointer_cast<FixedRateCoupon>(swap_->fixedLeg()[r+1]);
+                ext::shared_ptr<FixedRateCoupon> cpn_rp1 = ext::dynamic_pointer_cast<FixedRateCoupon>(swap_->fixedLeg()[r+1]);
 
                 Real N_rp1 = cpn_rp1->nominal();
 
@@ -201,16 +188,16 @@ namespace QuantLib {
 
 
     //creates a standard swap by deducing its conventions from market data objects
-    boost::shared_ptr<VanillaSwap> HaganIrregularSwaptionEngine::Basket::component(Size i) const {
+    ext::shared_ptr<VanillaSwap> HaganIrregularSwaptionEngine::Basket::component(Size i) const {
 
-        boost::shared_ptr<IborCoupon> iborCpn   = boost::dynamic_pointer_cast<IborCoupon>(swap_->floatingLeg()[0]);
+        ext::shared_ptr<IborCoupon> iborCpn   = ext::dynamic_pointer_cast<IborCoupon>(swap_->floatingLeg()[0]);
         QL_REQUIRE(iborCpn,"dynamic cast of float leg coupon failed. Can't find index.");
-        boost::shared_ptr<IborIndex>  iborIndex = iborCpn->iborIndex();
+        ext::shared_ptr<IborIndex>  iborIndex = iborCpn->iborIndex();
 
 
         Period dummySwapLength = Period(1,Years);
                         
-        boost::shared_ptr<VanillaSwap> memberSwap_ = MakeVanillaSwap(dummySwapLength,iborIndex)
+        ext::shared_ptr<VanillaSwap> memberSwap_ = MakeVanillaSwap(dummySwapLength,iborIndex)
                                                      .withType(VanillaSwap::Type(swap_->type()))
                                                      .withEffectiveDate(swap_->startDate())
                                                      .withTerminationDate(expiries_[i])
@@ -240,12 +227,10 @@ namespace QuantLib {
     ///////////////////////////////////////////////////////////
 
 
-    HaganIrregularSwaptionEngine::HaganIrregularSwaptionEngine(const Handle<SwaptionVolatilityStructure>& volatilityStructure,
+    HaganIrregularSwaptionEngine::HaganIrregularSwaptionEngine(
+        const Handle<SwaptionVolatilityStructure>& volatilityStructure,
         const Handle<YieldTermStructure>& termStructure)
-        : GenericEngine<IrregularSwaption::arguments,IrregularSwaption::results>(),
-        termStructure_(termStructure),
-        volatilityStructure_(volatilityStructure)
-    {
+    : termStructure_(termStructure), volatilityStructure_(volatilityStructure) {
         registerWith(termStructure_);
         registerWith(volatilityStructure_);
     }
@@ -254,11 +239,11 @@ namespace QuantLib {
     void HaganIrregularSwaptionEngine::calculate() const {
 
         //check exercise type
-        boost::shared_ptr<Exercise> exercise_ = this->arguments_.exercise;
+        ext::shared_ptr<Exercise> exercise_ = this->arguments_.exercise;
         QL_REQUIRE(exercise_->type() == QuantLib::Exercise::European,"swaption must be european");
 
         //extract the underlying irregular swap
-        boost::shared_ptr<IrregularSwap> swap_  = this->arguments_.swap;
+        ext::shared_ptr<IrregularSwap> swap_  = this->arguments_.swap;
 
         
         //Reshuffle spread from float to fixed (, i.e. remove spread from float side by finding the adjusted fixed coupon 
@@ -277,10 +262,10 @@ namespace QuantLib {
 
         for(Size j = 0; j < floatLeg.size(); ++j){
             //retrieve ibor coupon from floating leg
-            boost::shared_ptr<IborCoupon> coupon = boost::dynamic_pointer_cast<IborCoupon>(floatLeg[j]);
+            ext::shared_ptr<IborCoupon> coupon = ext::dynamic_pointer_cast<IborCoupon>(floatLeg[j]);
             QL_REQUIRE(coupon,"dynamic cast of float leg coupon failed.");
 
-            boost::shared_ptr<IborCoupon> newCpn = boost::shared_ptr<IborCoupon> (
+            ext::shared_ptr<IborCoupon> newCpn = ext::shared_ptr<IborCoupon> (
                 new  IborCoupon(coupon->date(),
                 coupon->nominal(),
                 coupon->accrualStartDate(),
@@ -297,7 +282,7 @@ namespace QuantLib {
 
             if (!newCpn->isInArrears())
                 newCpn->setPricer(
-                             boost::shared_ptr<FloatingRateCouponPricer>(
+                             ext::shared_ptr<FloatingRateCouponPricer>(
                                       new BlackIborCouponPricer()));
 
             floatCFS.push_back(newCpn);
@@ -314,25 +299,25 @@ namespace QuantLib {
         for(Size i = 0; i < fixedLeg.size(); ++i)  
         {
             //retrieve fixed rate coupon from fixed leg
-            boost::shared_ptr<FixedRateCoupon> coupon = boost::dynamic_pointer_cast<FixedRateCoupon>(fixedLeg[i]);
+            ext::shared_ptr<FixedRateCoupon> coupon = ext::dynamic_pointer_cast<FixedRateCoupon>(fixedLeg[i]);
             QL_REQUIRE(coupon,"dynamic cast of fixed leg coupon failed.");
 
-            boost::shared_ptr<FixedRateCoupon> newCpn = boost::shared_ptr<FixedRateCoupon> (
-                new  FixedRateCoupon(coupon->date(),
+            ext::shared_ptr<FixedRateCoupon> newCpn = ext::make_shared<FixedRateCoupon> (
+                coupon->date(),
                 coupon->nominal(),
                 coupon->rate()-cpn_adjustment,
                 coupon->dayCounter(),
                 coupon->accrualStartDate(),
                 coupon->accrualEndDate(),
                 coupon->referencePeriodStart(),
-                coupon->referencePeriodEnd())); 
+                coupon->referencePeriodEnd()); 
 
             fixedCFS.push_back(newCpn);
         }
 
 
         //this is the irregular swap with spread removed 
-        swap_  =  boost::shared_ptr<IrregularSwap>(new IrregularSwap(arguments_.swap->type(),fixedCFS,floatCFS));
+        swap_  =  ext::make_shared<IrregularSwap>(arguments_.swap->type(),fixedCFS,floatCFS);
 
 
 
@@ -370,11 +355,11 @@ namespace QuantLib {
     // "Implied interest rate pricing models", Finance Stochast. 2, 275–293 (1998)      //
     /////////////////////////////////////////////////////////////////////////////////////////
 
-    Real  HaganIrregularSwaptionEngine::HKPrice(Basket& basket,boost::shared_ptr<Exercise>& exercise) const {
+    Real  HaganIrregularSwaptionEngine::HKPrice(Basket& basket,ext::shared_ptr<Exercise>& exercise) const {
 
         // Black 76 Swaption Engine: assumes that the swaptions exercise date equals the swap start date
-        boost::shared_ptr<PricingEngine> blackSwaptionEngine = 
-             boost::shared_ptr<PricingEngine>(new BlackSwaptionEngine(termStructure_,volatilityStructure_));
+        ext::shared_ptr<PricingEngine> blackSwaptionEngine = 
+             ext::shared_ptr<PricingEngine>(new BlackSwaptionEngine(termStructure_,volatilityStructure_));
 
         //retrieve weights of underlying swaps
         Disposable<Array> weights = basket.weights();
@@ -383,7 +368,7 @@ namespace QuantLib {
 
         for(Size i=0; i<weights.size(); ++i)
         {
-            boost::shared_ptr<VanillaSwap> pvSwap_ = basket.component(i);
+            ext::shared_ptr<VanillaSwap> pvSwap_ = basket.component(i);
             Swaption swaption = Swaption(pvSwap_,exercise);
             swaption.setPricingEngine(blackSwaptionEngine);
             npv += weights[i]*swaption.NPV();

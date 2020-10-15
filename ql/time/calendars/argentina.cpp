@@ -23,7 +23,7 @@ namespace QuantLib {
 
     Argentina::Argentina(Market) {
         // all calendar instances share the same implementation instance
-        static boost::shared_ptr<Calendar::Impl> impl(
+        static ext::shared_ptr<Calendar::Impl> impl(
                                                    new Argentina::MervalImpl);
         impl_ = impl;
     }
@@ -60,7 +60,7 @@ namespace QuantLib {
             || (d == 24 && m == December)
             // New Year's Eve
             || ((d == 31 || (d == 30 && w == Friday)) && m == December))
-            return false;
+            return false; // NOLINT(readability-simplify-boolean-expr)
         return true;
     }
 
