@@ -367,7 +367,8 @@ namespace QuantLib {
         void notifyObservers();
       private:
         void registerObserver(const ext::shared_ptr<Observer::Proxy>&);
-        void unregisterObserver(const ext::shared_ptr<Observer::Proxy>&);
+        void unregisterObserver(
+            const ext::shared_ptr<Observer::Proxy>& proxy, bool disconnect);
 
         ext::shared_ptr<detail::Signal> sig_;
 
@@ -491,7 +492,7 @@ namespace QuantLib {
 
         iterator i;
         for (i=observables_.begin(); i!=observables_.end(); ++i)
-            (*i)->unregisterObserver(proxy_);
+            (*i)->unregisterObserver(proxy_, true);
 
         {
             boost::lock_guard<boost::recursive_mutex> lock(o.mutex_);
@@ -509,7 +510,7 @@ namespace QuantLib {
             proxy_->deactivate();
 
         for (iterator i=observables_.begin(); i!=observables_.end(); ++i)
-            (*i)->unregisterObserver(proxy_);
+            (*i)->unregisterObserver(proxy_, false);
     }
 
     inline std::pair<Observer::iterator, bool>
@@ -541,9 +542,8 @@ namespace QuantLib {
     Size Observer::unregisterWith(const ext::shared_ptr<Observable>& h) {
         boost::lock_guard<boost::recursive_mutex> lock(mutex_);
 
-        if (h)  {
-            QL_REQUIRE(proxy_, "unregister called without a proxy");
-            h->unregisterObserver(proxy_);
+        if (h && proxy_)  {
+            h->unregisterObserver(proxy_, true);
         }
 
         return observables_.erase(h);
@@ -553,7 +553,7 @@ namespace QuantLib {
         boost::lock_guard<boost::recursive_mutex> lock(mutex_);
 
         for (iterator i=observables_.begin(); i!=observables_.end(); ++i)
-            (*i)->unregisterObserver(proxy_);
+            (*i)->unregisterObserver(proxy_, true);
 
         observables_.clear();
     }
