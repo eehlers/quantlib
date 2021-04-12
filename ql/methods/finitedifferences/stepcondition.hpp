@@ -34,7 +34,7 @@ namespace QuantLib {
     template <class array_type>
     class StepCondition {
       public:
-        virtual ~StepCondition() {}
+        virtual ~StepCondition() = default;
         virtual void applyTo(array_type& a, Time t) const = 0;
     };
 
@@ -87,7 +87,7 @@ namespace QuantLib {
 
         class CurveWrapper {
           public:
-            virtual ~CurveWrapper() {}
+            virtual ~CurveWrapper() = default;
             virtual Real getValue(const array_type &a,
                                   int i) = 0;
         };
@@ -125,7 +125,7 @@ namespace QuantLib {
     template <class array_type>
     class NullCondition : public StepCondition<array_type> {
       public:
-        void applyTo(array_type&, Time) const {}
+        void applyTo(array_type&, Time) const override {}
     };
 
 }

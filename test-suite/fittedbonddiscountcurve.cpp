@@ -128,8 +128,7 @@ void FittedBondDiscountCurveTest::testFlatExtrapolation() {
     // observed as a real calibration outcome given the default guess. The setup was more
     // elaborate though and we do not aim to replicate that here.
 
-    Array guess(4);
-    guess << 0.0317, 5.0, -3.6796, 24.1703;
+    Array guess = { 0.0317, 5.0, -3.6796, 24.1703 };
 
     // build the fitted bond curves
 
@@ -151,11 +150,11 @@ void FittedBondDiscountCurveTest::testFlatExtrapolation() {
     ext::shared_ptr<PricingEngine> engine2 =
         ext::make_shared<DiscountingBondEngine>(Handle<YieldTermStructure>(curve2));
 
-    for (Size i = 0; i < bonds.size(); ++i) {
-        bonds[i]->setPricingEngine(engine1);
-        modelPrices1.push_back(bonds[i]->cleanPrice());
-        bonds[i]->setPricingEngine(engine2);
-        modelPrices2.push_back(bonds[i]->cleanPrice());
+    for (auto& bond : bonds) {
+        bond->setPricingEngine(engine1);
+        modelPrices1.push_back(bond->cleanPrice());
+        bond->setPricingEngine(engine2);
+        modelPrices2.push_back(bond->cleanPrice());
     }
     BOOST_CHECK_EQUAL(curve1->fitResults().errorCode(), EndCriteria::MaxIterations);
     BOOST_CHECK_EQUAL(curve2->fitResults().errorCode(), EndCriteria::MaxIterations);
@@ -199,7 +198,7 @@ void FittedBondDiscountCurveTest::testFlatExtrapolation() {
 
 
 test_suite* FittedBondDiscountCurveTest::suite() {
-    test_suite* suite = BOOST_TEST_SUITE("Fitted bond discount curve tests");
+    auto* suite = BOOST_TEST_SUITE("Fitted bond discount curve tests");
     suite->add(QUANTLIB_TEST_CASE(&FittedBondDiscountCurveTest::testEvaluation));
     suite->add(QUANTLIB_TEST_CASE(&FittedBondDiscountCurveTest::testFlatExtrapolation));
     return suite;

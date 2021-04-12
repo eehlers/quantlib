@@ -25,7 +25,7 @@
 #ifndef quantlib_overnightindexfutureratehelper_hpp
 #define quantlib_overnightindexfutureratehelper_hpp
 
-#include <ql/experimental/futures/overnightindexfuture.hpp>
+#include <ql/instruments/overnightindexfuture.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
 
 namespace QuantLib {
@@ -40,17 +40,16 @@ namespace QuantLib {
                                        const Date& maturityDate,
                                        const ext::shared_ptr<OvernightIndex>& overnightIndex,
                                        const Handle<Quote>& convexityAdjustment = Handle<Quote>(),
-                                       OvernightIndexFuture::NettingType subPeriodsNettingType =
-                                           OvernightIndexFuture::Compounding);
+                                       RateAveraging::Type averagingMethod = RateAveraging::Compound);
 
         //! \name RateHelper interface
         //@{
-        Real impliedQuote() const;
-        void setTermStructure(YieldTermStructure*);
+        Real impliedQuote() const override;
+        void setTermStructure(YieldTermStructure*) override;
         //@}
         //! \name Visitability
         //@{
-        void accept(AcyclicVisitor&);
+        void accept(AcyclicVisitor&) override;
         //@}
         Real convexityAdjustment() const;
       private:
@@ -74,16 +73,14 @@ namespace QuantLib {
                              Frequency referenceFreq,
                              const ext::shared_ptr<OvernightIndex>& overnightIndex,
                              const Handle<Quote>& convexityAdjustment = Handle<Quote>(),
-                             OvernightIndexFuture::NettingType subPeriodsNettingType =
-                                 OvernightIndexFuture::Compounding);
+                             RateAveraging::Type averagingMethod = RateAveraging::Compound);
         SofrFutureRateHelper(Real price,
                              Month referenceMonth,
                              Year referenceYear,
                              Frequency referenceFreq,
                              const ext::shared_ptr<OvernightIndex>& overnightIndex,
                              Real convexityAdjustment = 0,
-                             OvernightIndexFuture::NettingType subPeriodsNettingType =
-                                 OvernightIndexFuture::Compounding);
+                             RateAveraging::Type averagingMethod = RateAveraging::Compound);
     };
 
 }

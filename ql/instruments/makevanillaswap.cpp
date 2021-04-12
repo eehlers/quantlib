@@ -156,13 +156,13 @@ namespace QuantLib {
 
         Rate usedFixedRate = fixedRate_;
         if (fixedRate_ == Null<Rate>()) {
-            VanillaSwap temp(type_, nominal_,
+            VanillaSwap temp(type_, 100.00,
                              fixedSchedule,
                              0.0, // fixed rate
                              fixedDayCount,
                              floatSchedule, iborIndex_,
                              floatSpread_, floatDayCount_);
-            if (engine_ == 0) {
+            if (engine_ == nullptr) {
                 Handle<YieldTermStructure> disc =
                                         iborIndex_->forwardingTermStructure();
                 QL_REQUIRE(!disc.empty(),
@@ -185,7 +185,7 @@ namespace QuantLib {
                         floatSchedule,
                         iborIndex_, floatSpread_, floatDayCount_));
 
-        if (engine_ == 0) {
+        if (engine_ == nullptr) {
             Handle<YieldTermStructure> disc =
                                     iborIndex_->forwardingTermStructure();
             bool includeSettlementDateFlows = false;

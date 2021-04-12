@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT([QuantLib], [1.22-dev],
+AC_INIT([QuantLib], [1.22],
         [quantlib-dev@lists.sourceforge.net],
         [QuantLib])
 AC_PREREQ(2.62)
@@ -445,6 +445,24 @@ if test "$ql_use_std_classes" = "yes" ; then
 fi
 AC_MSG_RESULT([$ql_use_std_classes])
 
+
+AC_MSG_CHECKING([whether to enable the Disposable class template])
+AC_ARG_ENABLE([disposable],
+              AC_HELP_STRING([--enable-disposable],
+                             [If enabled, the Disposable class template will be used;
+                              this should be no longer necessary in C++11
+                              and might interfere with compiler optimizations.
+                              If disabled (the default) the class will only
+                              be an alias for the underlying type.]),
+              [ql_use_disposable=$enableval],
+              [ql_use_disposable=no])
+if test "$ql_use_disposable" = "yes" ; then
+   AC_DEFINE([QL_USE_DISPOSABLE],[1],
+             [Define this if you want to use the Disposable class template.])
+fi
+AC_MSG_RESULT([$ql_use_disposable])
+
+
 # manual configurations for specific hosts
 case $host in
   powerpc-apple-darwin*)
@@ -479,7 +497,6 @@ AC_CONFIG_FILES([
     ql/experimental/exoticoptions/Makefile
     ql/experimental/finitedifferences/Makefile
     ql/experimental/forward/Makefile
-    ql/experimental/futures/Makefile
     ql/experimental/fx/Makefile
     ql/experimental/inflation/Makefile
     ql/experimental/lattices/Makefile

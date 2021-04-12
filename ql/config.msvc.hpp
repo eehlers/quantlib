@@ -47,6 +47,9 @@
 
 // conditionally work around compiler glitches
 #define QL_PATCH_MSVC
+#if (_MSC_VER < 1900)
+#  define QL_PATCH_MSVC_2013
+#endif
 
 // prevent auto-link of Boost libs such as serialization
 #ifndef BOOST_ALL_NO_LIB
@@ -60,6 +63,12 @@
 #ifdef _M_X64
 #pragma warning(disable : 4267)
 #endif
+
+
+/* suppress C++ code analysis warning C26812 in VS 2019:
+ * Prefer 'enum class' over 'enum' (Enum.3). */
+#pragma warning(disable : 26812)
+
 
 #ifndef _CPPRTTI
 #   error Enable Run-Time Type Info (Property Pages | C/C++ | Language)

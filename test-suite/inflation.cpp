@@ -73,19 +73,20 @@ namespace inflation_test {
     }
 
     template <class T, class U, class I>
-    std::vector<ext::shared_ptr<BootstrapHelper<T> > > makeHelpers(
-            Datum iiData[], Size N,
-            const ext::shared_ptr<I> &ii, const Period &observationLag,
-            const Calendar &calendar,
-            const BusinessDayConvention &bdc,
-            const DayCounter &dc,
-            const Handle<YieldTermStructure>& yTS) {
+    std::vector<ext::shared_ptr<BootstrapHelper<T> > >
+    makeHelpers(const std::vector<Datum>& iiData,
+                const ext::shared_ptr<I>& ii,
+                const Period& observationLag,
+                const Calendar& calendar,
+                const BusinessDayConvention& bdc,
+                const DayCounter& dc,
+                const Handle<YieldTermStructure>& yTS) {
 
         std::vector<ext::shared_ptr<BootstrapHelper<T> > > instruments;
-        for (Size i=0; i<N; i++) {
-            Date maturity = iiData[i].date;
+        for (Datum datum : iiData) {
+            Date maturity = datum.date;
             Handle<Quote> quote(ext::shared_ptr<Quote>(
-                new SimpleQuote(iiData[i].rate/100.0)));
+                new SimpleQuote(datum.rate/100.0)));
             ext::shared_ptr<BootstrapHelper<T> > anInstrument(new U(
                 quote, observationLag, maturity,
                 calendar, bdc, dc, ii, yTS));
@@ -345,7 +346,7 @@ void InflationTest::testZeroTermStructure() {
     ext::shared_ptr<YieldTermStructure> nominalTS = nominalTermStructure();
 
     // now build the zero inflation curve
-    Datum zcData[] = {
+    std::vector<Datum> zcData = {
         { Date(13, August, 2008), 2.93 },
         { Date(13, August, 2009), 2.95 },
         { Date(13, August, 2010), 2.965 },
@@ -367,7 +368,7 @@ void InflationTest::testZeroTermStructure() {
     Frequency frequency = Monthly;
     std::vector<ext::shared_ptr<BootstrapHelper<ZeroInflationTermStructure> > > helpers =
     makeHelpers<ZeroInflationTermStructure,ZeroCouponInflationSwapHelper,
-                ZeroInflationIndex>(zcData, LENGTH(zcData), ii,
+                ZeroInflationIndex>(zcData, ii,
                                     observationLag,
                                     calendar, bdc, dc,
                                     Handle<YieldTermStructure>(nominalTS));
@@ -384,7 +385,7 @@ void InflationTest::testZeroTermStructure() {
     // and that the helpers give the correct impled rates
     const Real eps = 0.00000001;
     bool forceLinearInterpolation = false;
-    for (Size i=0; i<LENGTH(zcData); i++) {
+    for (Size i=0; i<zcData.size(); i++) {
         BOOST_REQUIRE_MESSAGE(std::fabs(zcData[i].rate/100.0
             - pZITS->zeroRate(zcData[i].date, observationLag, forceLinearInterpolation)) < eps,
             "ZITS zeroRate != instrument "
@@ -413,9 +414,8 @@ void InflationTest::testZeroTermStructure() {
     // we are testing UKRPI which is not interpolated
     Date bd = hz->baseDate();
     Real bf = ii->fixing(bd);
-    for (Size i=0; i<testIndex.size();i++) {
-        Date d = testIndex[i];
-        Real z = hz->zeroRate(d, Period(0,Days));
+    for (auto d : testIndex) {
+        Real z = hz->zeroRate(d, Period(0, Days));
         Real t = hz->dayCounter().yearFraction(bd, d);
         if(!ii->interpolated()) // because fixing constant over period
             t = hz->dayCounter().yearFraction(bd,
@@ -503,7 +503,7 @@ void InflationTest::testZeroTermStructure() {
     Period observationLagyes = Period(3,Months);
     std::vector<ext::shared_ptr<BootstrapHelper<ZeroInflationTermStructure> > > helpersyes =
     makeHelpers<ZeroInflationTermStructure,ZeroCouponInflationSwapHelper,
-    ZeroInflationIndex>(zcData, LENGTH(zcData), iiyes,
+    ZeroInflationIndex>(zcData, iiyes,
                         observationLagyes,
                         calendar, bdc, dc,
                         Handle<YieldTermStructure>(nominalTS));
@@ -518,7 +518,7 @@ void InflationTest::testZeroTermStructure() {
     // first check that the zero rates on the curve match the data
     // and that the helpers give the correct impled rates
     forceLinearInterpolation = false;   // still
-    for (Size i=0; i<LENGTH(zcData); i++) {
+    for (Size i=0; i<zcData.size(); i++) {
         BOOST_CHECK_MESSAGE(std::fabs(zcData[i].rate/100.0
                     - pZITSyes->zeroRate(zcData[i].date, observationLagyes, forceLinearInterpolation)) < eps,
                     "ZITS INTERPOLATED zeroRate != instrument "
@@ -548,9 +548,8 @@ void InflationTest::testZeroTermStructure() {
     // we are testing UKRPI which is FAKE interpolated for testing here
     bd = hz->baseDate();
     bf = iiyes->fixing(bd);
-    for (Size i=0; i<testIndex.size();i++) {
-        Date d = testIndex[i];
-        Real z = hz->zeroRate(d, Period(0,Days));
+    for (auto d : testIndex) {
+        Real z = hz->zeroRate(d, Period(0, Days));
         Real t = hz->dayCounter().yearFraction(bd, d);
         Real calc = bf * pow( 1+z, t);
         if (t<=0) calc = iiyes->fixing(d); // still historical
@@ -563,7 +562,6 @@ void InflationTest::testZeroTermStructure() {
                         << ", t " << t
                         << ", zero " << z);
     }
-
 
 
     //===========================================================================================
@@ -837,7 +835,7 @@ void InflationTest::testYYTermStructure() {
     ext::shared_ptr<YieldTermStructure> nominalTS = nominalTermStructure();
 
     // now build the YoY inflation curve
-    Datum yyData[] = {
+    std::vector<Datum> yyData = {
         { Date(13, August, 2008), 2.95 },
         { Date(13, August, 2009), 2.95 },
         { Date(13, August, 2010), 2.93 },
@@ -861,7 +859,7 @@ void InflationTest::testYYTermStructure() {
     // now build the helpers ...
     std::vector<ext::shared_ptr<BootstrapHelper<YoYInflationTermStructure> > > helpers =
     makeHelpers<YoYInflationTermStructure,YearOnYearInflationSwapHelper,
-    YoYInflationIndex>(yyData, LENGTH(yyData), iir,
+    YoYInflationIndex>(yyData, iir,
                        observationLag,
                        calendar, bdc, dc,
                        Handle<YieldTermStructure>(nominalTS));
@@ -887,7 +885,7 @@ void InflationTest::testYYTermStructure() {
     // make sure that the index has the latest yoy term structure
     hy.linkTo(pYYTS);
 
-    for (Size j = 1; j < LENGTH(yyData); j++) {
+    for (Size j = 1; j < yyData.size(); j++) {
 
         from = nominalTS->referenceDate();
         to = yyData[j].date;
@@ -1038,7 +1036,7 @@ void InflationTest::testPeriod() {
 
 test_suite* InflationTest::suite() {
 
-    test_suite* suite = BOOST_TEST_SUITE("Inflation tests");
+    auto* suite = BOOST_TEST_SUITE("Inflation tests");
 
     suite->add(QUANTLIB_TEST_CASE(&InflationTest::testPeriod));
 

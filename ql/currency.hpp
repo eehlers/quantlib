@@ -40,7 +40,7 @@ namespace QuantLib {
             and must be reassigned to a valid currency before being
             used.
         */
-        Currency();
+        Currency() = default;
         //! \name Inspectors
         //@{
         //! currency name, e.g, "U.S. Dollar"
@@ -86,15 +86,15 @@ namespace QuantLib {
         Currency triangulated;
         std::string formatString;
 
-        Data(const std::string& name,
-             const std::string& code,
+        Data(std::string name,
+             std::string code,
              Integer numericCode,
-             const std::string& symbol,
-             const std::string& fractionSymbol,
+             std::string symbol,
+             std::string fractionSymbol,
              Integer fractionsPerUnit,
              const Rounding& rounding,
-             const std::string& formatString,
-             const Currency& triangulationCurrency = Currency());
+             std::string formatString,
+             Currency triangulationCurrency = Currency());
     };
 
     /*! \relates Currency */
@@ -111,8 +111,6 @@ namespace QuantLib {
 
 
     // inline definitions
-
-    inline Currency::Currency() {}
 
     inline void Currency::checkNonEmpty() const {
         QL_REQUIRE(data_, "no currency data provided");

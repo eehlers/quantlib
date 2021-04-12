@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2008 Mark Joshi
+ Copyright (C) 2021 StatPro Italia srl
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -17,15 +17,19 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include <ql/models/marketmodels/evolvers/marketmodelvolprocess.hpp>
-namespace QuantLib 
-{
+#ifndef quantlib_test_settings_hpp
+#define quantlib_test_settings_hpp
 
-    MarketModelVolProcess::MarketModelVolProcess()     
-    {}
+#include <boost/test/unit_test.hpp>
 
-    MarketModelVolProcess::~MarketModelVolProcess()
-    {}
+/* remember to document new and/or updated tests in the Doxygen
+   comment block of the corresponding class */
 
-}
+class SettingsTest {
+  public:
+    static void testNotificationsOnDateChange();
+    static boost::unit_test_framework::test_suite* suite();
+};
 
+
+#endif

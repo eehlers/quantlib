@@ -95,6 +95,12 @@ jobs:
             cc: gcc
             cxx: g++
             cxxflags: "-std=c++17"
+          - name: "C++20 mode"
+            shortname: c++20
+            tag: rolling
+            cc: gcc
+            cxx: g++
+            cxxflags: "-std=c++20"
           - name: "Unity build enabled"
             shortname: unity
             tag: rolling
@@ -131,6 +137,13 @@ jobs:
             cxxflags: "-Wno-deprecated-declarations"
             configureflags: --disable-std-unique-ptr
             tests: true
+          - name: "Disposable re-enabled"
+            shortname: disposable
+            tag: rolling
+            cc: gcc
+            cxx: g++
+            configureflags: --enable-disposable
+            tests: true
           - name: "Thread-safe observer enabled"
             shortname: threadsafe
             tag: rolling
@@ -139,6 +152,13 @@ jobs:
             configureflags: --enable-thread-safe-observer-pattern
             moreflags: -lboost_thread -lboost_system -pthread
             tests: true
+          - name: "Parallel unit-test runner"
+            shortname: paralleltests
+            tag: rolling
+            cc: gcc
+            cxx: g++
+            configureflags: --enable-parallel-unit-test-runner
+            moreflags: -lboost_thread -lboost_system -pthread -lrt
     container: ghcr.io/lballabio/quantlib-devenv:${{ matrix.tag }}
     steps:
     - uses: actions/checkout@v2

@@ -763,12 +763,14 @@
     <ClCompile Include="rounding.cpp" />
     <ClCompile Include="sampledcurve.cpp" />
     <ClCompile Include="schedule.cpp" />
+    <ClCompile Include="settings.cpp" />
     <ClCompile Include="shortratemodels.cpp" />
     <ClCompile Include="sofrfutures.cpp" />
     <ClCompile Include="solvers.cpp" />
     <ClCompile Include="spreadoption.cpp" />
     <ClCompile Include="squarerootclvmodel.cpp" />
     <ClCompile Include="stats.cpp" />
+    <ClCompile Include="subperiodcoupons.cpp" />
     <ClCompile Include="swap.cpp" />
     <ClCompile Include="swapforwardmappings.cpp" />
     <ClCompile Include="swaption.cpp" />
@@ -790,6 +792,7 @@
     <ClCompile Include="varianceswaps.cpp" />
     <ClCompile Include="volatilitymodels.cpp" />
     <ClCompile Include="vpp.cpp" />
+    <ClCompile Include="crosscurrencyratehelpers.cpp" />
     <ClCompile Include="zabr.cpp" />
     <ClCompile Include="quantlibtestsuite.cpp" />
   </ItemGroup>
@@ -922,6 +925,7 @@
     <ClInclude Include="rounding.hpp" />
     <ClInclude Include="sampledcurve.hpp" />
     <ClInclude Include="schedule.hpp" />
+    <ClInclude Include="settings.hpp" />
     <ClInclude Include="shortratemodels.hpp" />
     <ClInclude Include="sofrfutures.hpp" />
     <ClInclude Include="solvers.hpp" />
@@ -929,6 +933,7 @@
     <ClInclude Include="spreadoption.hpp" />
     <ClInclude Include="squarerootclvmodel.hpp" />
     <ClInclude Include="stats.hpp" />
+    <ClInclude Include="subperiodcoupons.hpp" />
     <ClInclude Include="swap.hpp" />
     <ClInclude Include="swapforwardmappings.hpp" />
     <ClInclude Include="swaption.hpp" />
@@ -951,6 +956,7 @@
     <ClInclude Include="varianceswaps.hpp" />
     <ClInclude Include="volatilitymodels.hpp" />
     <ClInclude Include="vpp.hpp" />
+    <ClInclude Include="crosscurrencyratehelpers.hpp" />
     <ClInclude Include="zabr.hpp" />
   </ItemGroup>
   <ItemGroup>

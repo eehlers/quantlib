@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Natvis Include="QuantLib.natvis" />
+  </ItemGroup>
+  <ItemGroup>
     <Filter Include="methods">
       <UniqueIdentifier>{b8aa1a7a-0199-4243-94e9-44c79da50099}</UniqueIdentifier>
     </Filter>
@@ -274,9 +277,6 @@
     <Filter Include="experimental\finitedifferences">
       <UniqueIdentifier>{d42ff6e1-a70e-4fe7-a35a-db4ca5ef1c95}</UniqueIdentifier>
     </Filter>
-    <Filter Include="experimental\futures">
-      <UniqueIdentifier>{d6e75658-5fbd-44e7-a7b5-3eabdb371b40}</UniqueIdentifier>
-    </Filter>
     <Filter Include="experimental\fx">
       <UniqueIdentifier>{936a8947-d2c0-4bdd-95c5-8b52daf92cc4}</UniqueIdentifier>
     </Filter>
@@ -336,6 +336,12 @@
     </Filter>
     <Filter Include="methods\finitedifferences\utilities">
       <UniqueIdentifier>{be723df5-2e58-41de-8071-8d2e2f62410a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="experimental\forward">
+      <UniqueIdentifier>{743389ec-4f1b-48ee-98f5-d46f4684b688}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="experimental\asian">
+      <UniqueIdentifier>{0abb3851-b409-4ea6-8e55-120d00a9fcdb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -564,10 +570,16 @@
     <ClInclude Include="ql\cashflows\rangeaccrual.hpp">
       <Filter>cashflows</Filter>
     </ClInclude>
+    <ClInclude Include="ql\cashflows\rateaveraging.hpp">
+      <Filter>cashflows</Filter>
+    </ClInclude>
     <ClInclude Include="ql\cashflows\replication.hpp">
       <Filter>cashflows</Filter>
     </ClInclude>
     <ClInclude Include="ql\cashflows\simplecashflow.hpp">
+      <Filter>cashflows</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\cashflows\subperiodcoupon.hpp">
       <Filter>cashflows</Filter>
     </ClInclude>
     <ClInclude Include="ql\cashflows\timebasket.hpp">
@@ -844,6 +856,9 @@
       <Filter>instruments</Filter>
     </ClInclude>
     <ClInclude Include="ql\instruments\overnightindexedswap.hpp">
+      <Filter>instruments</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\instruments\overnightindexfuture.hpp">
       <Filter>instruments</Filter>
     </ClInclude>
     <ClInclude Include="ql\instruments\payoffs.hpp">
@@ -2097,6 +2112,9 @@
     <ClInclude Include="ql\termstructures\yield\oisratehelper.hpp">
       <Filter>termstructures\yield</Filter>
     </ClInclude>
+    <ClInclude Include="ql\termstructures\yield\overnightindexfutureratehelper.hpp">
+      <Filter>termstructures\yield</Filter>
+    </ClInclude>
     <ClInclude Include="ql\termstructures\yield\piecewiseyieldcurve.hpp">
       <Filter>termstructures\yield</Filter>
     </ClInclude>
@@ -3033,26 +3051,8 @@
     <ClInclude Include="ql\experimental\coupons\strippedcapflooredcoupon.hpp">
       <Filter>experimental\coupons</Filter>
     </ClInclude>
-    <ClInclude Include="ql\experimental\coupons\subperiodcoupons.hpp">
-      <Filter>experimental\coupons</Filter>
-    </ClInclude>
     <ClInclude Include="ql\experimental\coupons\swapspreadindex.hpp">
       <Filter>experimental\coupons</Filter>
-    </ClInclude>
-    <ClInclude Include="ql\experimental\futures\all.hpp">
-      <Filter>experimental\futures</Filter>
-    </ClInclude>
-    <ClInclude Include="ql\experimental\futures\overnightindexfuture.hpp">
-      <Filter>experimental\futures</Filter>
-    </ClInclude>
-    <ClInclude Include="ql\experimental\futures\overnightindexfutureratehelper.hpp">
-      <Filter>experimental\futures</Filter>
-    </ClInclude>
-    <ClInclude Include="ql\experimental\forward\all.hpp">
-      <Filter>experimental\futures</Filter>
-    </ClInclude>
-    <ClInclude Include="ql\experimental\forward\analytichestonforwardeuropeanengine.hpp">
-      <Filter>experimental\futures</Filter>
     </ClInclude>
     <ClInclude Include="ql\experimental\fx\all.hpp">
       <Filter>experimental\fx</Filter>
@@ -3317,15 +3317,6 @@
     </ClInclude>
     <ClInclude Include="ql\experimental\mcbasket\pathpayoff.hpp">
       <Filter>experimental\mcbasket</Filter>
-    </ClInclude>
-    <ClInclude Include="ql\experimental\asian\all.hpp">
-      <Filter>experimental\futures</Filter>
-    </ClInclude>
-    <ClInclude Include="ql\experimental\asian\analytic_cont_geom_av_price_heston.hpp">
-      <Filter>experimental\futures</Filter>
-    </ClInclude>
-    <ClInclude Include="ql\experimental\asian\analytic_discr_geom_av_price_heston.hpp">
-      <Filter>experimental\futures</Filter>
     </ClInclude>
     <ClInclude Include="ql\math\ode\all.hpp">
       <Filter>math\ode</Filter>
@@ -4355,6 +4346,36 @@
     <ClInclude Include="ql\termstructures\yield\ultimateforwardtermstructure.hpp">
       <Filter>termstructures\yield</Filter>
     </ClInclude>
+    <ClInclude Include="ql\experimental\forward\all.hpp">
+      <Filter>experimental\forward</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\experimental\forward\analytichestonforwardeuropeanengine.hpp">
+      <Filter>experimental\forward</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\experimental\asian\all.hpp">
+      <Filter>experimental\asian</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\experimental\asian\analytic_cont_geom_av_price_heston.hpp">
+      <Filter>experimental\asian</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\experimental\asian\analytic_discr_geom_av_price_heston.hpp">
+      <Filter>experimental\asian</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\experimental\termstructures\crosscurrencyratehelpers.hpp">
+      <Filter>experimental\termstructures</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\pricingengines\vanilla\fdblackscholesshoutengine.hpp">
+      <Filter>pricingengines\vanilla</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\methods\finitedifferences\utilities\fdmshoutloginnervaluecalculator.hpp">
+      <Filter>methods\finitedifferences\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\methods\finitedifferences\utilities\escroweddividendadjustment.hpp">
+      <Filter>methods\finitedifferences\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\methods\finitedifferences\utilities\fdmescrowedloginnervaluecalculator.hpp">
+      <Filter>methods\finitedifferences\utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ql\methods\montecarlo\brownianbridge.cpp">
@@ -4454,6 +4475,9 @@
       <Filter>cashflows</Filter>
     </ClCompile>
     <ClCompile Include="ql\cashflows\simplecashflow.cpp">
+      <Filter>cashflows</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\cashflows\subperiodcoupon.cpp">
       <Filter>cashflows</Filter>
     </ClCompile>
     <ClCompile Include="ql\cashflows\timebasket.cpp">
@@ -4622,6 +4646,9 @@
       <Filter>instruments</Filter>
     </ClCompile>
     <ClCompile Include="ql\instruments\overnightindexedswap.cpp">
+      <Filter>instruments</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\instruments\overnightindexfuture.cpp">
       <Filter>instruments</Filter>
     </ClCompile>
     <ClCompile Include="ql\instruments\payoffs.cpp">
@@ -5017,9 +5044,6 @@
     <ClCompile Include="ql\models\marketmodels\evolvers\lognormalfwdratepc.cpp">
       <Filter>models\marketmodels\evolvers</Filter>
     </ClCompile>
-    <ClCompile Include="ql\models\marketmodels\evolvers\marketmodelvolprocess.cpp">
-      <Filter>models\marketmodels\evolvers</Filter>
-    </ClCompile>
     <ClCompile Include="ql\models\marketmodels\evolvers\normalfwdratepc.cpp">
       <Filter>models\marketmodels\evolvers</Filter>
     </ClCompile>
@@ -5072,9 +5096,6 @@
       <Filter>models\marketmodels\models</Filter>
     </ClCompile>
     <ClCompile Include="ql\models\marketmodels\models\pseudorootfacade.cpp">
-      <Filter>models\marketmodels\models</Filter>
-    </ClCompile>
-    <ClCompile Include="ql\models\marketmodels\models\volatilityinterpolationspecifier.cpp">
       <Filter>models\marketmodels\models</Filter>
     </ClCompile>
     <ClCompile Include="ql\models\marketmodels\models\volatilityinterpolationspecifierabcd.cpp">
@@ -5423,6 +5444,9 @@
       <Filter>termstructures\yield</Filter>
     </ClCompile>
     <ClCompile Include="ql\termstructures\yield\oisratehelper.cpp">
+      <Filter>termstructures\yield</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\termstructures\yield\overnightindexfutureratehelper.cpp">
       <Filter>termstructures\yield</Filter>
     </ClCompile>
     <ClCompile Include="ql\termstructures\yield\ratehelpers.cpp">
@@ -6082,17 +6106,8 @@
     <ClCompile Include="ql\experimental\coupons\strippedcapflooredcoupon.cpp">
       <Filter>experimental\coupons</Filter>
     </ClCompile>
-    <ClCompile Include="ql\experimental\coupons\subperiodcoupons.cpp">
-      <Filter>experimental\coupons</Filter>
-    </ClCompile>
     <ClCompile Include="ql\experimental\coupons\swapspreadindex.cpp">
       <Filter>experimental\coupons</Filter>
-    </ClCompile>
-    <ClCompile Include="ql\experimental\futures\overnightindexfuture.cpp">
-      <Filter>experimental\futures</Filter>
-    </ClCompile>
-    <ClCompile Include="ql\experimental\futures\overnightindexfutureratehelper.cpp">
-      <Filter>experimental\futures</Filter>
     </ClCompile>
     <ClCompile Include="ql\experimental\fx\blackdeltacalculator.cpp">
       <Filter>experimental\fx</Filter>
@@ -6276,12 +6291,6 @@
     </ClCompile>
     <ClCompile Include="ql\experimental\mcbasket\pathmultiassetoption.cpp">
       <Filter>experimental\mcbasket</Filter>
-    </ClCompile>
-    <ClCompile Include="ql\experimental\asian\analytic_cont_geom_av_price_heston.cpp">
-      <Filter>experimental\futures</Filter>
-    </ClCompile>
-    <ClCompile Include="ql\experimental\asian\analytic_discr_geom_av_price_heston.cpp">
-      <Filter>experimental\futures</Filter>
     </ClCompile>
     <ClCompile Include="ql\termstructures\volatility\atmadjustedsmilesection.cpp">
       <Filter>termstructures\volatility</Filter>
@@ -7041,6 +7050,27 @@
     </ClCompile>
     <ClCompile Include="ql\experimental\forward\analytichestonforwardeuropeanengine.cpp">
       <Filter>experimental\forward</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\experimental\termstructures\crosscurrencyratehelpers.cpp">
+      <Filter>experimental\termstructures</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\experimental\asian\analytic_cont_geom_av_price_heston.cpp">
+      <Filter>experimental\asian</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\experimental\asian\analytic_discr_geom_av_price_heston.cpp">
+      <Filter>experimental\asian</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\pricingengines\vanilla\fdblackscholesshoutengine.cpp">
+      <Filter>pricingengines\vanilla</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\methods\finitedifferences\utilities\fdmshoutloginnervaluecalculator.cpp">
+      <Filter>methods\finitedifferences\utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\methods\finitedifferences\utilities\escroweddividendadjustment.cpp">
+      <Filter>methods\finitedifferences\utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\methods\finitedifferences\utilities\fdmescrowedloginnervaluecalculator.cpp">
+      <Filter>methods\finitedifferences\utilities</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

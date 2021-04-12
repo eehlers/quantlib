@@ -27,41 +27,35 @@
 
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/forward.hpp>
+#include <ql/cashflows/rateaveraging.hpp>
 
 namespace QuantLib {
 
-    /*
-    Future on a compounded overnight index investment. Compatable with
-    SOFR futures and Sonia futures available on CME and ICE exchanges.
+    /*! Future on a compounded overnight index investment.
+
+        Compatible with SOFR futures and Sonia futures available on
+        CME and ICE exchanges.
     */
-    class OvernightIndexFuture : public Forward {
+    class OvernightIndexFuture : public Instrument {
       public:
-        enum NettingType { Averaging, Compounding };
-
-        OvernightIndexFuture(const ext::shared_ptr<OvernightIndex>& overnightIndex,
-                             const ext::shared_ptr<Payoff>& payoff,
-                             const Date& valueDate,
-                             const Date& maturityDate,
-                             const Handle<YieldTermStructure>& discountCurve,
-                             const Handle<Quote>& convexityAdjustment = Handle<Quote>(),
-                             NettingType subPeriodsNettingType = Compounding);
-
-        //! returns spot value/price of an underlying financial instrument
-        virtual Real spotValue() const;
-
-        //! NPV of income/dividends/storage-costs etc. of underlying instrument
-        virtual Real spotIncome(const Handle<YieldTermStructure>&) const;
-
-        virtual Real forwardValue() const;
+        OvernightIndexFuture(
+            ext::shared_ptr<OvernightIndex> overnightIndex,
+            const Date& valueDate,
+            const Date& maturityDate,
+            Handle<Quote> convexityAdjustment = Handle<Quote>(),
+            RateAveraging::Type averagingMethod = RateAveraging::Compound);
 
         Real convexityAdjustment() const;
-
+        bool isExpired() const override;
       private:
-        Real averagedSpotValue() const;
-        Real compoundedSpotValue() const;
+        void performCalculations() const override;
+        Real rate() const;
+        Real averagedRate() const;
+        Real compoundedRate() const;
         ext::shared_ptr<OvernightIndex> overnightIndex_;
+        Date valueDate_, maturityDate_;
         Handle<Quote> convexityAdjustment_;
-        NettingType subPeriodsNettingType_;
+        RateAveraging::Type averagingMethod_;
     };
 
 }
