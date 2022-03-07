@@ -4,7 +4,7 @@ jobs:
   cmake-linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup
       run: |
         sudo apt update
@@ -21,7 +21,7 @@ jobs:
   cmake-win:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup
       run: |
         $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/1.75.0/boost_1_75_0-msvc-14.2-64.exe"
@@ -39,7 +39,7 @@ jobs:
   cmake-macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup
       run: |
         brew install boost
