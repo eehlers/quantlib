@@ -34,8 +34,8 @@ namespace QuantLib {
         const DayCounter& dc,
         const ext::shared_ptr<Gaussian1dSwaptionEngine>& swaptionEngine)
     : SmileSection(fixingDate, dc, model->termStructure()->referenceDate()),
-      fixingDate_(fixingDate), swapIndex_(std::move(swapIndex)),
-      iborIndex_(ext::shared_ptr<IborIndex>()), model_(model), engine_(swaptionEngine) {
+      fixingDate_(fixingDate), swapIndex_(std::move(swapIndex)), model_(model),
+      engine_(swaptionEngine) {
 
         atm_ = model_->swapRate(fixingDate_, swapIndex_->tenor(), Null<Date>(), 0.0, swapIndex_);
         annuity_ =
@@ -54,8 +54,7 @@ namespace QuantLib {
         const DayCounter& dc,
         const ext::shared_ptr<Gaussian1dCapFloorEngine>& capEngine)
     : SmileSection(fixingDate, dc, model->termStructure()->referenceDate()),
-      fixingDate_(fixingDate), swapIndex_(ext::shared_ptr<SwapIndex>()),
-      iborIndex_(std::move(iborIndex)), model_(model), engine_(capEngine) {
+      fixingDate_(fixingDate), iborIndex_(std::move(iborIndex)), model_(model), engine_(capEngine) {
 
         atm_ = model_->forwardRate(fixingDate_, Null<Date>(), 0.0, iborIndex_);
         CapFloor c =
@@ -79,8 +78,8 @@ Real Gaussian1dSmileSection::optionPrice(Rate strike, Option::Type type,
     if (swapIndex_ != nullptr) {
         Swaption s = MakeSwaption(swapIndex_, fixingDate_, strike)
                          .withUnderlyingType(type == Option::Call
-                                                 ? VanillaSwap::Payer
-                                                 : VanillaSwap::Receiver)
+                                                 ? Swap::Payer
+                                                 : Swap::Receiver)
                          .withPricingEngine(engine_);
         Real tmp = s.NPV();
         return tmp / annuity_ * discount;

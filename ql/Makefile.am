@@ -127,10 +127,12 @@ libQuantLib_la_LIBADD = \
 
 EXTRA_DIST += \
 	CMakeLists.txt \
+	config.hpp.cfg \
 	config.ansi.hpp \
 	config.msvc.hpp \
 	config.mingw.hpp \
 	config.sun.hpp \
+	qldefines.hpp.cfg \
 	userconfig.hpp
 
 quantlib.hpp: Makefile.am
@@ -146,6 +148,7 @@ quantlib.hpp: Makefile.am
 	for i in $(this_include_HEADERS); do \
 		case $$i in \
 			auto_link.hpp)     continue;; \
+			auto_ptr.hpp)      continue;; \
 			config.hpp)        continue;; \
 			mathconstants.hpp) continue;; \
 			qldefines.hpp)     continue;; \

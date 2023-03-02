@@ -14,17 +14,20 @@ this_include_HEADERS = \
     basketoption.hpp \
     bmaswap.hpp \
     bond.hpp \
+    bondforward.hpp \
     callabilityschedule.hpp \
     capfloor.hpp \
     claim.hpp \
     cliquetoption.hpp \
     compositeinstrument.hpp \
-    cpiswap.hpp \
     cpicapfloor.hpp \
+    cpiswap.hpp \
     creditdefaultswap.hpp \
-	dividendbarrieroption.hpp \
+    dividendbarrieroption.hpp \
     dividendschedule.hpp \
     dividendvanillaoption.hpp \
+    doublebarrieroption.hpp \
+    doublebarriertype.hpp \
     europeanoption.hpp \
     fixedratebondforward.hpp \
     floatfloatswap.hpp \
@@ -58,12 +61,13 @@ this_include_HEADERS = \
     swap.hpp \
     swaption.hpp \
     vanillaoption.hpp \
-	vanillastorageoption.hpp \
-	vanillaswingoption.hpp \
+    vanillastorageoption.hpp \
     vanillaswap.hpp \
+    vanillaswingoption.hpp \
     varianceswap.hpp \
     yearonyearinflationswap.hpp \
-    zerocouponinflationswap.hpp
+    zerocouponinflationswap.hpp \
+    zerocouponswap.hpp
 
 cpp_files = \
     asianoption.cpp \
@@ -74,17 +78,19 @@ cpp_files = \
     basketoption.cpp \
     bmaswap.cpp \
     bond.cpp \
+    bondforward.cpp \
     capfloor.cpp \
     claim.cpp \
     cliquetoption.cpp \
     compositeinstrument.cpp \
-    cpiswap.cpp \
     cpicapfloor.cpp \
+    cpiswap.cpp \
     creditdefaultswap.cpp \
-	dividendbarrieroption.cpp \
+    dividendbarrieroption.cpp \
     dividendvanillaoption.cpp \
+    doublebarrieroption.cpp \
+    doublebarriertype.cpp \
     europeanoption.cpp \
-    fixedratebondforward.cpp \
     floatfloatswap.cpp \
     floatfloatswaption.cpp \
     forward.cpp \
@@ -120,7 +126,8 @@ cpp_files = \
     vanillaswingoption.cpp \
     varianceswap.cpp \
     yearonyearinflationswap.cpp \
-    zerocouponinflationswap.cpp
+    zerocouponinflationswap.cpp \
+    zerocouponswap.cpp
 
 if UNITY_BUILD
 

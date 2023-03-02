@@ -47,9 +47,9 @@ namespace QuantLib {
             const std::vector<DiscountFactor>& dfs,
             const DayCounter& dayCounter,
             const Calendar& cal = Calendar(),
-            const std::vector<Handle<Quote> >& jumps = std::vector<Handle<Quote> >(),
-            const std::vector<Date>& jumpDates = std::vector<Date>(),
-            const Interpolator& interpolator = Interpolator());
+            const std::vector<Handle<Quote> >& jumps = {},
+            const std::vector<Date>& jumpDates = {},
+            const Interpolator& interpolator = {});
         InterpolatedDiscountCurve(
             const std::vector<Date>& dates,
             const std::vector<DiscountFactor>& dfs,
@@ -77,31 +77,20 @@ namespace QuantLib {
       protected:
         explicit InterpolatedDiscountCurve(
             const DayCounter&,
-            const Interpolator& interpolator = Interpolator());
+            const Interpolator& interpolator = {});
         InterpolatedDiscountCurve(
             const Date& referenceDate,
             const DayCounter&,
-            const std::vector<Handle<Quote> >& jumps = std::vector<Handle<Quote> >(),
-            const std::vector<Date>& jumpDates = std::vector<Date>(),
-            const Interpolator& interpolator = Interpolator());
+            const std::vector<Handle<Quote> >& jumps = {},
+            const std::vector<Date>& jumpDates = {},
+            const Interpolator& interpolator = {});
         InterpolatedDiscountCurve(
             Natural settlementDays,
             const Calendar&,
             const DayCounter&,
-            const std::vector<Handle<Quote> >& jumps = std::vector<Handle<Quote> >(),
-            const std::vector<Date>& jumpDates = std::vector<Date>(),
-            const Interpolator& interpolator = Interpolator());
-
-        /*! \deprecated Passing jumps without a reference date never worked correctly.
-                        Use one of the other constructors instead.
-                        Deprecated in version 1.19.
-        */
-        QL_DEPRECATED
-        InterpolatedDiscountCurve(
-            const DayCounter&,
-            const std::vector<Handle<Quote> >& jumps,
-            const std::vector<Date>& jumpDates = std::vector<Date>(),
-            const Interpolator& interpolator = Interpolator());
+            const std::vector<Handle<Quote> >& jumps = {},
+            const std::vector<Date>& jumpDates = {},
+            const Interpolator& interpolator = {});
 
         //! \name YieldTermStructure implementation
         //@{
@@ -207,19 +196,6 @@ namespace QuantLib {
     : YieldTermStructure(settlementDays, calendar, dayCounter, jumps, jumpDates),
       InterpolatedCurve<T>(interpolator) {}
 
-    QL_DEPRECATED_DISABLE_WARNING
-
-    template <class T>
-    InterpolatedDiscountCurve<T>::InterpolatedDiscountCurve(
-                                    const DayCounter& dayCounter,
-                                    const std::vector<Handle<Quote> >& jumps,
-                                    const std::vector<Date>& jumpDates,
-                                    const T& interpolator)
-    : YieldTermStructure(dayCounter, jumps, jumpDates),
-      InterpolatedCurve<T>(interpolator) {}
-
-    QL_DEPRECATED_ENABLE_WARNING
-
     template <class T>
     InterpolatedDiscountCurve<T>::InterpolatedDiscountCurve(
                                  const std::vector<Date>& dates,
@@ -275,24 +251,12 @@ namespace QuantLib {
         QL_REQUIRE(this->data_[0] == 1.0,
                    "the first discount must be == 1.0 "
                    "to flag the corresponding date as reference date");
-
-        this->times_.resize(dates_.size());
-        this->times_[0] = 0.0;
         for (Size i=1; i<dates_.size(); ++i) {
-            QL_REQUIRE(dates_[i] > dates_[i-1],
-                       "invalid date (" << dates_[i] << ", vs "
-                       << dates_[i-1] << ")");
-            this->times_[i] = dayCounter().yearFraction(dates_[0], dates_[i]);
-            QL_REQUIRE(!close(this->times_[i],this->times_[i-1]),
-                       "two dates correspond to the same time "
-                       "under this curve's day count convention");
             QL_REQUIRE(this->data_[i] > 0.0, "negative discount");
         }
 
-        this->interpolation_ =
-            this->interpolator_.interpolate(this->times_.begin(),
-                                            this->times_.end(),
-                                            this->data_.begin());
+        this->setupTimes(dates_, dates_[0], dayCounter());
+        this->setupInterpolation();
         this->interpolation_.update();
     }
 

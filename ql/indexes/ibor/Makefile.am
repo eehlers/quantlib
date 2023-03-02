@@ -14,6 +14,7 @@ this_include_HEADERS = \
     chflibor.hpp \
     dkklibor.hpp \
     eonia.hpp \
+    estr.hpp \
     euribor.hpp \
     eurlibor.hpp \
     fedfunds.hpp \
@@ -31,6 +32,7 @@ this_include_HEADERS = \
     sofr.hpp \
     sonia.hpp \
     tibor.hpp \
+    tona.hpp \
     thbfix.hpp \
     trlibor.hpp \
     usdlibor.hpp \
@@ -40,6 +42,7 @@ this_include_HEADERS = \
 cpp_files = \
     bibor.cpp \
     eonia.cpp \
+    estr.cpp \
     euribor.cpp \
     eurlibor.cpp \
     fedfunds.cpp \
@@ -82,4 +85,3 @@ all.hpp: Makefile.am
 	subdirs='$(SUBDIRS)'; for i in $$subdirs; do \
 		echo "#include <${subdir}/$$i/all.hpp>" >> ${srcdir}/$@; \
 	done
-

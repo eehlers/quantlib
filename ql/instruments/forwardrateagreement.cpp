@@ -17,75 +17,61 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include <ql/instruments/forwardrateagreement.hpp>
-#include <ql/indexes/iborindex.hpp>
 #include <ql/event.hpp>
+#include <ql/indexes/iborindex.hpp>
+#include <ql/instruments/forwardrateagreement.hpp>
+#include <utility>
+#include <iostream>
 
 namespace QuantLib {
 
-    ForwardRateAgreement::ForwardRateAgreement(
-                           const Date& valueDate,
-                           const Date& maturityDate,
-                           Position::Type type,
-                           Rate strikeForwardRate,
-                           Real notionalAmount,
-                           const ext::shared_ptr<IborIndex>& index,
-                           const Handle<YieldTermStructure>& discountCurve,
-                           bool useIndexedCoupon)
-    : Forward(index->dayCounter(), index->fixingCalendar(),
-              index->businessDayConvention(),
-              index->fixingDays(), ext::shared_ptr<Payoff>(),
-              valueDate, maturityDate, discountCurve),
-      fraType_(type), notionalAmount_(notionalAmount), index_(index),
-      useIndexedCoupon_(useIndexedCoupon) {
+    ForwardRateAgreement::ForwardRateAgreement(const Date& valueDate,
+                                               const Date& maturityDate,
+                                               Position::Type type,
+                                               Rate strikeForwardRate,
+                                               Real notionalAmount,
+                                               const ext::shared_ptr<IborIndex>& index,
+                                               Handle<YieldTermStructure> discountCurve,
+                                               bool useIndexedCoupon)
+    : fraType_(type), notionalAmount_(notionalAmount), index_(index),
+      useIndexedCoupon_(useIndexedCoupon), dayCounter_(index->dayCounter()),
+      calendar_(index->fixingCalendar()), businessDayConvention_(index->businessDayConvention()),
+      valueDate_(valueDate), maturityDate_(maturityDate),
+      discountCurve_(std::move(discountCurve)) {
+
+        maturityDate_ = calendar_.adjust(maturityDate_, businessDayConvention_);
+
+        registerWith(Settings::instance().evaluationDate());
+        registerWith(discountCurve_);
 
         QL_REQUIRE(notionalAmount > 0.0, "notionalAmount must be positive");
 
         strikeForwardRate_ = InterestRate(strikeForwardRate,
                                           index->dayCounter(),
                                           Simple, Once);
-        Real strike = notionalAmount_ *
-                      strikeForwardRate_.compoundFactor(valueDate_,
-                                                        maturityDate_);
-        payoff_ = ext::shared_ptr<Payoff>(new ForwardTypePayoff(fraType_,
-                                                                  strike));
-        // incomeDiscountCurve_ is irrelevant to an FRA
-        incomeDiscountCurve_ = discountCurve_;
-        // income is irrelevant to FRA - set it to zero
-        underlyingIncome_ = 0.0;
         registerWith(index_);
     }
 
-    Date ForwardRateAgreement::settlementDate() const {
-        return calendar_.advance(Settings::instance().evaluationDate(),
-                                 settlementDays_, Days);
-    }
+    ForwardRateAgreement::ForwardRateAgreement(const Date& valueDate,
+                                               Position::Type type,
+                                               Rate strikeForwardRate,
+                                               Real notionalAmount,
+                                               const ext::shared_ptr<IborIndex>& index,
+                                               Handle<YieldTermStructure> discountCurve)
+    : ForwardRateAgreement(valueDate, index->maturityDate(valueDate), type, strikeForwardRate,
+                           notionalAmount, index, std::move(discountCurve), true) {}
 
     Date ForwardRateAgreement::fixingDate() const {
-        return calendar_.advance(valueDate_,
-                                 -static_cast<Integer>(settlementDays_), Days);
+        return index_->fixingDate(valueDate_);
     }
 
     bool ForwardRateAgreement::isExpired() const {
-        return detail::simple_event(valueDate_).hasOccurred(settlementDate());
+        return detail::simple_event(valueDate_).hasOccurred();
     }
 
-    Real ForwardRateAgreement::spotIncome(
-                                    const Handle<YieldTermStructure>&) const {
-        return 0.0;
-    }
-
-    // In theory, no need to implement this for a FRA (could directly
-    // supply a forwardValue). For the sake of keeping a consistent
-    // framework, we adhere to the concept of the forward contract as
-    // defined in the base class, with an underlying having a
-    // spotPrice (in this case, a loan or deposit with an NPV). Thus,
-    // spotValue() is defined here.
-    Real ForwardRateAgreement::spotValue() const {
+    Real ForwardRateAgreement::amount() const {
         calculate();
-        return notionalAmount_ *
-               forwardRate().compoundFactor(valueDate_, maturityDate_) *
-               discountCurve_->discount(maturityDate_);
+        return amount_;
     }
 
     InterestRate ForwardRateAgreement::forwardRate() const {
@@ -94,15 +80,18 @@ namespace QuantLib {
     }
 
     void ForwardRateAgreement::setupExpired() const {
-        Forward::setupExpired();
+        Instrument::setupExpired();
+
         calculateForwardRate();
     }
 
     void ForwardRateAgreement::performCalculations() const {
-        calculateForwardRate();
-        underlyingSpotValue_ = spotValue();
-        underlyingIncome_    = 0.0;
-        Forward::performCalculations();
+        calculateAmount();
+
+        Handle<YieldTermStructure> discount =
+            discountCurve_.empty() ? index_->forwardingTermStructure() : discountCurve_;
+
+        NPV_ = amount_ * discount->discount(valueDate_);
     }
 
     void ForwardRateAgreement::calculateForwardRate() const {
@@ -118,4 +107,16 @@ namespace QuantLib {
                                  index_->dayCounter().yearFraction(valueDate_, maturityDate_),
                              index_->dayCounter(), Simple, Once);
     }
+
+    void ForwardRateAgreement::calculateAmount() const {
+        calculateForwardRate();
+        Integer sign = fraType_ == Position::Long? 1 : -1;
+
+        Rate F = forwardRate_.rate();
+        Rate K = strikeForwardRate_.rate();
+        Time T = forwardRate_.dayCounter().yearFraction(valueDate_, maturityDate_);
+
+        amount_ = notionalAmount_ * sign * (F - K) * T / (1.0 + F * T);
+    }
+
 }

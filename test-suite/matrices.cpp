@@ -23,7 +23,6 @@
 #include "matrices.hpp"
 #include "utilities.hpp"
 #include <ql/experimental/math/moorepenroseinverse.hpp>
-#include <ql/math/initializers.hpp>
 #include <ql/math/matrix.hpp>
 #include <ql/math/matrixutilities/basisincompleteordered.hpp>
 #include <ql/math/matrixutilities/bicgstab.hpp>
@@ -33,9 +32,11 @@
 #include <ql/math/matrixutilities/qrdecomposition.hpp>
 #include <ql/math/matrixutilities/svd.hpp>
 #include <ql/math/matrixutilities/symmetricschurdecomposition.hpp>
+#include <ql/math/matrixutilities/sparsematrix.hpp>
 #include <ql/math/randomnumbers/mt19937uniformrng.hpp>
 #include <cmath>
 #include <utility>
+#include <numeric>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
@@ -303,7 +304,7 @@ void MatricesTest::testQRSolve() {
         Array b(A.rows());
 
         for (Size k=0; k < 10; ++k) {
-            for (double& iter : b) {
+            for (Real& iter : b) {
                 iter = rng.next().value;
             }
             const Array x = qrSolve(A, b, true);
@@ -328,7 +329,7 @@ void MatricesTest::testQRSolve() {
                     if (w[i] > threshold) {
                         const Real u = std::inner_product(U.column_begin(i),
                                                           U.column_end(i),
-                                                          b.begin(), 0.0)/w[i];
+                                                          b.begin(), Real(0.0))/w[i];
 
                         for (Size j=0; j<n; ++j) {
                             xr[j]  +=u*V[j][i];
@@ -401,7 +402,7 @@ void MatricesTest::testDeterminant() {
     MersenneTwisterUniformRng rng(1234);
     for (Size j=0; j<100; ++j) {
         Matrix m(3, 3, 0.0);
-        for (double& iter : m)
+        for (Real& iter : m)
             iter = rng.next().value;
 
         if ((j % 3) == 0U) {
@@ -591,7 +592,7 @@ void MatricesTest::testMoorePenroseInverse() {
 
     Real cached[6] = {1.153846153846152, 1.461538461538463, 1.384615384615384,
                       1.384615384615385, 1.461538461538462, 1.153846153846152};
-    Real tol = 500.0 * QL_EPSILON;
+    constexpr double tol = 500.0 * QL_EPSILON;
 
     for (Size i = 0; i < 6; ++i) {
         if (std::abs(x[i] - cached[i]) > tol) {
@@ -604,7 +605,7 @@ void MatricesTest::testMoorePenroseInverse() {
     }
 
     Array y = A*x;
-    Real tol2 = 2000.0 * QL_EPSILON;
+    constexpr double tol2 = 2000.0 * QL_EPSILON;
     for (Size i = 0; i < 6; ++i) {
         if (std::abs(y[i] - 260.0) > tol2) {
             BOOST_FAIL(
@@ -622,9 +623,8 @@ namespace matrices_test {
     class MatrixMult {
       public:
         explicit MatrixMult(Matrix m) : m_(std::move(m)) {}
-        Disposable<Array> operator()(const Array& x) const {
-            Array retVal = m_*x;
-            return retVal;
+        Array operator()(const Array& x) const {
+            return m_ * x;
         }
 
       private:
@@ -646,7 +646,7 @@ void MatricesTest::testIterativeSolvers() {
     Array b(3);
     b[0] = 1.0; b[1] = 0.5; b[2] = 3.0;
 
-    const Real relTol = 1e4*QL_EPSILON;
+    constexpr double relTol = 1e4 * QL_EPSILON;
 
     const Array x = BiCGstab(MatrixMult(M1), 3, relTol).solve(b).x;
     if (norm2(M1*x-b)/norm2(b) > relTol) {
@@ -662,7 +662,7 @@ void MatricesTest::testIterativeSolvers() {
                 << "\n  rel tolerance : " << relTol);
     }
     const Array errors = Array(u.errors.begin(), u.errors.end());
-    for (double error : errors) {
+    for (Real error : errors) {
         const Array x = GMRES(MatrixMult(M1), 10, 1.01 * error).solve(b, b).x;
 
         const Real calculated = norm2(M1*x-b)/norm2(b);
@@ -675,7 +675,6 @@ void MatricesTest::testIterativeSolvers() {
         }
     }
 
-#if !defined(QL_NO_UBLAS_SUPPORT)
     const Array v = GMRES(MatrixMult(M1), 1, relTol,
         MatrixMult(inverse(M1))).solve(b, b).x;
 
@@ -694,7 +693,6 @@ void MatricesTest::testIterativeSolvers() {
                 << "\n  rel error     : " << norm2(M1*w-b)/norm2(b)
                 << "\n  rel tolerance : " << relTol);
     }
-    #endif
 }
 
 void MatricesTest::testInitializers() {
@@ -718,6 +716,81 @@ void MatricesTest::testInitializers() {
     BOOST_CHECK_EQUAL(m2(1, 2), 6.0);
 }
 
+
+namespace {
+
+    typedef std::pair< std::pair< std::vector<Size>, std::vector<Size> >,
+                   std::vector<Real> > coordinate_tuple;
+
+    coordinate_tuple sparseMatrixToCoordinateTuple(const SparseMatrix& m) {
+        std::vector<Size> row_idx, col_idx;
+        std::vector<Real> data;
+        for (auto iter1 = m.begin1(); iter1 != m.end1(); ++iter1)
+            for (auto iter2 = iter1.begin(); iter2 != iter1.end(); ++iter2) {
+                row_idx.push_back(iter1.index1());
+                col_idx.push_back(iter2.index2());
+                data.push_back(*iter2);
+            }
+
+        return std::make_pair(std::make_pair(row_idx, col_idx), data);
+    }
+
+}
+
+void MatricesTest::testSparseMatrixMemory() {
+
+    BOOST_TEST_MESSAGE("Testing sparse matrix memory layout...");
+
+    SparseMatrix m(8, 4);
+    BOOST_CHECK_EQUAL(m.filled1(), 1);
+    BOOST_CHECK_EQUAL(m.size1(), 8);
+    BOOST_CHECK_EQUAL(m.size2(), 4);
+    BOOST_CHECK_EQUAL(std::distance(m.begin1(), m.end1()), m.size1());
+
+    auto coords = sparseMatrixToCoordinateTuple(m);
+    BOOST_CHECK_EQUAL(coords.first.first.size(), 0);
+
+    m(3, 1) = 42;
+    coords = sparseMatrixToCoordinateTuple(m);
+    BOOST_CHECK_EQUAL(std::distance(m.begin1(), m.end1()), m.size1());
+    BOOST_CHECK_EQUAL(coords.first.first.size(), 1);
+    BOOST_CHECK_EQUAL(coords.first.first[0], 3);
+    BOOST_CHECK_EQUAL(coords.first.second[0], 1);
+    BOOST_CHECK_EQUAL(coords.second[0], 42);
+
+    m(1, 2) = 6;
+    coords = sparseMatrixToCoordinateTuple(m);
+    BOOST_CHECK_EQUAL(coords.first.first.size(), 2);
+    BOOST_CHECK_EQUAL(coords.first.first[0], 1);
+    BOOST_CHECK_EQUAL(coords.first.second[0], 2);
+    BOOST_CHECK_EQUAL(coords.second[0], 6);
+
+    Array x{1, 2, 3, 4};
+    Array y = prod(m, x);
+    BOOST_CHECK_EQUAL(y, Array({0, 18, 0, 84}));
+
+    m(3, 2) = 43;
+    coords = sparseMatrixToCoordinateTuple(m);
+    BOOST_CHECK_EQUAL(coords.first.first.size(), 3);
+    BOOST_CHECK_EQUAL(coords.first.first[2], 3);
+    BOOST_CHECK_EQUAL(coords.first.second[2], 2);
+    BOOST_CHECK_EQUAL(coords.second[2], 43);
+
+    m(7, 3) = 44;
+    coords = sparseMatrixToCoordinateTuple(m);
+    BOOST_CHECK_EQUAL(coords.first.first.size(), 4);
+    BOOST_CHECK_EQUAL(coords.first.first[3], 7);
+    BOOST_CHECK_EQUAL(coords.first.second[3], 3);
+    BOOST_CHECK_EQUAL(coords.second[3], 44);
+
+    Size entries(0);
+    for (auto iter1 = m.begin1(); iter1 != m.end1(); ++iter1)
+        entries+=std::distance(iter1.begin(), iter1.end());
+
+    BOOST_CHECK_EQUAL(entries, 4);
+
+}
+
 test_suite* MatricesTest::suite() {
     auto* suite = BOOST_TEST_SUITE("Matrix tests");
 
@@ -728,10 +801,9 @@ test_suite* MatricesTest::suite() {
     suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testHighamSqrt));
     suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testQRDecomposition));
     suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testQRSolve));
-    #if !defined(QL_NO_UBLAS_SUPPORT)
     suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testInverse));
     suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testDeterminant));
-    #endif
+    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testSparseMatrixMemory));
     suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testCholeskyDecomposition));
     suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testMoorePenroseInverse));
     suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testIterativeSolvers));

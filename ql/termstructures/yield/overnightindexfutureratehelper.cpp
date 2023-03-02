@@ -19,6 +19,7 @@
 */
 
 #include <ql/termstructures/yield/overnightindexfutureratehelper.hpp>
+#include <ql/indexes/ibor/sofr.hpp>
 #include <ql/utilities/null_deleter.hpp>
 
 namespace QuantLib {
@@ -26,7 +27,7 @@ namespace QuantLib {
     namespace {
 
         Date getValidSofrStart(Month month, Year year, Frequency freq) {
-            return freq == Monthly ? 
+            return freq == Monthly ?
                 UnitedStates(UnitedStates::GovernmentBond).adjust(Date(1, month, year)) :
                 Date::nthWeekday(3, Wednesday, month, year);
         }
@@ -92,26 +93,25 @@ namespace QuantLib {
         return future_->convexityAdjustment();
     }
 
+
     SofrFutureRateHelper::SofrFutureRateHelper(
         const Handle<Quote>& price,
         Month referenceMonth,
         Year referenceYear,
         Frequency referenceFreq,
-        const ext::shared_ptr<OvernightIndex>& overnightIndex,
-        const Handle<Quote>& convexityAdjustment,
-        RateAveraging::Type averagingMethod)
+        const Handle<Quote>& convexityAdjustment)
     : OvernightIndexFutureRateHelper(price,
-                                     getValidSofrStart(referenceMonth, referenceYear, referenceFreq),
-                                     getValidSofrEnd(referenceMonth, referenceYear, referenceFreq),
-                                     overnightIndex,
-                                     convexityAdjustment,
-                                     averagingMethod) {
+            getValidSofrStart(referenceMonth, referenceYear, referenceFreq),
+            getValidSofrEnd(referenceMonth, referenceYear, referenceFreq),
+            ext::make_shared<Sofr>(),
+            convexityAdjustment,
+            referenceFreq == Quarterly ? RateAveraging::Compound : RateAveraging::Simple) {
         QL_REQUIRE(referenceFreq == Quarterly || referenceFreq == Monthly,
-                   "only monthly and quarterly SOFR futures accepted");
+            "only monthly and quarterly SOFR futures accepted");
         if (referenceFreq == Quarterly) {
             QL_REQUIRE(referenceMonth == Mar || referenceMonth == Jun || referenceMonth == Sep ||
-                           referenceMonth == Dec,
-                       "quarterly SOFR futures can only start in Mar,Jun,Sep,Dec");
+                referenceMonth == Dec,
+                "quarterly SOFR futures can only start in Mar,Jun,Sep,Dec");
         }
     }
 
@@ -120,23 +120,20 @@ namespace QuantLib {
         Month referenceMonth,
         Year referenceYear,
         Frequency referenceFreq,
-        const ext::shared_ptr<OvernightIndex>& overnightIndex,
-        Real convexityAdjustment,
-        RateAveraging::Type averagingMethod)
+        Real convexityAdjustment)
     : OvernightIndexFutureRateHelper(
-          Handle<Quote>(ext::make_shared<SimpleQuote>(price)),
-          getValidSofrStart(referenceMonth, referenceYear, referenceFreq),
-          getValidSofrEnd(referenceMonth, referenceYear, referenceFreq),
-          overnightIndex,
-          Handle<Quote>(ext::make_shared<SimpleQuote>(convexityAdjustment)),
-          averagingMethod) {
+            Handle<Quote>(ext::make_shared<SimpleQuote>(price)),
+            getValidSofrStart(referenceMonth, referenceYear, referenceFreq),
+            getValidSofrEnd(referenceMonth, referenceYear, referenceFreq),
+            ext::make_shared<Sofr>(),
+            Handle<Quote>(ext::make_shared<SimpleQuote>(convexityAdjustment)),
+            referenceFreq == Quarterly ? RateAveraging::Compound : RateAveraging::Simple) {
         QL_REQUIRE(referenceFreq == Quarterly || referenceFreq == Monthly,
-                   "only monthly and quarterly SOFR futures accepted");
+            "only monthly and quarterly SOFR futures accepted");
         if (referenceFreq == Quarterly) {
             QL_REQUIRE(referenceMonth == Mar || referenceMonth == Jun || referenceMonth == Sep ||
-                           referenceMonth == Dec,
-                       "quarterly SOFR futures can only start in Mar,Jun,Sep,Dec");
+                referenceMonth == Dec,
+                "quarterly SOFR futures can only start in Mar,Jun,Sep,Dec");
         }
     }
-
 }

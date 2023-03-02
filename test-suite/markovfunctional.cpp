@@ -28,8 +28,8 @@
 #include <ql/termstructures/volatility/swaption/swaptionconstantvol.hpp>
 #include <ql/termstructures/volatility/optionlet/constantoptionletvol.hpp>
 #include <ql/termstructures/volatility/swaption/swaptionvolmatrix.hpp>
-#include <ql/termstructures/volatility/swaption/swaptionvolcube1.hpp>
-#include <ql/termstructures/volatility/swaption/swaptionvolcube2.hpp>
+#include <ql/termstructures/volatility/swaption/sabrswaptionvolatilitycube.hpp>
+#include <ql/termstructures/volatility/swaption/interpolatedswaptionvolatilitycube.hpp>
 #include <ql/termstructures/volatility/capfloor/capfloortermvolsurface.hpp>
 #include <ql/termstructures/volatility/optionlet/optionletstripper1.hpp>
 #include <ql/termstructures/volatility/optionlet/strippedoptionletadapter.hpp>
@@ -241,7 +241,7 @@ namespace {
         };
 
         q6m.reserve(10 + 15 + 35);
-        for (double i : q6mh) {
+        for (Real i : q6mh) {
             q6m.push_back(ext::shared_ptr<Quote>(new SimpleQuote(i)));
         }
 
@@ -450,10 +450,10 @@ namespace {
                                                     // just a test...)
 
         // return Handle<SwaptionVolatilityStructure>(new
-        // SwaptionVolCube2(swaptionVolAtm,optionTenorsSmile,swapTenorsSmile,strikeSpreads,qSwSmile,swapIndex,shortSwapIndex,false));
+        // InterpolatedSwaptionVolatilityCube(swaptionVolAtm,optionTenorsSmile,swapTenorsSmile,strikeSpreads,qSwSmile,swapIndex,shortSwapIndex,false));
         // // bilinear interpolation gives nasty digitals
         Handle<SwaptionVolatilityStructure> res(
-            ext::shared_ptr<SwaptionVolatilityStructure>(new SwaptionVolCube1(
+            ext::shared_ptr<SwaptionVolatilityStructure>(new SabrSwaptionVolatilityCube(
                 swaptionVolAtm, optionTenorsSmile, swapTenorsSmile,
                 strikeSpreads, qSwSmile, swapIndex, shortSwapIndex, true,
                 parameterGuess, parameterFixed, true, ec,
@@ -549,7 +549,7 @@ namespace {
 
     // Calibration Basket 1: CMS10y Swaptions, 5 yearly fixings
 
-    Disposable<std::vector<Date> > expiriesCalBasket1() {
+    std::vector<Date> expiriesCalBasket1() {
 
         std::vector<Date> res;
         Date referenceDate_ = Settings::instance().evaluationDate();
@@ -560,7 +560,7 @@ namespace {
         return res;
     }
 
-    Disposable<std::vector<Period> > tenorsCalBasket1() {
+    std::vector<Period> tenorsCalBasket1() {
 
         std::vector<Period> res(5, 10 * Years);
 
@@ -569,7 +569,7 @@ namespace {
 
     // Calibration Basket 2: 6m caplets, 5 years
 
-    Disposable<std::vector<Date> > expiriesCalBasket2() {
+    std::vector<Date> expiriesCalBasket2() {
 
         Date referenceDate_ = Settings::instance().evaluationDate();
 
@@ -591,7 +591,7 @@ namespace {
 
     // Calibration Basket 3: Coterminal Swaptions 10y
 
-    Disposable<std::vector<Date> > expiriesCalBasket3() {
+    std::vector<Date> expiriesCalBasket3() {
 
         Date referenceDate_ = Settings::instance().evaluationDate();
 
@@ -610,16 +610,15 @@ namespace {
         return res;
     }
 
-    Disposable<std::vector<Period> > tenorsCalBasket3() {
+    std::vector<Period> tenorsCalBasket3() {
 
         std::vector<Period> res = {9 * Years, 8 * Years, 7 * Years, 6 * Years, 5 * Years,
                                    4 * Years, 3 * Years, 2 * Years, 1 * Years};
         return res;
     }
 
-    Disposable<std::vector<Real> >
-    impliedStdDevs(const Real atm, const std::vector<Real> &strikes,
-                   const std::vector<Real> &prices) {
+    std::vector<Real> impliedStdDevs(const Real atm, const std::vector<Real> &strikes,
+                                     const std::vector<Real> &prices) {
 
         std::vector<Real> result;
 
@@ -651,7 +650,7 @@ void MarkovFunctionalTest::testKahaleSmileSection() {
     std::vector<Real> money;
     std::vector<Real> calls0;
 
-    for (double strike : strikes) {
+    for (Real strike : strikes) {
         money.push_back(strike / atm);
         calls0.push_back(blackFormula(Option::Call, strike, atm, 0.50 * std::sqrt(t), 1.0, 0.0));
     }
@@ -1399,25 +1398,25 @@ void MarkovFunctionalTest::testCalibrationTwoInstrumentSets() {
         new SwaptionHelper(1 * Years, 4 * Years,
                            Handle<Quote>(ext::shared_ptr<Quote>(
                                new SimpleQuote(calibrationHelperVols1[0]))),
-                           iborIndex1, 1 * Years, Thirty360(), Actual360(),
+                           iborIndex1, 1 * Years, Thirty360(Thirty360::BondBasis), Actual360(),
                            flatYts_)));
     calibrationHelper1.push_back(ext::shared_ptr<BlackCalibrationHelper>(
         new SwaptionHelper(2 * Years, 3 * Years,
                            Handle<Quote>(ext::shared_ptr<Quote>(
                                new SimpleQuote(calibrationHelperVols1[1]))),
-                           iborIndex1, 1 * Years, Thirty360(), Actual360(),
+                           iborIndex1, 1 * Years, Thirty360(Thirty360::BondBasis), Actual360(),
                            flatYts_)));
     calibrationHelper1.push_back(ext::shared_ptr<BlackCalibrationHelper>(
         new SwaptionHelper(3 * Years, 2 * Years,
                            Handle<Quote>(ext::shared_ptr<Quote>(
                                new SimpleQuote(calibrationHelperVols1[2]))),
-                           iborIndex1, 1 * Years, Thirty360(), Actual360(),
+                           iborIndex1, 1 * Years, Thirty360(Thirty360::BondBasis), Actual360(),
                            flatYts_)));
     calibrationHelper1.push_back(ext::shared_ptr<BlackCalibrationHelper>(
         new SwaptionHelper(4 * Years, 1 * Years,
                            Handle<Quote>(ext::shared_ptr<Quote>(
                                new SimpleQuote(calibrationHelperVols1[3]))),
-                           iborIndex1, 1 * Years, Thirty360(), Actual360(),
+                           iborIndex1, 1 * Years, Thirty360(Thirty360::BondBasis), Actual360(),
                            flatYts_)));
 
     ext::shared_ptr<MarkovFunctional> mf1(new MarkovFunctional(
@@ -1525,25 +1524,25 @@ void MarkovFunctionalTest::testCalibrationTwoInstrumentSets() {
         new SwaptionHelper(1 * Years, 4 * Years,
                            Handle<Quote>(ext::shared_ptr<Quote>(
                                new SimpleQuote(calibrationHelperVols2[0]))),
-                           iborIndex2, 1 * Years, Thirty360(), Actual360(),
+                           iborIndex2, 1 * Years, Thirty360(Thirty360::BondBasis), Actual360(),
                            md0Yts_)));
     calibrationHelper2.push_back(ext::shared_ptr<BlackCalibrationHelper>(
         new SwaptionHelper(2 * Years, 3 * Years,
                            Handle<Quote>(ext::shared_ptr<Quote>(
                                new SimpleQuote(calibrationHelperVols2[1]))),
-                           iborIndex2, 1 * Years, Thirty360(), Actual360(),
+                           iborIndex2, 1 * Years, Thirty360(Thirty360::BondBasis), Actual360(),
                            md0Yts_)));
     calibrationHelper2.push_back(ext::shared_ptr<BlackCalibrationHelper>(
         new SwaptionHelper(3 * Years, 2 * Years,
                            Handle<Quote>(ext::shared_ptr<Quote>(
                                new SimpleQuote(calibrationHelperVols2[2]))),
-                           iborIndex2, 1 * Years, Thirty360(), Actual360(),
+                           iborIndex2, 1 * Years, Thirty360(Thirty360::BondBasis), Actual360(),
                            md0Yts_)));
     calibrationHelper2.push_back(ext::shared_ptr<BlackCalibrationHelper>(
         new SwaptionHelper(4 * Years, 1 * Years,
                            Handle<Quote>(ext::shared_ptr<Quote>(
                                new SimpleQuote(calibrationHelperVols2[3]))),
-                           iborIndex2, 1 * Years, Thirty360(), Actual360(),
+                           iborIndex2, 1 * Years, Thirty360(Thirty360::BondBasis), Actual360(),
                            md0Yts_)));
 
     ext::shared_ptr<Gaussian1dSwaptionEngine> mfSwaptionEngine2(

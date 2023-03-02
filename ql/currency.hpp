@@ -28,12 +28,15 @@
 #include <ql/math/rounding.hpp>
 #include <ql/errors.hpp>
 #include <iosfwd>
+#include <set>
 
 namespace QuantLib {
 
     //! %Currency specification
     class Currency {
       public:
+        //! \name Constructors
+        //@{
         //! default constructor
         /*! Instances built via this constructor have undefined
             behavior. Such instances can only act as placeholders
@@ -41,6 +44,17 @@ namespace QuantLib {
             used.
         */
         Currency() = default;
+        Currency(const std::string& name,
+                 const std::string& code,
+                 Integer numericCode,
+                 const std::string& symbol,
+                 const std::string& fractionSymbol,
+                 Integer fractionsPerUnit,
+                 const Rounding& rounding,
+                 const std::string& formatString,
+                 const Currency& triangulationCurrency = Currency(),
+                 const std::set<std::string>& minorUnitCodes = {});
+        //@}
         //! \name Inspectors
         //@{
         //! currency name, e.g, "U.S. Dollar"
@@ -69,6 +83,8 @@ namespace QuantLib {
         bool empty() const;
         //! currency used for triangulated exchange when required
         const Currency& triangulationCurrency() const;
+        //! minor unit codes, e.g. GBp, GBX for GBP
+        const std::set<std::string>& minorUnitCodes() const;
         //@}
       protected:
         struct Data;
@@ -85,6 +101,7 @@ namespace QuantLib {
         Rounding rounding;
         Currency triangulated;
         std::string formatString;
+        std::set<std::string> minorUnitCodes;
 
         Data(std::string name,
              std::string code,
@@ -94,7 +111,8 @@ namespace QuantLib {
              Integer fractionsPerUnit,
              const Rounding& rounding,
              std::string formatString,
-             Currency triangulationCurrency = Currency());
+             Currency triangulationCurrency = Currency(),
+             std::set<std::string> minorUnitCodes = {});
     };
 
     /*! \relates Currency */
@@ -163,6 +181,11 @@ namespace QuantLib {
     inline const Currency& Currency::triangulationCurrency() const {
         checkNonEmpty();
         return data_->triangulated;
+    }
+
+    inline const std::set<std::string>& Currency::minorUnitCodes() const {
+        checkNonEmpty();
+        return data_->minorUnitCodes;
     }
 
     inline bool operator==(const Currency& c1, const Currency& c2) {

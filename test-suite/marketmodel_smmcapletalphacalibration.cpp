@@ -55,7 +55,6 @@
 #include <ql/utilities/dataformatters.hpp>
 #include <ql/math/integrals/segmentintegral.hpp>
 #include <ql/math/statistics/convergencestatistics.hpp>
-#include <ql/math/functional.hpp>
 #include <ql/math/optimization/simplex.hpp>
 #include <ql/math/statistics/sequencestatistics.hpp>
 #include <sstream>
@@ -348,9 +347,8 @@ void MarketModelSmmCapletAlphaCalibrationTest::testFunction() {
 // --- Call the desired tests
 test_suite* MarketModelSmmCapletAlphaCalibrationTest::suite() {
     auto* suite = BOOST_TEST_SUITE("SMM Caplet alpha calibration test");
-#if !defined(QL_NO_UBLAS_SUPPORT)
-    suite->add(QUANTLIB_TEST_CASE(
-                    &MarketModelSmmCapletAlphaCalibrationTest::testFunction));
-    #endif
+
+    suite->add(QUANTLIB_TEST_CASE(&MarketModelSmmCapletAlphaCalibrationTest::testFunction));
+
     return suite;
 }

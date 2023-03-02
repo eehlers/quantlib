@@ -34,10 +34,10 @@
 #include <ql/instruments/basketoption.hpp>
 #include <ql/instruments/vanillastorageoption.hpp>
 #include <ql/instruments/vanillaswingoption.hpp>
-#include <ql/math/functional.hpp>
 #include <ql/math/generallinearleastsquares.hpp>
 #include <ql/math/randomnumbers/rngtraits.hpp>
 #include <ql/math/statistics/generalstatistics.hpp>
+#include <ql/math/functional.hpp>
 #include <ql/methods/finitedifferences/meshers/exponentialjump1dmesher.hpp>
 #include <ql/methods/finitedifferences/meshers/fdmmeshercomposite.hpp>
 #include <ql/methods/finitedifferences/meshers/fdmsimpleprocess1dmesher.hpp>
@@ -58,6 +58,11 @@ using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
 namespace vpp_test {
+
+    ext::function<Real(Real)> constant_b(Real b) {
+        return [=](Real x){ return b; };
+    }
+
     ext::shared_ptr<ExtOUWithJumpsProcess> createKlugeProcess() {
         Array x0(2);
         x0[0] = 3.0; x0[1] = 0.0;
@@ -70,7 +75,7 @@ namespace vpp_test {
 
         ext::shared_ptr<ExtendedOrnsteinUhlenbeckProcess> ouProcess(
             new ExtendedOrnsteinUhlenbeckProcess(speed, volatility, x0[0],
-                                                 constant<Real, Real>(x0[0])));
+                                                 constant_b(x0[0])));
         return ext::make_shared<ExtOUWithJumpsProcess>(
             ouProcess, x0[1], beta,
                                       jumpIntensity, eta);
@@ -105,7 +110,7 @@ void VPPTest::testGemanRoncoroniProcess() {
 
     const Date today = Date(18, December, 2011);
     Settings::instance().evaluationDate() = today;
-    const DayCounter dc = ActualActual();
+    const DayCounter dc = ActualActual(ActualActual::ISDA);
 
     ext::shared_ptr<YieldTermStructure> rTS = flatRate(today, 0.03, dc);
 
@@ -217,11 +222,13 @@ void VPPTest::testSimpleExtOUStorageEngine() {
 
     BOOST_TEST_MESSAGE("Testing simple-storage option based on ext. OU model...");
 
+    using namespace vpp_test;
+
     SavedSettings backup;
 
     Date settlementDate = Date(18, December, 2011);
     Settings::instance().evaluationDate() = settlementDate;
-    DayCounter dayCounter = ActualActual();
+    DayCounter dayCounter = ActualActual(ActualActual::ISDA);
     Date maturityDate = settlementDate + Period(12, Months);
 
     std::vector<Date> exerciseDates(1, settlementDate+Period(1, Days));
@@ -238,7 +245,7 @@ void VPPTest::testSimpleExtOUStorageEngine() {
 
     ext::shared_ptr<ExtendedOrnsteinUhlenbeckProcess> ouProcess(
         new ExtendedOrnsteinUhlenbeckProcess(speed, volatility, x0,
-                                             constant<Real, Real>(x0)));
+                                             constant_b(x0)));
 
     ext::shared_ptr<YieldTermStructure> rTS(
                                 flatRate(settlementDate, irRate, dayCounter));
@@ -272,7 +279,7 @@ void VPPTest::testKlugeExtOUSpreadOption() {
     Date settlementDate = Date(18, December, 2011);
     Settings::instance().evaluationDate() = settlementDate;
 
-    DayCounter dayCounter = ActualActual();
+    DayCounter dayCounter = ActualActual(ActualActual::ISDA);
     Date maturityDate = settlementDate + Period(1, Years);
     Time maturity = dayCounter.yearFraction(settlementDate, maturityDate);
 
@@ -407,7 +414,7 @@ void VPPTest::testVPPIntrinsicValue() {
     SavedSettings backup;
 
     const Date today = Date(18, December, 2011);
-    const DayCounter dc = ActualActual();
+    const DayCounter dc = ActualActual(ActualActual::ISDA);
     Settings::instance().evaluationDate() = today;
 
     // vpp parameters
@@ -534,14 +541,14 @@ namespace vpp_test {
 
         const ext::shared_ptr<ExtendedOrnsteinUhlenbeckProcess> ouProcess(
             new ExtendedOrnsteinUhlenbeckProcess(alpha, volatility_x, x0[0],
-                                                 constant<Real, Real>(x0[0])));
+                                                 constant_b(x0[0])));
         const ext::shared_ptr<ExtOUWithJumpsProcess> lnPowerProcess(
             new ExtOUWithJumpsProcess(ouProcess, x0[1], beta, lambda, eta));
 
         const Real u=0.0;
         const ext::shared_ptr<ExtendedOrnsteinUhlenbeckProcess> lnGasProcess(
             new ExtendedOrnsteinUhlenbeckProcess(kappa, volatility_u, u,
-                                                 constant<Real, Real>(u)));
+                                                 constant_b(u)));
 
         ext::shared_ptr<KlugeExtOUProcess> klugeOUProcess(
             new KlugeExtOUProcess(rho, lnPowerProcess, lnGasProcess));
@@ -559,7 +566,7 @@ void VPPTest::testVPPPricing() {
     SavedSettings backup;
 
     const Date today = Date(18, December, 2011);
-    const DayCounter dc = ActualActual();
+    const DayCounter dc = ActualActual(ActualActual::ISDA);
     Settings::instance().evaluationDate() = today;
 
     // vpp parameter
@@ -609,12 +616,12 @@ void VPPTest::testVPPPricing() {
         const Time t = (i+1)/(365*24.);
 
         const Real fuelPrice = fuelPrices[i];
-        const Real gs = std::log(fuelPrice)-square<Real>()(volatility_u)
+        const Real gs = std::log(fuelPrice)-squared(volatility_u)
                                /(4*kappa)*(1-std::exp(-2*kappa*t));
         (*fuelShape)[i] = Shape::value_type(t, gs);
 
         const Real powerPrice = powerPrices[i];
-        const Real ps = std::log(powerPrice)-square<Real>()(volatility_x)
+        const Real ps = std::log(powerPrice)-squared(volatility_x)
                  /(4*alpha)*(1-std::exp(-2*alpha*t))
                 -lambda/beta*std::log((eta-std::exp(-beta*t))/(eta-1.0));
 
@@ -869,7 +876,6 @@ void VPPTest::testVPPPricing() {
 }
 
 void VPPTest::testKlugeExtOUMatrixDecomposition() {
-#ifndef QL_NO_UBLAS_SUPPORT
     BOOST_TEST_MESSAGE("Testing KlugeExtOU matrix decomposition...");
 
     using namespace vpp_test;
@@ -908,14 +914,14 @@ void VPPTest::testKlugeExtOUMatrixDecomposition() {
 
     const ext::shared_ptr<FdmLinearOpComposite> op(
         new FdmKlugeExtOUOp(mesher, klugeOUProcess,
-                            flatRate(today, 0.0, ActualActual()),
+                            flatRate(today, 0.0, ActualActual(ActualActual::ISDA)),
                             FdmBoundaryConditionSet(), 16));
     op->setTime(0.1, 0.2);
 
     Array x(mesher->layout()->size());
 
     PseudoRandom::rng_type rng(PseudoRandom::urng_type(12345UL));
-    for (double& i : x) {
+    for (Real& i : x) {
         i = rng.next().value;
     }
 
@@ -962,7 +968,6 @@ void VPPTest::testKlugeExtOUMatrixDecomposition() {
             }
         }
     }
-#endif
 }
 
 

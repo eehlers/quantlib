@@ -188,14 +188,14 @@ namespace piecewise_yield_curve_test {
             settlement = calendar.advance(today,settlementDays,Days);
             fixedLegConvention = Unadjusted;
             fixedLegFrequency = Annual;
-            fixedLegDayCounter = Thirty360();
+            fixedLegDayCounter = Thirty360(Thirty360::BondBasis);
             bondSettlementDays = 3;
-            bondDayCounter = ActualActual();
+            bondDayCounter = ActualActual(ActualActual::ISDA);
             bondConvention = Following;
             bondRedemption = 100.0;
             bmaFrequency = Quarterly;
             bmaConvention = Following;
-            bmaDayCounter = ActualActual();
+            bmaDayCounter = ActualActual(ActualActual::ISDA);
 
             deposits = LENGTH(depositData);
             fras = LENGTH(fraData);
@@ -616,7 +616,7 @@ namespace piecewise_yield_curve_test {
                               .backwards();
 
 
-            BMASwap swap(BMASwap::Payer, 100.0,
+            BMASwap swap(Swap::Payer, 100.0,
                          liborSchedule, 0.75, 0.0,
                          libor3m, libor3m->dayCounter(),
                          bmaSchedule, bma, vars.bmaDayCounter);
@@ -1017,77 +1017,6 @@ void PiecewiseYieldCurveTest::testJpyLibor() {
     }
 }
 
-namespace piecewise_yield_curve_test {
-
-    template <class T, class I>
-    void testCurveCopy(CommonVars& vars,
-                       const I& interpolator = I()) {
-
-        PiecewiseYieldCurve<T,I> curve(vars.settlement, vars.instruments,
-                                       Actual360(),
-                                       interpolator);
-        // necessary to trigger bootstrap
-        curve.recalculate();
-
-        typedef typename T::template curve<I>::type base_curve;
-
-        base_curve copiedCurve = curve;
-
-        // the two curves should be the same.
-        Time t = 2.718;
-        Rate r1 = curve.zeroRate(t, Continuous);
-        Rate r2 = copiedCurve.zeroRate(t, Continuous);
-        if (!close(r1, r2)) {
-            BOOST_ERROR("failed to link original and copied curve");
-        }
-
-        for (auto& rate : vars.rates) {
-            rate->setValue(rate->value() + 0.001);
-        }
-
-        // now the original curve should have changed; the copied
-        // curve should not.
-        Rate r3 = curve.zeroRate(t, Continuous);
-        Rate r4 = copiedCurve.zeroRate(t, Continuous);
-        if (close(r1, r3)) {
-            BOOST_ERROR("failed to modify original curve");
-        }
-        if (!close(r2,r4)) {
-            BOOST_ERROR(
-                    "failed to break link between original and copied curve");
-        }
-    }
-
-}
-
-
-void PiecewiseYieldCurveTest::testDiscountCopy() {
-    BOOST_TEST_MESSAGE("Testing copying of discount curve...");
-
-    using namespace piecewise_yield_curve_test;
-
-    CommonVars vars;
-    testCurveCopy<Discount,LogLinear>(vars);
-}
-
-void PiecewiseYieldCurveTest::testForwardCopy() {
-    BOOST_TEST_MESSAGE("Testing copying of forward-rate curve...");
-
-    using namespace piecewise_yield_curve_test;
-
-    CommonVars vars;
-    testCurveCopy<ForwardRate,BackwardFlat>(vars);
-}
-
-void PiecewiseYieldCurveTest::testZeroCopy() {
-    BOOST_TEST_MESSAGE("Testing copying of zero-rate curve...");
-
-    using namespace piecewise_yield_curve_test;
-
-    CommonVars vars;
-    testCurveCopy<ZeroYield,Linear>(vars);
-}
-
 void PiecewiseYieldCurveTest::testSwapRateHelperLastRelevantDate() {
     BOOST_TEST_MESSAGE("Testing SwapRateHelper last relevant date...");
 
@@ -1102,7 +1031,8 @@ void PiecewiseYieldCurveTest::testSwapRateHelperLastRelevantDate() {
     // note that the calendar should be US+UK here actually, but technically it should also work with
     // the US calendar only
     ext::shared_ptr<RateHelper> helper = ext::make_shared<SwapRateHelper>(
-        0.02, 50 * Years, UnitedStates(), Semiannual, ModifiedFollowing, Thirty360(), usdLibor3m);
+        0.02, 50 * Years, UnitedStates(UnitedStates::GovernmentBond), Semiannual, ModifiedFollowing,
+        Thirty360(Thirty360::BondBasis), usdLibor3m);
 
     PiecewiseYieldCurve<Discount, LogLinear> curve(today, std::vector<ext::shared_ptr<RateHelper> >(1, helper),
                                                    Actual365Fixed());
@@ -1117,7 +1047,8 @@ void PiecewiseYieldCurveTest::testSwapRateHelperSpotDate() {
     ext::shared_ptr<IborIndex> usdLibor3m = ext::make_shared<USDLibor>(3 * Months);
 
     ext::shared_ptr<SwapRateHelper> helper = ext::make_shared<SwapRateHelper>(
-        0.02, 5 * Years, UnitedStates(), Semiannual, ModifiedFollowing, Thirty360(), usdLibor3m);
+        0.02, 5 * Years, UnitedStates(UnitedStates::GovernmentBond), Semiannual, ModifiedFollowing,
+        Thirty360(Thirty360::BondBasis), usdLibor3m);
 
     Settings::instance().evaluationDate() = Date(11, October, 2019);
 
@@ -1161,7 +1092,8 @@ void PiecewiseYieldCurveTest::testBadPreviousCurve() {
     ext::shared_ptr<Euribor> euribor1m(new Euribor1M);
     for (auto& i : data) {
         helpers.push_back(ext::make_shared<SwapRateHelper>(
-            i.rate, Period(i.n, i.units), TARGET(), Monthly, Unadjusted, Thirty360(), euribor1m));
+            i.rate, Period(i.n, i.units), TARGET(), Monthly, Unadjusted,
+            Thirty360(Thirty360::BondBasis), euribor1m));
     }
 
     Date today = Date(12, October, 2017);
@@ -1187,7 +1119,7 @@ void PiecewiseYieldCurveTest::testBadPreviousCurve() {
         Period tenor = i.n * i.units;
 
         VanillaSwap swap = MakeVanillaSwap(tenor, index, 0.0)
-            .withFixedLegDayCount(Thirty360())
+            .withFixedLegDayCount(Thirty360(Thirty360::BondBasis))
             .withFixedLegTenor(Period(1, Months))
             .withFixedLegConvention(Unadjusted);
         swap.setPricingEngine(ext::make_shared<DiscountingSwapEngine>(h));
@@ -1354,9 +1286,9 @@ void PiecewiseYieldCurveTest::testGlobalBootstrap() {
 
     Size swapTenors[] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 20, 25, 30, 35, 40, 45, 50};
     for (Size i = 0; i < 19; ++i) {
-        helpers.push_back(ext::make_shared<SwapRateHelper>(refMktRate[13 + i] / 100.0,
-                                                           swapTenors[i] * Years, TARGET(), Annual,
-                                                           ModifiedFollowing, Thirty360(), index));
+        helpers.push_back(ext::make_shared<SwapRateHelper>(
+            refMktRate[13 + i] / 100.0, swapTenors[i] * Years, TARGET(), Annual, ModifiedFollowing,
+            Thirty360(Thirty360::BondBasis), index));
     }
 
     // global bootstrap constraints
@@ -1385,7 +1317,7 @@ void PiecewiseYieldCurveTest::testGlobalBootstrap() {
     // check expected zero rates
     for (Size i = 0; i < LENGTH(refZeroRate); ++i) {
         // 0.01 basis points tolerance
-        BOOST_CHECK_SMALL(std::fabs(refZeroRate[i] - curve->zeroRate(refDate[i], Actual360(), Continuous).rate()),
+        QL_CHECK_SMALL(std::fabs(refZeroRate[i] - curve->zeroRate(refDate[i], Actual360(), Continuous).rate()),
                           1E-6);
     }
 }
@@ -1464,7 +1396,7 @@ void PiecewiseYieldCurveTest::testIterativeBootstrapRetries() {
     for (map<Period, Real>::const_iterator it = arsFwdPoints.begin(); it != arsFwdPoints.end(); ++it) {
         Handle<Quote> arsFwd(ext::make_shared<SimpleQuote>(it->second));
         instruments.push_back(ext::make_shared<FxSwapRateHelper>(arsFwd, arsSpot, it->first, 2,
-            UnitedStates(), Following, false, true, usdYts));
+            UnitedStates(UnitedStates::GovernmentBond), Following, false, true, usdYts));
     }
 
     // Create the ARS in USD curve with the default IterativeBootstrap.
@@ -1496,7 +1428,7 @@ void PiecewiseYieldCurveTest::testIterativeBootstrapRetries() {
     DiscountFactor oneYearDfArs = arsYts->discount(oneYearFwdDate);
     Real calcFwd = (spotDfArs * arsSpot->value() / oneYearDfArs) / (spotDfUsd / oneYearDfUsd);
     Real expFwd = arsSpot->value() + arsFwdPoints.at(1 * Years);
-    BOOST_CHECK_SMALL(calcFwd - expFwd, 1e-10);
+    QL_CHECK_SMALL(calcFwd - expFwd, 1e-10);
 }
 
 test_suite* PiecewiseYieldCurveTest::suite() {
@@ -1534,27 +1466,22 @@ test_suite* PiecewiseYieldCurveTest::suite() {
 
     suite->add(QUANTLIB_TEST_CASE(&PiecewiseYieldCurveTest::testJpyLibor));
 
-    suite->add(QUANTLIB_TEST_CASE(&PiecewiseYieldCurveTest::testDiscountCopy));
-    suite->add(QUANTLIB_TEST_CASE(&PiecewiseYieldCurveTest::testForwardCopy));
-    suite->add(QUANTLIB_TEST_CASE(&PiecewiseYieldCurveTest::testZeroCopy));
-
     suite->add(QUANTLIB_TEST_CASE(
                &PiecewiseYieldCurveTest::testSwapRateHelperLastRelevantDate));
     suite->add(QUANTLIB_TEST_CASE(
                &PiecewiseYieldCurveTest::testSwapRateHelperSpotDate));
 
-    if (IborCoupon::usingAtParCoupons()) {
+    if (IborCoupon::Settings::instance().usingAtParCoupons()) {
         // This regression test didn't work with indexed coupons anyway.
-        suite->add(QUANTLIB_TEST_CASE(
-               &PiecewiseYieldCurveTest::testBadPreviousCurve));
+        suite->add(QUANTLIB_TEST_CASE(&PiecewiseYieldCurveTest::testBadPreviousCurve));
     }
 
     suite->add(QUANTLIB_TEST_CASE(&PiecewiseYieldCurveTest::testConstructionWithExplicitBootstrap));
     suite->add(QUANTLIB_TEST_CASE(&PiecewiseYieldCurveTest::testLargeRates));
 
-#ifndef QL_USE_INDEXED_COUPON
-    suite->add(QUANTLIB_TEST_CASE(&PiecewiseYieldCurveTest::testGlobalBootstrap));
-#endif
+    if (IborCoupon::Settings::instance().usingAtParCoupons()) {
+        suite->add(QUANTLIB_TEST_CASE(&PiecewiseYieldCurveTest::testGlobalBootstrap));
+    }
 
     suite->add(QUANTLIB_TEST_CASE(&PiecewiseYieldCurveTest::testIterativeBootstrapRetries));
 

@@ -41,10 +41,12 @@ namespace QuantLib {
                                        PricingEngine::arguments* args) const {
         BarrierOption::setupArguments(args);
 
+        QL_DEPRECATED_DISABLE_WARNING
         auto* arguments = dynamic_cast<DividendBarrierOption::arguments*>(args);
         QL_REQUIRE(arguments != nullptr, "wrong engine type");
 
         arguments->cashFlow = cashFlow_;
+        QL_DEPRECATED_ENABLE_WARNING
     }
 
 
@@ -62,5 +64,17 @@ namespace QuantLib {
         }
     }
 
-}
+    bool DividendBarrierOption::engine::triggered(Real underlying) const {
+        switch (arguments_.barrierType) {
+          case Barrier::DownIn:
+          case Barrier::DownOut:
+            return underlying < arguments_.barrier;
+          case Barrier::UpIn:
+          case Barrier::UpOut:
+            return underlying > arguments_.barrier;
+          default:
+            QL_FAIL("unknown type");
+        }
+    }
 
+}

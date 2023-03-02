@@ -35,14 +35,14 @@ namespace QuantLib {
     : swapIndex_(std::move(swapIndex)), delivery_(Settlement::Physical),
       settlementMethod_(Settlement::PhysicalOTC), optionTenor_(optionTenor),
       optionConvention_(ModifiedFollowing), fixingDate_(Null<Date>()), strike_(strike),
-      underlyingType_(VanillaSwap::Payer), nominal_(1.0) {}
+      underlyingType_(Swap::Payer), nominal_(1.0) {}
 
     MakeSwaption::MakeSwaption(ext::shared_ptr<SwapIndex> swapIndex,
                                const Date& fixingDate,
                                Rate strike)
     : swapIndex_(std::move(swapIndex)), delivery_(Settlement::Physical),
       settlementMethod_(Settlement::PhysicalOTC), optionConvention_(ModifiedFollowing),
-      fixingDate_(fixingDate), strike_(strike), underlyingType_(VanillaSwap::Payer) {}
+      fixingDate_(fixingDate), strike_(strike), underlyingType_(Swap::Payer) {}
 
     MakeSwaption::operator Swaption() const {
         ext::shared_ptr<Swaption> swaption = *this;
@@ -98,7 +98,8 @@ namespace QuantLib {
             .withFixedLegConvention(bdc)
             .withFixedLegTerminationDateConvention(bdc)
             .withType(underlyingType_)
-            .withNominal(nominal_);
+            .withNominal(nominal_)
+            .withIndexedCoupons(useIndexedCoupons_);
 
         ext::shared_ptr<Swaption> swaption(new Swaption(
             underlyingSwap_, exercise_, delivery_, settlementMethod_));
@@ -128,7 +129,7 @@ namespace QuantLib {
         return *this;
     }
 
-    MakeSwaption& MakeSwaption::withUnderlyingType(const VanillaSwap::Type type) {
+    MakeSwaption& MakeSwaption::withUnderlyingType(const Swap::Type type) {
         underlyingType_ = type;
         return *this;
     }
@@ -141,6 +142,16 @@ namespace QuantLib {
 
     MakeSwaption& MakeSwaption::withNominal(Real n) {
         nominal_ = n;
+        return *this;
+    }
+
+    MakeSwaption& MakeSwaption::withIndexedCoupons(const boost::optional<bool>& b) {
+        useIndexedCoupons_ = b;
+        return *this;
+    }
+
+    MakeSwaption& MakeSwaption::withAtParCoupons(bool b) {
+        useIndexedCoupons_ = !b;
         return *this;
     }
 

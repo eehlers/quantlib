@@ -28,11 +28,10 @@ namespace QuantLib {
      corrMatrix_(size, size),
      pseudoSqrt_(size, size) {
         arguments_[0] = ConstantParameter(rho, PositiveConstraint());
-        generateArguments();
+        LmExponentialCorrelationModel::generateArguments();
     }
 
-    Disposable<Matrix> LmExponentialCorrelationModel::correlation(
-                                                   Time, const Array&) const {
+    Matrix LmExponentialCorrelationModel::correlation(Time, const Array&) const {
 
         Matrix tmp(corrMatrix_);
         return tmp;
@@ -47,8 +46,7 @@ namespace QuantLib {
         return true;
     }
 
-    Disposable<Matrix> LmExponentialCorrelationModel::pseudoSqrt(
-                                                   Time, const Array&) const {
+    Matrix LmExponentialCorrelationModel::pseudoSqrt(Time, const Array&) const {
         Matrix tmp(pseudoSqrt_);
         return tmp;
     }

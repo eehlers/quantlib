@@ -42,12 +42,34 @@ namespace QuantLib {
         const Real rho,
         const FdmSchemeDesc& schemeDesc,
         ext::shared_ptr<FdmQuantoHelper> quantoHelper)
-    : tGrid_(tGrid), xGrid_(xGrid), rGrid_(rGrid), dampingSteps_(dampingSteps), rho_(rho),
-      schemeDesc_(schemeDesc), bsProcess_(std::move(bsProcess)), cirProcess_(std::move(cirProcess)),
-      quantoHelper_(std::move(quantoHelper)) {}
+    :  bsProcess_(std::move(bsProcess)), cirProcess_(std::move(cirProcess)),
+       quantoHelper_(std::move(quantoHelper)), explicitDividends_(false),
+       tGrid_(tGrid), xGrid_(xGrid), rGrid_(rGrid), dampingSteps_(dampingSteps),
+       rho_(rho), schemeDesc_(schemeDesc) {}
+
+    FdCIRVanillaEngine::FdCIRVanillaEngine(
+        ext::shared_ptr<CoxIngersollRossProcess> cirProcess,
+        ext::shared_ptr<GeneralizedBlackScholesProcess> bsProcess,
+        DividendSchedule dividends,
+        Size tGrid,
+        Size xGrid,
+        Size rGrid,
+        Size dampingSteps,
+        const Real rho,
+        const FdmSchemeDesc& schemeDesc,
+        ext::shared_ptr<FdmQuantoHelper> quantoHelper)
+    : bsProcess_(std::move(bsProcess)), cirProcess_(std::move(cirProcess)),
+      quantoHelper_(std::move(quantoHelper)), dividends_(std::move(dividends)),
+      explicitDividends_(true),
+      tGrid_(tGrid), xGrid_(xGrid), rGrid_(rGrid), dampingSteps_(dampingSteps), rho_(rho),
+      schemeDesc_(schemeDesc) {}
 
     FdmSolverDesc FdCIRVanillaEngine::getSolverDesc(Real) const {
-        DividendSchedule dividendSchedule = DividendSchedule();
+
+        // dividends will eventually be moved out of arguments, but for now we need the switch
+        QL_DEPRECATED_DISABLE_WARNING
+        const DividendSchedule& passedDividends = explicitDividends_ ? dividends_ : arguments_.cashFlow;
+        QL_DEPRECATED_ENABLE_WARNING
 
         const ext::shared_ptr<StrikedTypePayoff> payoff =
             ext::dynamic_pointer_cast<StrikedTypePayoff>(arguments_.payoff);
@@ -63,7 +85,7 @@ namespace QuantLib {
                 xGrid_, bsProcess_, maturity, payoff->strike(),
                 Null<Real>(), Null<Real>(), 0.0001, 1.5,
                 std::pair<Real, Real>(payoff->strike(), 0.1),
-                dividendSchedule, quantoHelper_,
+                passedDividends, quantoHelper_,
                 0.0));
         
         const ext::shared_ptr<FdmMesher> mesher(
@@ -76,7 +98,7 @@ namespace QuantLib {
         // Step conditions
         const ext::shared_ptr<FdmStepConditionComposite> conditions = 
              FdmStepConditionComposite::vanillaComposite(
-                                 arguments_.cashFlow, arguments_.exercise, 
+                                 passedDividends, arguments_.exercise, 
                                  mesher, calculator,
                                  bsProcess_->riskFreeRate()->referenceDate(),
                                  bsProcess_->riskFreeRate()->dayCounter());
@@ -115,10 +137,8 @@ namespace QuantLib {
         ext::shared_ptr<CoxIngersollRossProcess> cirProcess,
         ext::shared_ptr<GeneralizedBlackScholesProcess> bsProcess,
         const Real rho)
-    : cirProcess_(std::move(cirProcess)), bsProcess_(std::move(bsProcess)), rho_(rho), tGrid_(10),
-      xGrid_(100), rGrid_(100), dampingSteps_(0),
-      schemeDesc_(ext::make_shared<FdmSchemeDesc>(FdmSchemeDesc::ModifiedHundsdorfer())),
-      quantoHelper_(ext::shared_ptr<FdmQuantoHelper>()) {}
+    : cirProcess_(std::move(cirProcess)), bsProcess_(std::move(bsProcess)), rho_(rho),
+      schemeDesc_(ext::make_shared<FdmSchemeDesc>(FdmSchemeDesc::ModifiedHundsdorfer())) {}
 
     MakeFdCIRVanillaEngine& MakeFdCIRVanillaEngine::withQuantoHelper(
         const ext::shared_ptr<FdmQuantoHelper>& quantoHelper) {
@@ -157,14 +177,35 @@ namespace QuantLib {
         return *this;
     }
 
+    MakeFdCIRVanillaEngine&
+    MakeFdCIRVanillaEngine::withCashDividends(
+            const std::vector<Date>& dividendDates,
+            const std::vector<Real>& dividendAmounts) {
+        dividends_ = DividendVector(dividendDates, dividendAmounts);
+        explicitDividends_ = true;
+        return *this;
+    }
+
     MakeFdCIRVanillaEngine::operator
     ext::shared_ptr<PricingEngine>() const {
-        return ext::make_shared<FdCIRVanillaEngine>(
-            cirProcess_,
-            bsProcess_,
-            tGrid_, xGrid_, rGrid_, dampingSteps_,
-            rho_,
-            *schemeDesc_,
-            quantoHelper_);
+        if (explicitDividends_) {
+            return ext::make_shared<FdCIRVanillaEngine>(
+                cirProcess_,
+                bsProcess_,
+                dividends_,
+                tGrid_, xGrid_, rGrid_, dampingSteps_,
+                rho_,
+                *schemeDesc_,
+                quantoHelper_);
+        } else {
+            return ext::make_shared<FdCIRVanillaEngine>(
+                cirProcess_,
+                bsProcess_,
+                tGrid_, xGrid_, rGrid_, dampingSteps_,
+                rho_,
+                *schemeDesc_,
+                quantoHelper_);
+        }
     }
+
 }

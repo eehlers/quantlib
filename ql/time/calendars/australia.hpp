@@ -33,7 +33,7 @@ namespace QuantLib {
         <ul>
         <li>Saturdays</li>
         <li>Sundays</li>
-        <li>New Year's Day, January 1st</li>
+        <li>New Year's Day, January 1st (possibly moved to Monday)</li>
         <li>Australia Day, January 26th (possibly moved to Monday)</li>
         <li>Good Friday</li>
         <li>Easter Monday</li>
@@ -44,22 +44,30 @@ namespace QuantLib {
         <li>Christmas, December 25th (possibly moved to Monday or Tuesday)</li>
         <li>Boxing Day, December 26th (possibly moved to Monday or
             Tuesday)</li>
+        <li>National Day of Mourning for Her Majesty, September 22, 2022</li>
         </ul>
 
         \ingroup calendars
     */
     class Australia : public Calendar {
       private:
-        class Impl : public Calendar::WesternImpl {
+        class SettlementImpl : public Calendar::WesternImpl {
           public:
-            std::string name() const override { return "Australia"; }
+            std::string name() const override { return "Australia settlement"; }
+            bool isBusinessDay(const Date&) const override;
+        };
+        class AsxImpl : public Calendar::WesternImpl {
+          public:
+            std::string name() const override { return "Australia exchange"; }
             bool isBusinessDay(const Date&) const override;
         };
       public:
-        Australia();
+        enum Market { Settlement,     //!< generic settlement calendar
+                      ASX,       //!< Australia ASX calendar
+        };
+        Australia(Market market = Settlement);
     };
 
 }
-
 
 #endif

@@ -122,9 +122,9 @@ namespace QuantLib {
 
       protected:
         Real underlyingNpv(const Date& expiry, Real y) const override;
-        VanillaSwap::Type underlyingType() const override;
+        Swap::Type underlyingType() const override;
         const Date underlyingLastDate() const override;
-        const Disposable<Array> initialGuess(const Date& expiry) const override;
+        const Array initialGuess(const Date& expiry) const override;
 
       private:
         const int integrationPoints_;

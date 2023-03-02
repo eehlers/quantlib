@@ -24,8 +24,8 @@
 #include "utilities.hpp"
 #include <ql/indexes/swap/euriborswap.hpp>
 #include <ql/quotes/simplequote.hpp>
-#include <ql/termstructures/volatility/swaption/swaptionvolcube2.hpp>
-#include <ql/termstructures/volatility/swaption/swaptionvolcube1.hpp>
+#include <ql/termstructures/volatility/swaption/interpolatedswaptionvolatilitycube.hpp>
+#include <ql/termstructures/volatility/swaption/sabrswaptionvolatilitycube.hpp>
 #include <ql/termstructures/volatility/swaption/spreadedswaptionvol.hpp>
 #include <ql/termstructures/volatility/sabrsmilesection.hpp>
 #include <ql/utilities/dataformatters.hpp>
@@ -40,6 +40,7 @@ namespace swaption_volatility_cube_test {
         SwaptionMarketConventions conventions;
         AtmVolatility atm;
         RelinkableHandle<SwaptionVolatilityStructure> atmVolMatrix;
+        RelinkableHandle<SwaptionVolatilityStructure> normalVolMatrix;
         VolatilityCube cube;
 
         RelinkableHandle<YieldTermStructure> termStructure;
@@ -125,6 +126,12 @@ namespace swaption_volatility_cube_test {
                                              atm.tenors.swaps,
                                              atm.volsHandle,
                                              conventions.dayCounter)));
+
+            normalVolMatrix = RelinkableHandle<SwaptionVolatilityStructure>(
+                ext::shared_ptr<SwaptionVolatilityStructure>(new SwaptionVolatilityMatrix(
+                    conventions.calendar, conventions.optionBdc, atm.tenors.options,
+                    atm.tenors.swaps, atm.volsHandle, conventions.dayCounter, false, VolatilityType::Normal)));
+
             // Swaptionvolcube
             cube.setMarketData();
 
@@ -141,6 +148,32 @@ namespace swaption_volatility_cube_test {
 
 }
 
+void SwaptionVolatilityCubeTest::testSabrNormalVolatility() {
+
+    BOOST_TEST_MESSAGE("Testing sabr normal volatility...");
+
+    using namespace swaption_volatility_cube_test;
+
+    CommonVars vars;
+
+    std::vector<std::vector<Handle<Quote> > > parametersGuess(vars.cube.tenors.options.size() *
+                                                              vars.cube.tenors.swaps.size());
+    for (Size i = 0; i < vars.cube.tenors.options.size() * vars.cube.tenors.swaps.size(); i++) {
+        parametersGuess[i] = std::vector<Handle<Quote> >(4);
+        parametersGuess[i][0] = Handle<Quote>(ext::shared_ptr<Quote>(new SimpleQuote(0.2)));
+        parametersGuess[i][1] = Handle<Quote>(ext::shared_ptr<Quote>(new SimpleQuote(0.5)));
+        parametersGuess[i][2] = Handle<Quote>(ext::shared_ptr<Quote>(new SimpleQuote(0.4)));
+        parametersGuess[i][3] = Handle<Quote>(ext::shared_ptr<Quote>(new SimpleQuote(0.0)));
+    }
+    std::vector<bool> isParameterFixed(4, false);
+
+    SabrSwaptionVolatilityCube volCube(vars.normalVolMatrix, vars.cube.tenors.options, vars.cube.tenors.swaps,
+                             vars.cube.strikeSpreads, vars.cube.volSpreadsHandle,
+                             vars.swapIndexBase, vars.shortSwapIndexBase, vars.vegaWeighedSmileFit,
+                             parametersGuess, isParameterFixed, true);
+    Real tolerance = 7.0e-4;
+    vars.makeAtmVolTest(volCube, tolerance);
+}
 
 void SwaptionVolatilityCubeTest::testAtmVols() {
 
@@ -150,7 +183,7 @@ void SwaptionVolatilityCubeTest::testAtmVols() {
 
     CommonVars vars;
 
-    SwaptionVolCube2 volCube(vars.atmVolMatrix,
+    InterpolatedSwaptionVolatilityCube volCube(vars.atmVolMatrix,
                              vars.cube.tenors.options,
                              vars.cube.tenors.swaps,
                              vars.cube.strikeSpreads,
@@ -171,7 +204,7 @@ void SwaptionVolatilityCubeTest::testSmile() {
 
     CommonVars vars;
 
-    SwaptionVolCube2 volCube(vars.atmVolMatrix,
+    InterpolatedSwaptionVolatilityCube volCube(vars.atmVolMatrix,
                              vars.cube.tenors.options,
                              vars.cube.tenors.swaps,
                              vars.cube.strikeSpreads,
@@ -207,7 +240,7 @@ void SwaptionVolatilityCubeTest::testSabrVols() {
     }
     std::vector<bool> isParameterFixed(4, false);
 
-    SwaptionVolCube1 volCube(vars.atmVolMatrix,
+    SabrSwaptionVolatilityCube volCube(vars.atmVolMatrix,
                              vars.cube.tenors.options,
                              vars.cube.tenors.swaps,
                              vars.cube.strikeSpreads,
@@ -249,7 +282,7 @@ void SwaptionVolatilityCubeTest::testSpreadedCube() {
     std::vector<bool> isParameterFixed(4, false);
 
     Handle<SwaptionVolatilityStructure> volCube( ext::shared_ptr<SwaptionVolatilityStructure>(new
-        SwaptionVolCube1(vars.atmVolMatrix,
+        SabrSwaptionVolatilityCube(vars.atmVolMatrix,
                          vars.cube.tenors.options,
                          vars.cube.tenors.swaps,
                          vars.cube.strikeSpreads,
@@ -274,7 +307,7 @@ void SwaptionVolatilityCubeTest::testSpreadedCube() {
                 volCube->smileSection(vars.cube.tenors.options[i], vars.cube.tenors.swaps[j]);
             ext::shared_ptr<SmileSection> smileSectionBySpreadedCube =
                 spreadedVolCube->smileSection(vars.cube.tenors.options[i], vars.cube.tenors.swaps[j]);
-            for (double strike : strikes) {
+            for (Real strike : strikes) {
                 Real diff = spreadedVolCube->volatility(vars.cube.tenors.options[i],
                                                         vars.cube.tenors.swaps[j], strike) -
                             volCube->volatility(vars.cube.tenors.options[i],
@@ -338,9 +371,9 @@ void SwaptionVolatilityCubeTest::testObservability() {
     std::vector<bool> isParameterFixed(4, false);
 
     std::string description;
-    ext::shared_ptr<SwaptionVolCube1> volCube1_0, volCube1_1;
+    ext::shared_ptr<SabrSwaptionVolatilityCube> volCube1_0, volCube1_1;
     // VolCube created before change of reference date
-    volCube1_0 = ext::shared_ptr<SwaptionVolCube1>(new SwaptionVolCube1(vars.atmVolMatrix,
+    volCube1_0 = ext::shared_ptr<SabrSwaptionVolatilityCube>(new SabrSwaptionVolatilityCube(vars.atmVolMatrix,
                                                                 vars.cube.tenors.options,
                                                                 vars.cube.tenors.swaps,
                                                                 vars.cube.strikeSpreads,
@@ -358,7 +391,7 @@ void SwaptionVolatilityCubeTest::testObservability() {
                                           vars.conventions.optionBdc);
 
     // VolCube created after change of reference date
-    volCube1_1 = ext::shared_ptr<SwaptionVolCube1>(new SwaptionVolCube1(vars.atmVolMatrix,
+    volCube1_1 = ext::shared_ptr<SabrSwaptionVolatilityCube>(new SabrSwaptionVolatilityCube(vars.atmVolMatrix,
                                                                 vars.cube.tenors.options,
                                                                 vars.cube.tenors.swaps,
                                                                 vars.cube.strikeSpreads,
@@ -396,9 +429,9 @@ void SwaptionVolatilityCubeTest::testObservability() {
 
     Settings::instance().evaluationDate() = referenceDate;
 
-    ext::shared_ptr<SwaptionVolCube2> volCube2_0, volCube2_1;
+    ext::shared_ptr<InterpolatedSwaptionVolatilityCube> volCube2_0, volCube2_1;
     // VolCube created before change of reference date
-    volCube2_0 = ext::make_shared<SwaptionVolCube2>(vars.atmVolMatrix,
+    volCube2_0 = ext::make_shared<InterpolatedSwaptionVolatilityCube>(vars.atmVolMatrix,
                                                                 vars.cube.tenors.options,
                                                                 vars.cube.tenors.swaps,
                                                                 vars.cube.strikeSpreads,
@@ -411,7 +444,7 @@ void SwaptionVolatilityCubeTest::testObservability() {
                                           vars.conventions.optionBdc);
 
     // VolCube created after change of reference date
-    volCube2_1 = ext::make_shared<SwaptionVolCube2>(vars.atmVolMatrix,
+    volCube2_1 = ext::make_shared<InterpolatedSwaptionVolatilityCube>(vars.atmVolMatrix,
                                                                 vars.cube.tenors.options,
                                                                 vars.cube.tenors.swaps,
                                                                 vars.cube.strikeSpreads,
@@ -469,7 +502,7 @@ void SwaptionVolatilityCubeTest::testSabrParameters() {
     }
     std::vector<bool> isParameterFixed(4, false);
 
-    SwaptionVolCube1 volCube(vars.atmVolMatrix,
+    SabrSwaptionVolatilityCube volCube(vars.atmVolMatrix,
                              vars.cube.tenors.options,
                              vars.cube.tenors.swaps,
                              vars.cube.strikeSpreads,
@@ -556,6 +589,7 @@ void SwaptionVolatilityCubeTest::testSabrParameters() {
 test_suite* SwaptionVolatilityCubeTest::suite() {
     auto* suite = BOOST_TEST_SUITE("Swaption Volatility Cube tests");
 
+    suite->add(QUANTLIB_TEST_CASE(&SwaptionVolatilityCubeTest::testSabrNormalVolatility));
     // SwaptionVolCubeByLinear reproduces ATM vol with machine precision
     suite->add(QUANTLIB_TEST_CASE(&SwaptionVolatilityCubeTest::testAtmVols));
     // SwaptionVolCubeByLinear reproduces smile spreads with machine precision

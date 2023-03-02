@@ -155,7 +155,8 @@ void CatBondTest::testBetaRisk() {
     
     for(size_t i=0; i<PATHS; ++i)
     {
-        BOOST_REQUIRE(simulation->nextPath(path));
+        if (!simulation->nextPath(path))
+            BOOST_FAIL("No next path available");
         Real processValue = 0.0;
         for (auto& j : path)
             processValue += j.second;
@@ -165,21 +166,24 @@ void CatBondTest::testBetaRisk() {
         poissonSumSquares+=path.size()*path.size();
     }
     Real poissonMean = poissonSum/PATHS;
-    BOOST_CHECK_CLOSE(Real(3.0/100.0), poissonMean, 2);
+    QL_CHECK_CLOSE(Real(3.0/100.0), poissonMean, 2);
     Real poissonVar = poissonSumSquares/PATHS - poissonMean*poissonMean;
-    BOOST_CHECK_CLOSE(Real(3.0/100.0), poissonVar, 5);
+    QL_CHECK_CLOSE(Real(3.0/100.0), poissonVar, 5);
     
     Real expectedMean = 3.0*10.0/100.0;
     Real actualMean = sum/PATHS;
-    BOOST_CHECK_CLOSE(expectedMean, actualMean, 1);
+    #ifdef _LIBCPP_VERSION
+    QL_CHECK_CLOSE(expectedMean, actualMean, 5);
+    #else
+    QL_CHECK_CLOSE(expectedMean, actualMean, 1);
+    #endif
     
     Real expectedVar = 3.0*(15.0*15.0+10*10)/100.0;
     Real actualVar = sumSquares/PATHS - actualMean*actualMean;
-    #if BOOST_VERSION > 106300
-    // changes in Boost.Random after 1.64 increased numerical error
-    BOOST_CHECK_CLOSE(expectedVar, actualVar, 1.5);
+    #ifdef _LIBCPP_VERSION
+    QL_CHECK_CLOSE(expectedVar, actualVar, 10);
     #else
-    BOOST_CHECK_CLOSE(expectedVar, actualVar, 1);
+    QL_CHECK_CLOSE(expectedVar, actualVar, 1);
     #endif
 }
 
@@ -208,6 +212,8 @@ void CatBondTest::testRiskFreeAgainstFloatingRateBond() {
     BOOST_TEST_MESSAGE("Testing floating-rate cat bond against risk-free floating-rate bond...");
 
     using namespace catbonds_test;
+
+    bool usingAtParCoupons = IborCoupon::Settings::instance().usingAtParCoupons();
 
     CommonVars vars;
 
@@ -269,11 +275,7 @@ void CatBondTest::testRiskFreeAgainstFloatingRateBond() {
     catBond1.setPricingEngine(catBondEngine);
     setCouponPricer(catBond1.cashflows(),pricer);
 
-    Real cachedPrice1;
-    if (!IborCoupon::usingAtParCoupons())
-        cachedPrice1 = 99.874645;
-    else
-        cachedPrice1 = 99.874646;
+    Real cachedPrice1 = usingAtParCoupons ? 99.874646 : 99.874645;
 
     Real price = bond1.cleanPrice();
     Real catPrice = catBond1.cleanPrice();
@@ -316,11 +318,7 @@ void CatBondTest::testRiskFreeAgainstFloatingRateBond() {
     catBond2.setPricingEngine(catBondEngine2);
     setCouponPricer(catBond2.cashflows(),pricer);
 
-    Real cachedPrice2; 
-    if (!IborCoupon::usingAtParCoupons())
-        cachedPrice2 = 97.955904;
-    else
-        cachedPrice2 = 97.955904;
+    Real cachedPrice2 = 97.955904;
 
     price = bond2.cleanPrice();
     catPrice = catBond2.cleanPrice();
@@ -364,11 +362,7 @@ void CatBondTest::testRiskFreeAgainstFloatingRateBond() {
     catBond3.setPricingEngine(catBondEngine2);
     setCouponPricer(catBond3.cashflows(),pricer);
 
-    Real cachedPrice3;
-    if (!IborCoupon::usingAtParCoupons())
-        cachedPrice3 = 98.495458;
-    else
-        cachedPrice3 = 98.495459;
+    Real cachedPrice3 = usingAtParCoupons ? 98.495459 : 98.495458;
 
     price = bond3.cleanPrice();
     catPrice = catBond3.cleanPrice();
@@ -443,9 +437,9 @@ void CatBondTest::testCatBondInDoomScenario() {
     Real exhaustionProbability = catBond.exhaustionProbability();
     Real expectedLoss = catBond.expectedLoss();
 
-    BOOST_CHECK_CLOSE(Real(1.0), lossProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(1.0), exhaustionProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(1.0), expectedLoss, tolerance);
+    QL_CHECK_CLOSE(Real(1.0), lossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(1.0), exhaustionProbability, tolerance);
+    QL_CHECK_CLOSE(Real(1.0), expectedLoss, tolerance);
 }
 
 
@@ -511,9 +505,9 @@ void CatBondTest::testCatBondWithDoomOnceInTenYears() {
     Real exhaustionProbability = catBond.exhaustionProbability();
     Real expectedLoss = catBond.expectedLoss();
 
-    BOOST_CHECK_CLOSE(Real(0.1), lossProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(0.1), exhaustionProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(0.1), expectedLoss, tolerance);
+    QL_CHECK_CLOSE(Real(0.1), lossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.1), exhaustionProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.1), expectedLoss, tolerance);
 
     ext::shared_ptr<PricingEngine> catBondEngineRF(new MonteCarloCatBondEngine(noCatRisk, discountCurve));
     catBond.setPricingEngine(catBondEngineRF);
@@ -524,11 +518,11 @@ void CatBondTest::testCatBondWithDoomOnceInTenYears() {
     Real riskFreeExhaustionProbability = catBond.exhaustionProbability();
     Real riskFreeExpectedLoss = catBond.expectedLoss();
     
-    BOOST_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(0.0), riskFreeExhaustionProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.0), riskFreeExhaustionProbability, tolerance);
     BOOST_CHECK(std::abs(riskFreeExpectedLoss) < tolerance);
     
-    BOOST_CHECK_CLOSE(riskFreePrice*0.9, price, tolerance);
+    QL_CHECK_CLOSE(riskFreePrice*0.9, price, tolerance);
     BOOST_CHECK_LT(riskFreeYield, yield);
 }
 
@@ -594,9 +588,9 @@ void CatBondTest::testCatBondWithDoomOnceInTenYearsProportional() {
     Real exhaustionProbability = catBond.exhaustionProbability();
     Real expectedLoss = catBond.expectedLoss();
 
-    BOOST_CHECK_CLOSE(Real(0.1), lossProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(0.0), exhaustionProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(0.05), expectedLoss, tolerance);
+    QL_CHECK_CLOSE(Real(0.1), lossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.0), exhaustionProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.05), expectedLoss, tolerance);
 
     ext::shared_ptr<PricingEngine> catBondEngineRF(new MonteCarloCatBondEngine(noCatRisk, discountCurve));
     catBond.setPricingEngine(catBondEngineRF);
@@ -606,10 +600,10 @@ void CatBondTest::testCatBondWithDoomOnceInTenYearsProportional() {
     Real riskFreeLossProbability = catBond.lossProbability();
     Real riskFreeExpectedLoss = catBond.expectedLoss();
     
-    BOOST_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
     BOOST_CHECK(std::abs(riskFreeExpectedLoss) < tolerance);
     
-    BOOST_CHECK_CLOSE(riskFreePrice*0.95, price, tolerance);
+    QL_CHECK_CLOSE(riskFreePrice*0.95, price, tolerance);
     BOOST_CHECK_LT(riskFreeYield, yield);
 }
 
@@ -684,7 +678,7 @@ void CatBondTest::testCatBondWithGeneratedEventsProportional() {
     Real riskFreeLossProbability = catBond.lossProbability();
     Real riskFreeExpectedLoss = catBond.expectedLoss();
     
-    BOOST_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
     BOOST_CHECK(std::abs(riskFreeExpectedLoss) < tolerance);
     
     BOOST_CHECK_GT(riskFreePrice, price);

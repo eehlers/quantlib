@@ -25,24 +25,15 @@
 namespace QuantLib {
 
     MakeArithmeticAverageOIS::MakeArithmeticAverageOIS(
-                     const Period& swapTenor,
-                     const ext::shared_ptr<OvernightIndex>& overnightIndex,
-                     Rate fixedRate,
-                     const Period& forwardStart)
-    : swapTenor_(swapTenor), overnightIndex_(overnightIndex),
-      fixedRate_(fixedRate), forwardStart_(forwardStart),
-      settlementDays_(2),
+        const Period& swapTenor,
+        const ext::shared_ptr<OvernightIndex>& overnightIndex,
+        Rate fixedRate,
+        const Period& forwardStart)
+    : swapTenor_(swapTenor), overnightIndex_(overnightIndex), fixedRate_(fixedRate),
+      forwardStart_(forwardStart),
+
       calendar_(overnightIndex->fixingCalendar()),
-      fixedLegPaymentFrequency_(Annual),
-      overnightLegPaymentFrequency_(Annual),
-      rule_(DateGeneration::Backward),
-      // any value here for endOfMonth_ would not be actually used
-      isDefaultEOM_(true),
-      byApprox_(false),
-      mrs_(0.03),
-      vol_(0.00),
-      type_(ArithmeticAverageOIS::Payer), nominal_(1.0),
-      overnightSpread_(0.0),
+
       fixedDayCount_(overnightIndex->dayCounter()) {}
 
     MakeArithmeticAverageOIS::operator ArithmeticAverageOIS() const {
@@ -149,11 +140,11 @@ namespace QuantLib {
     }
 
     MakeArithmeticAverageOIS& MakeArithmeticAverageOIS::receiveFixed(bool flag) {
-        type_ = flag ? ArithmeticAverageOIS::Receiver : ArithmeticAverageOIS::Payer;
+        type_ = flag ? Swap::Receiver : Swap::Payer;
         return *this;
     }
 
-    MakeArithmeticAverageOIS& MakeArithmeticAverageOIS::withType(ArithmeticAverageOIS::Type type) {
+    MakeArithmeticAverageOIS& MakeArithmeticAverageOIS::withType(Swap::Type type) {
         type_ = type;
         return *this;
     }

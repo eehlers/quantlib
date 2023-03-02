@@ -46,10 +46,9 @@ namespace QuantLib {
             const std::vector<Rate>& forwards,
             const DayCounter& dayCounter,
             const Calendar& cal = Calendar(),
-            const std::vector<Handle<Quote> >& jumps =
-                                                std::vector<Handle<Quote> >(),
-            const std::vector<Date>& jumpDates = std::vector<Date>(),
-            const Interpolator& interpolator = Interpolator());
+            const std::vector<Handle<Quote> >& jumps = {},
+            const std::vector<Date>& jumpDates = {},
+            const Interpolator& interpolator = {});
         InterpolatedForwardCurve(
             const std::vector<Date>& dates,
             const std::vector<Rate>& forwards,
@@ -77,31 +76,20 @@ namespace QuantLib {
       protected:
         explicit InterpolatedForwardCurve(
             const DayCounter&,
-            const Interpolator& interpolator = Interpolator());
+            const Interpolator& interpolator = {});
         InterpolatedForwardCurve(
             const Date& referenceDate,
             const DayCounter&,
-            const std::vector<Handle<Quote> >& jumps = std::vector<Handle<Quote> >(),
-            const std::vector<Date>& jumpDates = std::vector<Date>(),
-            const Interpolator& interpolator = Interpolator());
+            const std::vector<Handle<Quote> >& jumps = {},
+            const std::vector<Date>& jumpDates = {},
+            const Interpolator& interpolator = {});
         InterpolatedForwardCurve(
             Natural settlementDays,
             const Calendar&,
             const DayCounter&,
-            const std::vector<Handle<Quote> >& jumps = std::vector<Handle<Quote> >(),
-            const std::vector<Date>& jumpDates = std::vector<Date>(),
-            const Interpolator& interpolator = Interpolator());
-
-        /*! \deprecated Passing jumps without a reference date never worked correctly.
-                        Use one of the other constructors instead.
-                        Deprecated in version 1.19.
-        */
-        QL_DEPRECATED
-        InterpolatedForwardCurve(
-            const DayCounter&,
-            const std::vector<Handle<Quote> >& jumps,
-            const std::vector<Date>& jumpDates = std::vector<Date>(),
-            const Interpolator& interpolator = Interpolator());
+            const std::vector<Handle<Quote> >& jumps = {},
+            const std::vector<Date>& jumpDates = {},
+            const Interpolator& interpolator = {});
 
         //! \name ForwardRateStructure implementation
         //@{
@@ -217,19 +205,6 @@ namespace QuantLib {
     : ForwardRateStructure(settlementDays, calendar, dayCounter, jumps, jumpDates),
       InterpolatedCurve<T>(interpolator) {}
 
-    QL_DEPRECATED_DISABLE_WARNING
-
-    template <class T>
-    InterpolatedForwardCurve<T>::InterpolatedForwardCurve(
-                                    const DayCounter& dayCounter,
-                                    const std::vector<Handle<Quote> >& jumps,
-                                    const std::vector<Date>& jumpDates,
-                                    const T& interpolator)
-    : ForwardRateStructure(dayCounter, jumps, jumpDates),
-      InterpolatedCurve<T>(interpolator) {}
-
-    QL_DEPRECATED_ENABLE_WARNING
-
     template <class T>
     InterpolatedForwardCurve<T>::InterpolatedForwardCurve(
                                     const std::vector<Date>& dates,
@@ -283,24 +258,8 @@ namespace QuantLib {
         QL_REQUIRE(this->data_.size() == dates_.size(),
                    "dates/data count mismatch");
 
-        this->times_.resize(dates_.size());
-        this->times_[0]=0.0;
-        for (Size i=1; i<dates_.size(); ++i) {
-            { // add new scope to work around a misleading-indentation warning
-                QL_REQUIRE(dates_[i] > dates_[i-1],
-                           "invalid date (" << dates_[i] << ", vs "
-                           << dates_[i-1] << ")");
-            }
-            this->times_[i] = dayCounter().yearFraction(dates_[0], dates_[i]);
-            QL_REQUIRE(!close(this->times_[i], this->times_[i-1]),
-                       "two dates correspond to the same time "
-                       "under this curve's day count convention");
-        }
-
-        this->interpolation_ =
-            this->interpolator_.interpolate(this->times_.begin(),
-                                            this->times_.end(),
-                                            this->data_.begin());
+        this->setupTimes(dates_, dates_[0], dayCounter());
+        this->setupInterpolation();
         this->interpolation_.update();
     }
 

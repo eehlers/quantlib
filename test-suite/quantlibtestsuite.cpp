@@ -26,21 +26,14 @@
 #ifdef QL_ENABLE_PARALLEL_UNIT_TEST_RUNNER
 #include "paralleltestrunner.hpp"
 #else
-#include <boost/test/unit_test.hpp>
+#include <boost/test/included/unit_test.hpp>
 #endif
 
 /* Use BOOST_MSVC instead of _MSC_VER since some other vendors (Metrowerks,
    for example) also #define _MSC_VER
 */
-#ifdef BOOST_MSVC
+#if !defined(BOOST_ALL_NO_LIB) && defined(BOOST_MSVC)
 #  include <ql/auto_link.hpp>
-
-#ifndef QL_ENABLE_PARALLEL_UNIT_TEST_RUNNER
-#  define BOOST_LIB_NAME boost_unit_test_framework
-#  include <boost/config/auto_link.hpp>
-#  undef BOOST_LIB_NAME
-#endif
-
 #endif
 
 #include "utilities.hpp"
@@ -55,6 +48,7 @@
 #include "autocovariances.hpp"
 #include "barrieroption.hpp"
 #include "basismodels.hpp"
+#include "basisswapratehelpers.hpp"
 #include "basketoption.hpp"
 #include "batesmodel.hpp"
 #include "bermudanswaption.hpp"
@@ -62,6 +56,7 @@
 #include "blackdeltacalculator.hpp"
 #include "blackformula.hpp"
 #include "bonds.hpp"
+#include "bondforward.hpp"
 #include "brownianbridge.hpp"
 #include "businessdayconventions.hpp"
 #include "calendars.hpp"
@@ -84,6 +79,7 @@
 #include "creditdefaultswap.hpp"
 #include "creditriskplus.hpp"
 #include "crosscurrencyratehelpers.hpp"
+#include "currency.hpp"
 #include "curvestates.hpp"
 #include "dates.hpp"
 #include "daycounters.hpp"
@@ -96,6 +92,7 @@
 #include "doublebinaryoption.hpp"
 #include "europeanoption.hpp"
 #include "everestoption.hpp"
+#include "equityindex.hpp"
 #include "exchangerate.hpp"
 #include "extendedtrees.hpp"
 #include "extensibleoptions.hpp"
@@ -158,6 +155,7 @@
 #include "operators.hpp"
 #include "optimizers.hpp"
 #include "optionletstripper.hpp"
+#include "overnightindexedcoupon.hpp"
 #include "overnightindexedswap.hpp"
 #include "pagodaoption.hpp"
 #include "partialtimebarrieroption.hpp"
@@ -183,6 +181,7 @@
 #include "swingoption.hpp"
 #include "stats.hpp"
 #include "subperiodcoupons.hpp"
+#include "svivolatility.hpp"
 #include "swap.hpp"
 #include "swapforwardmappings.hpp"
 #include "swaption.hpp"
@@ -203,6 +202,7 @@
 #include "volatilitymodels.hpp"
 #include "vpp.hpp"
 #include "zabr.hpp"
+#include "zerocouponswap.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -251,14 +251,6 @@ namespace {
     }
 
 }
-
-#if defined(QL_ENABLE_SESSIONS)
-namespace QuantLib {
-
-    ThreadKey sessionId() { return {}; }
-
-}
-#endif
 
 QuantLib::Date evaluation_date(int argc, char** argv) {
     /*! Dead simple parser:
@@ -319,11 +311,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     std::ostringstream header;
     header <<
         " Testing "
-        #ifdef BOOST_MSVC
-        QL_LIB_NAME
-        #else
         "QuantLib " QL_VERSION
-        #endif
         "\n  QL_EXTRA_SAFETY_CHECKS "
         #ifdef QL_EXTRA_SAFETY_CHECKS
         "  defined"
@@ -363,6 +351,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(QUANTLIB_TEST_CASE(startTimer));
 
     test->add(AmericanOptionTest::suite(speed));
+    test->add(AmortizingBondTest::suite());
     test->add(AndreasenHugeVolatilityInterplTest::suite(speed));
     test->add(ArrayTest::suite());
     test->add(AsianOptionTest::suite(speed));
@@ -375,6 +364,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(BinaryOptionTest::suite());
     test->add(BlackFormulaTest::suite());
     test->add(BondTest::suite());
+    test->add(BondForwardTest::suite());
     test->add(BrownianBridgeTest::suite());
     test->add(BusinessDayConventionTest::suite());
     test->add(CalendarTest::suite());
@@ -383,10 +373,12 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(CashFlowsTest::suite());
     test->add(CliquetOptionTest::suite());
     test->add(CmsTest::suite());
+    test->add(ConvertibleBondTest::suite());
     test->add(CovarianceTest::suite());
     test->add(CPISwapTest::suite());
     test->add(CreditDefaultSwapTest::suite());
     test->add(CrossCurrencyRateHelpersTest::suite());
+    test->add(CurrencyTest::suite());
     test->add(CurveStatesTest::suite());
     test->add(DateTest::suite(speed));
     test->add(DayCounterTest::suite());
@@ -395,6 +387,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(DigitalOptionTest::suite());
     test->add(DistributionTest::suite(speed));
     test->add(DividendOptionTest::suite());
+    test->add(EquityIndexTest::suite());
     test->add(EuropeanOptionTest::suite());
     test->add(ExchangeRateTest::suite());
     test->add(FastFourierTransformTest::suite());
@@ -412,6 +405,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(GJRGARCHModelTest::suite(speed));
     test->add(GsrTest::suite());
     test->add(HestonModelTest::suite(speed));
+    test->add(HestonSLVModelTest::suite(speed));
     test->add(HybridHestonHullWhiteProcessTest::suite(speed));
     test->add(IndexTest::suite());
     test->add(InflationTest::suite());
@@ -439,12 +433,13 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(MersenneTwisterTest::suite());
     test->add(MoneyTest::suite());
     test->add(NumericalDifferentiationTest::suite());
-    test->add(NthOrderDerivativeOpTest::suite());
+    test->add(NthOrderDerivativeOpTest::suite(speed));
     test->add(ObservableTest::suite());
     test->add(OdeTest::suite());
     test->add(OperatorTest::suite());
     test->add(OptimizersTest::suite(speed));
     test->add(OptionletStripperTest::suite());
+    test->add(OvernightIndexedCouponTest::suite());
     test->add(OvernightIndexedSwapTest::suite());
     test->add(PathGeneratorTest::suite());
     test->add(PeriodTest::suite());
@@ -478,11 +473,12 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(UltimateForwardTermStructureTest::suite());
     test->add(VarianceSwapTest::suite());
     test->add(VolatilityModelsTest::suite());
+    test->add(ZeroCouponSwapTest::suite());
 
     // tests for experimental classes
-    test->add(AmortizingBondTest::suite());
     test->add(AsianOptionTest::experimental(speed));
     test->add(BasismodelsTest::suite());
+    test->add(BasisSwapRateHelpersTest::suite());
     test->add(BarrierOptionTest::experimental());
     test->add(DoubleBarrierOptionTest::experimental(speed));
     test->add(BlackDeltaCalculatorTest::suite());
@@ -495,7 +491,6 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(CommodityUnitOfMeasureTest::suite());
     test->add(CompiledBoostVersionTest::suite());
     test->add(CompoundOptionTest::suite());
-    test->add(ConvertibleBondTest::suite());
     test->add(CreditRiskPlusTest::suite());
     test->add(DoubleBarrierOptionTest::suite(speed));
     test->add(DoubleBinaryOptionTest::suite());
@@ -505,7 +500,6 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(ExtensibleOptionsTest::suite());
     test->add(GaussianQuadraturesTest::experimental());
     test->add(HestonModelTest::experimental());
-    test->add(HestonSLVModelTest::experimental(speed));
     test->add(HimalayaOptionTest::suite());
     test->add(InflationCPICapFloorTest::suite());
     test->add(InflationVolTest::suite());
@@ -519,6 +513,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(RiskNeutralDensityCalculatorTest::experimental(speed));
     test->add(SpreadOptionTest::suite());
     test->add(SquareRootCLVModelTest::experimental());
+    test->add(SviVolatilityTest::experimental());
     test->add(SwingOptionTest::suite(speed));
     test->add(TwoAssetBarrierOptionTest::suite());
     test->add(TwoAssetCorrelationOptionTest::suite());

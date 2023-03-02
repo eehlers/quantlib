@@ -1,121 +1,142 @@
-Changes for QuantLib 1.22:
+Changes for QuantLib 1.29:
 ==========================
 
-QuantLib 1.22 includes 54 pull requests from several contributors.
+QuantLib 1.29 includes 42 pull requests from several contributors.
 
-The most notable changes are included below.
+Some of the most notable changes are included below.
 A detailed list of changes is available in ChangeLog.txt and at
-<https://github.com/lballabio/QuantLib/milestone/18?closed=1>.
+<https://github.com/lballabio/QuantLib/milestone/26?closed=1>.
+
 
 Portability
 -----------
 
-- As previously announced, this release drops support for Visual
-  C++ 2012.  VC++ 2013 or later is now required.
+- **End of support:** as announced in the notes for the previous
+  release, this release no longer manages thread-local singletons via
+  a user-provided `sessionId` function, and therefore the latter is no
+  longer needed.  Instead, the code now uses the built-in language
+  support for thread-local variables.  Thanks go to Peter Caspers
+  (@pcaspers).
 
-- The `Date` and `Array` classes are now visualized more clearly in
-  the Visual Studio debugger (thanks to Francois Botha).
+- **Future end of support:** as announced in the notes for the
+  previous release, after the next couple of releases, using
+  `std::tuple`, `std::function` and `std::bind` (instead of their
+  `boost` counterparts) will become the default.  If you're using
+  `ext::tuple` etc. in your code (which is suggested), this should be
+  a transparent change.  If not, you'll still be able to choose the
+  `boost` versions via a configure switch for a while; but we do
+  suggest you start using `ext::tuple` etc. in the meantime.
 
-Language standard
------------------
+- Replaced internal usage of `boost::thread` with `std::thread`;
+  thanks to Jonathan Sweemer (@sweemer).  This removed our last
+  dependency on Boost binaries and makes it possible to compile
+  QuantLib using a header-only Boost installation.
 
-- QuantLib now uses the C++11 standard and no longer compiles in C++03
-  mode.  As before, it can be compiled with later versions of the
-  standard.  For details on the C++11 features used, see the pull
-  requests marked "C++11 modernization" at the above link; for
-  information on possible problems, see
-  <https://www.implementingquantlib.com/2021/02/leaving-03-for-real.html>.
+- On Windows, it is now possible to use the MSVC dynamic runtime when
+  using cmake by passing
+  `-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL`
+  on the command line; thanks to Jonathan Sweemer (@sweemer).  The
+  static runtime remains the default.
 
-Cashflows
----------
+- It is now possible to build QuantLib with Intel's `icpx` compiler
+  using cmake; thanks to Jonathan Sweemer (@sweemer).  Note that in
+  order to get all the unit tests passing, `-fp-model=precise` must be
+  added to `CMAKE_CXX_FLAGS`.
 
-- Revised and tested the `SubPeriodCoupon` class (thanks to Marcin
-  Rybacki).  The class was moved out of the `ql/experimental` folder
-  and its interface can now be considered stable.
-
-- Add simple averaging to overnight-index coupons in addition to the
-  existing compound averaging (thanks to Marcin Rybacki).
-
-- Fixed accrual calculation for inflation coupon when trading
-  ex-coupon (thanks to GitHub user `bachhani`).
-
-Currencies
-----------
-
-- Added the Nigerian Naira (thanks to Bryte Morio).
 
 Date/time
 ---------
 
-- Fixed actual/actual (ISMA) day counter calculation for long/short
-  final periods (thanks to Francois Botha).
+- Updated Chinese holidays for 2023; thanks to Cheng Li
+  (@wegamekinglc).
 
-- Updated a couple of changed rules for New Zealand calendar (thanks
-  to Paul Giltinan).
+- Added in-lieu holiday for Christmas 2022 to South-African calendar;
+  thanks to Joshua Hayes (@JoshHayes).
 
-Indexes
--------
+- Added King Charles III coronation holiday to UK calendar; thanks to
+  Fredrik Gerdin Börjesson (@gbfredrik).
 
-- Added `hasHistoricalFixing` inspector to `Index` class to check if
-  the fixing for a given past date is available (thanks to Ralf
-  Konrad).
+- Added holiday for National Day of Mourning to Australian calendar;
+  thanks to Fredrik Gerdin Börjesson (@gbfredrik).
+
 
 Instruments
 -----------
 
-- Added new-style finite-difference engine for shout options (thanks
-  to Klaus Spanderen).  In the case of dividend shout options, an
-  escrowed dividend model is used.
+- Added high performance/precision American engine based on
+  fixed-point iteration for the exercise boundary; thanks to Klaus
+  Spanderen (@klausspanderen).
 
-- Revised the `OvernightIndexFutures` class.  The class was moved out
-  of the `ql/experimental` folder and its interface can now be
-  considered stable.
+- Bonds with draw-down (i.e., increasing notionals) are now allowed;
+  thanks to Oleg Kulkov (@Borgomi42 ).
 
-- Added an overloaded constructor for Asian options that takes all
-  past fixings and thus allows to reprice them correctly when the
-  evaluation date changes (thanks to Jack Gillett).
+- Added `withIndexedCoupons` and `withAtParCoupons` methods to
+  `MakeSwaption` for easier initialization; thanks to Ralf Konrad
+  (@ralfkonrad).
 
-- Added support for seasoned geometric Asian options to the Heston
-  engine (thanks to Jack Gillett).
+- It is now possible to use the same pricing engine for vanilla and
+  dividend vanilla options, or for barrier and dividend barrier
+  options (@lballabio).
 
-Patterns
---------
 
-- Faster implementation of the `Observable` class in the thread-safe
-  case (thanks to Klaus Spanderen).
+Indexes
+-------
+
+- Creating a zero inflation index as "interpolated" is now deprecated;
+  thanks to Ralf Konrad (@ralfkonrad).  The index should only return
+  monthly fixings.  Interpolation is now the responsibility of
+  inflation-based coupons.
+
 
 Term structures
 ---------------
 
-- Added experimental rate helper for constant-notional cross-currency
-  basis swaps (thanks to Marcin Rybacki).
+- The `ConstantCPIVolatility` constructor can now take a handle to a
+  volatility quote, instead of just an immutable number (@lballabio).
 
-- Added volatility type and displacements to year-on-year inflation
-  volatility surfaces (thanks to Peter Caspers).
 
 Deprecated features
 -------------------
 
-- Removed features deprecated in version 1.17: the `Callability::Type`
-  typedef (now `Bond::Price`), the `FdmOrnsteinUhlenbackOp` typedef
-  (now correctly spelled as `FdmOrnsteinUhlenbeckOp`, and a number of
-  old-style finite-difference engines (`FDAmericanEngine`,
-  `FDBermudanEngine`, `FDDividendAmericanEngine` and its variants,
-  `FDDividendEuropeanEngine` and its variants, and `FDEuropeanEngine`)
-  all replaced by the `FdBlackScholesVanillaEngine` class.
+- **Removed** features deprecated in version 1.24:
+  - the `createAtParCoupons`, `createIndexedCoupons` and
+    `usingAtParCoupons` methods of `IborCoupon`;
+  - the `RiskyBond` class and its subclasses `RiskyFixedBond` and
+    `RiskyFloatingBond`;
+  - the `CrossCurrencyBasisSwapRateHelper` typedef;
+  - the `termStructure_` data member of `BlackCalibrationHelper`;
+  - the static `baseCurrency` and `conversionType` data members of `Money`;
+  - the `nominalTermStructure` method and the `nominalTermStructure_`
+    data member of `InflationTermStructure`;
+  - the constructor of the `UnitedStates` calendar not taking an
+    explicit market.
 
-- Deprecated the old-style finite difference engines for shout
-  options; they are now replaced by the new `FDDividendShoutEngine`
-  class.
+- Deprecated the `argument_type`, `first_argument_type`,
+  `second_argument_type` and `result_type` typedefs in a number of
+  classes; use `auto` or `decltype` instead.
 
-- Deprecated a few unused parts of the old-style finite-differences
-  framework: the `AmericanCondition` class, the `OneFactorOperator`
-  typedef, and the `FDAmericanCondition` class.
+- Deprecated the constructors of `InflationIndex`,
+  `ZeroInflationIndex`, `FRHICP`, `ZACPI`, `UKRPI`, `EUHICP`,
+  `EUHICPXT`, `USCPI`, `AUCPI` and `GenericCPI` taking an
+  `interpolated` parameter; use another constructor.
 
-Test suite
-----------
+- Deprecated the `interpolated` method and the `interpolated_` data
+  member of `InflationIndex`.
 
-- Reduced the run time for the longest-running test cases.
+- Deprecated the `ThreadKey` typedef.  It was used in the signature of
+  `sessionId`, which is no longer needed after the changes in the
+  `Singleton` implementation.
 
-Thanks go also to Francis Duffy and Cay Oest for smaller fixes,
-enhancements and bug reports.
+- Deprecated the `rateCurve_` data member of the
+  `InflationCouponPricer` base class.  If you need it, provide it in
+  your derived class.
+
+- Deprecated the `npvbps` function taking NPV and BPS as references.
+  Use the overload returning a pair of `Real`s.
+
+
+**Thanks go also** to Matthias Groncki (@mgroncki), Jonathan Sweemer
+(@sweemer) and Nijaz Kovacevic (@NijazK) for a number of smaller fixes
+and improvements, to the Xcelerit Dev Team (@xcelerit-dev) for
+improvements to the automated CI builds, and to Vincenzo Ferrazzanno
+(@vincferr), @alienbrett, @xuruilong100 and @philippb90 for raising issues.

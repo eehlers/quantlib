@@ -77,9 +77,8 @@ namespace libor_market_model_process_test {
             dates.push_back(process->fixingDates()[i+1]);
         }
 
-        return ext::make_shared<CapletVarianceCurve>(
-                         todaysDate, dates,
-                                                 capletVols, ActualActual());
+        return ext::make_shared<CapletVarianceCurve>(todaysDate, dates, capletVols,
+                                                     ActualActual(ActualActual::ISDA));
     }
 
     ext::shared_ptr<LiborForwardModelProcess>
@@ -179,7 +178,7 @@ void LiborMarketModelProcessTest::testLambdaBootstrapping() {
     std::vector<Time> tmp = process->fixingTimes();
     TimeGrid grid(tmp.begin(), tmp.end(), 14);
 
-    for (double t : grid) {
+    for (Real t : grid) {
         Matrix diff = (param->integratedCovariance(t) -
                        param->LfmCovarianceParameterization::integratedCovariance(t));
 

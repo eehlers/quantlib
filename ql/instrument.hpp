@@ -126,9 +126,7 @@ namespace QuantLib {
 
     // inline definitions
 
-    inline Instrument::Instrument()
-    : NPV_(Null<Real>()), errorEstimate_(Null<Real>()),
-      valuationDate_(Date()) {}
+    inline Instrument::Instrument() : NPV_(Null<Real>()), errorEstimate_(Null<Real>()) {}
 
     inline void Instrument::setPricingEngine(
                                   const ext::shared_ptr<PricingEngine>& e) {
@@ -215,6 +213,7 @@ namespace QuantLib {
 
     inline const std::map<std::string,boost::any>&
     Instrument::additionalResults() const {
+        calculate();
         return additionalResults_;
     }
 

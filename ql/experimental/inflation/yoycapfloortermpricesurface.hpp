@@ -55,11 +55,7 @@ namespace QuantLib {
                                     const Matrix& cPrice,
                                     const Matrix& fPrice);
 
-        //-! inflation term structure interface
-        //-@{
-        //- virtual Date maxDate() { return yoy_->maxDate();}
-        //- virtual Date baseDate() { return yoy_->baseDate();}
-        //-@}
+        bool indexIsInterpolated() const;
 
         //! atm yoy swaps from put-call parity on cap/floor data
         /*! uses interpolation (on surface price data), yearly maturities. */
@@ -136,6 +132,7 @@ namespace QuantLib {
         mutable std::vector<Real> cfMaturityTimes_;
         Matrix cPrice_;
         Matrix fPrice_;
+        bool indexIsInterpolated_;
         // constructed
         mutable std::vector<Rate> cfStrikes_;
         mutable ext::shared_ptr<YoYInflationTermStructure> yoy_;
@@ -231,6 +228,11 @@ namespace QuantLib {
     };
 
 
+    // inline definitions
+
+    inline bool YoYCapFloorTermPriceSurface::indexIsInterpolated() const {
+        return indexIsInterpolated_;
+    }
 
     // template definitions
 

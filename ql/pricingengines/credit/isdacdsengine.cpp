@@ -103,6 +103,12 @@ namespace QuantLib {
         // collect nodes from both curves and sort them
         std::vector<Date> yDates, cDates;
 
+        // the calls to dates() below might not trigger bootstrap (because
+        // they will call the InterpolatedCurve methods, not the ones from
+        // PiecewiseYieldCurve or PiecewiseDefaultCurve) so we force it here
+        discountCurve_->discount(0.0);
+        probability_->defaultProbability(0.0);
+
         if(ext::shared_ptr<InterpolatedDiscountCurve<LogLinear> > castY1 =
             ext::dynamic_pointer_cast<
                 InterpolatedDiscountCurve<LogLinear> >(*discountCurve_)) {
@@ -301,14 +307,19 @@ namespace QuantLib {
                 arguments_.accrualRebate->amount();
         }
 
-        Real upfrontSign = Protection::Seller != 0U ? 1.0 : -1.0;
-
-        if (arguments_.side == Protection::Seller) {
+        Real upfrontSign = 1.0;
+        switch (arguments_.side) {
+          case Protection::Seller:
             results_.defaultLegNPV *= -1.0;
             results_.accrualRebateNPV *= -1.0;
-        } else {
+            break;
+          case Protection::Buyer:
             results_.couponLegNPV *= -1.0;
-            results_.upfrontNPV *= -1.0;
+            results_.upfrontNPV   *= -1.0;
+            upfrontSign = -1.0;
+            break;
+          default:
+            QL_FAIL("unknown protection side");
         }
 
         results_.value = results_.defaultLegNPV + results_.couponLegNPV +

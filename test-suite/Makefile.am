@@ -11,11 +11,13 @@ QL_TEST_SRCS = \
 	barrieroption.cpp \
 	binaryoption.cpp \
 	basismodels.cpp \
+	basisswapratehelpers.cpp \
 	basketoption.cpp \
 	batesmodel.cpp \
 	bermudanswaption.cpp \
 	blackdeltacalculator.cpp \
 	blackformula.cpp \
+	bondforward.cpp \
 	bonds.cpp \
 	brownianbridge.cpp \
 	businessdayconventions.cpp \
@@ -39,6 +41,7 @@ QL_TEST_SRCS = \
 	creditdefaultswap.cpp \
 	creditriskplus.cpp \
 	crosscurrencyratehelpers.cpp \
+	currency.cpp \
 	curvestates.cpp \
 	dates.cpp \
 	daycounters.cpp \
@@ -49,6 +52,7 @@ QL_TEST_SRCS = \
 	dividendoption.cpp \
 	doublebarrieroption.cpp \
 	doublebinaryoption.cpp \
+	equityindex.cpp \
 	europeanoption.cpp \
 	everestoption.cpp \
 	exchangerate.cpp \
@@ -113,6 +117,7 @@ QL_TEST_SRCS = \
 	operators.cpp \
 	optimizers.cpp \
 	optionletstripper.cpp \
+	overnightindexedcoupon.cpp \
 	overnightindexedswap.cpp \
 	pagodaoption.cpp \
 	partialtimebarrieroption.cpp \
@@ -137,6 +142,7 @@ QL_TEST_SRCS = \
 	squarerootclvmodel.cpp \
 	stats.cpp \
 	subperiodcoupons.cpp \
+	svivolatility.cpp \
 	swap.cpp \
 	swapforwardmappings.cpp \
 	swaption.cpp \
@@ -158,7 +164,8 @@ QL_TEST_SRCS = \
 	varianceswaps.cpp \
 	volatilitymodels.cpp \
 	vpp.cpp \
-	zabr.cpp
+	zabr.cpp \
+	zerocouponswap.cpp
 
 QL_TEST_HDRS = \
 	speedlevel.hpp \
@@ -172,11 +179,13 @@ QL_TEST_HDRS = \
 	barrieroption.hpp \
 	binaryoption.hpp \
 	basismodels.hpp \
+	basisswapratehelpers.hpp \
 	basketoption.hpp \
 	batesmodel.hpp \
 	bermudanswaption.hpp \
 	blackdeltacalculator.hpp \
 	blackformula.hpp \
+	bondforward.hpp \
 	bonds.hpp \
 	brownianbridge.hpp \
 	businessdayconventions.hpp \
@@ -200,6 +209,7 @@ QL_TEST_HDRS = \
 	creditdefaultswap.hpp \
 	creditriskplus.hpp \
 	crosscurrencyratehelpers.hpp \
+	currency.hpp \
 	curvestates.hpp \
 	dates.hpp \
 	daycounters.hpp \
@@ -210,6 +220,7 @@ QL_TEST_HDRS = \
 	dividendoption.hpp \
 	doublebarrieroption.hpp \
 	doublebinaryoption.hpp \
+	equityindex.hpp \
 	europeanoption.hpp \
 	everestoption.hpp \
 	exchangerate.hpp \
@@ -274,6 +285,7 @@ QL_TEST_HDRS = \
 	operators.hpp \
 	optimizers.hpp \
 	optionletstripper.hpp \
+	overnightindexedcoupon.hpp \
 	overnightindexedswap.hpp \
 	pagodaoption.hpp \
 	partialtimebarrieroption.hpp \
@@ -298,6 +310,7 @@ QL_TEST_HDRS = \
 	squarerootclvmodel.hpp \
 	stats.hpp \
 	subperiodcoupons.hpp \
+	svivolatility.hpp \
 	swap.hpp \
 	swapforwardmappings.hpp \
 	swaption.hpp \
@@ -320,7 +333,8 @@ QL_TEST_HDRS = \
 	varianceswaps.hpp \
 	volatilitymodels.hpp \
 	vpp.hpp \
-	zabr.hpp
+	zabr.hpp \
+	zerocouponswap.hpp
 
 QL_TESTS = ${QL_TEST_SRCS} ${QL_TEST_HDRS}
 
@@ -378,7 +392,7 @@ dist-hook:
 	mkdir -p $(distdir)/bin
 	cp -p $(srcdir)/bin/runtest.bat $(distdir)/bin
 
-if BOOST_UNIT_TEST_FOUND
+if BUILD_TEST_SUITE
 
 AM_CPPFLAGS = -I${top_builddir} -I${top_srcdir}
 
@@ -428,10 +442,10 @@ EXTRA_DIST =
 endif
 
 quantlib_test_suite_LDADD = libUnitMain.la ${top_builddir}/ql/libQuantLib.la \
-                            ${BOOST_UNIT_TEST_LIB} ${BOOST_THREAD_LIB} ${BOOST_INTERPROCESS_LIB}
+                            ${PTHREAD_LIB} ${BOOST_INTERPROCESS_LIB}
 
 quantlib_benchmark_LDADD = libUnitMain.la ${top_builddir}/ql/libQuantLib.la \
-                           ${BOOST_UNIT_TEST_LIB} ${BOOST_THREAD_LIB}
+                           ${PTHREAD_LIB}
 
 TESTS = quantlib-test-suite$(EXEEXT)
 TESTS_ENVIRONMENT = BOOST_TEST_LOG_LEVEL=message BOOST_TEST_COLOR_OUTPUT=false

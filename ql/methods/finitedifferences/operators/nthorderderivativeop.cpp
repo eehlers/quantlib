@@ -21,9 +21,6 @@
     \brief n-th order derivative linear operator
 */
 
-#include <ql/qldefines.hpp>
-#ifndef QL_NO_UBLAS_SUPPORT
-
 #include <ql/methods/finitedifferences/operators/fdmlinearoplayout.hpp>
 #include <ql/methods/finitedifferences/operators/numericaldifferentiation.hpp>
 #include <ql/methods/finitedifferences/operators/nthorderderivativeop.hpp>
@@ -82,17 +79,14 @@ namespace QuantLib {
         }
     }
 
-    Disposable<NthOrderDerivativeOp::array_type>
-    NthOrderDerivativeOp::apply(const array_type& r) const {
+    NthOrderDerivativeOp::array_type NthOrderDerivativeOp::apply(const array_type& r) const {
         return prod(m_, r);
     }
 
 
-    Disposable<SparseMatrix> NthOrderDerivativeOp::toMatrix() const {
-        SparseMatrix tmp(m_);
-        return tmp;
+    SparseMatrix NthOrderDerivativeOp::toMatrix() const {
+        return m_;
     }
 
 }
 
-#endif

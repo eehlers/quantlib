@@ -142,7 +142,6 @@ namespace QuantLib {
     void SwaptionHelper::performCalculations() const {
 
         Calendar calendar = index_->fixingCalendar();
-        Natural fixingDays = index_->fixingDays();
 
         Date exerciseDate = exerciseDate_;
         if (exerciseDate == Null<Date>())
@@ -150,9 +149,7 @@ namespace QuantLib {
                                             maturity_,
                                             index_->businessDayConvention());
 
-        Date startDate = calendar.advance(exerciseDate,
-                                    fixingDays, Days,
-                                    index_->businessDayConvention());
+        Date startDate = index_->valueDate(index_->fixingCalendar().adjust(exerciseDate));
 
         Date endDate = endDate_;
         if (endDate == Null<Date>())
@@ -171,9 +168,9 @@ namespace QuantLib {
         ext::shared_ptr<PricingEngine> swapEngine(
                              new DiscountingSwapEngine(termStructure_, false));
 
-        VanillaSwap::Type type = VanillaSwap::Receiver;
+        Swap::Type type = Swap::Receiver;
 
-        VanillaSwap temp(VanillaSwap::Receiver, nominal_,
+        VanillaSwap temp(Swap::Receiver, nominal_,
                             fixedSchedule, 0.0, fixedLegDayCounter_,
                             floatSchedule, index_, 0.0, floatingLegDayCounter_);
         temp.setPricingEngine(swapEngine);
@@ -183,7 +180,7 @@ namespace QuantLib {
         }
         else {
             exerciseRate_ = strike_;
-            type = strike_ <= forward ? VanillaSwap::Receiver : VanillaSwap::Payer;
+            type = strike_ <= forward ? Swap::Receiver : Swap::Payer;
             // ensure that calibration instrument is out of the money
         }
         swap_ = ext::make_shared<VanillaSwap>(

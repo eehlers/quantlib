@@ -36,10 +36,10 @@ namespace QuantLib {
         const std::vector<Period>& cfMaturities,
         const Matrix& cPrice,
         const Matrix& fPrice)
-    : InflationTermStructure(0, cal, baseRate, lag, yii->frequency(), yii->interpolated(), dc),
+    : InflationTermStructure(0, cal, baseRate, lag, yii->frequency(), dc),
       fixingDays_(fixingDays), bdc_(bdc), yoyIndex_(yii), nominalTS_(std::move(nominal)),
       cStrikes_(cStrikes), fStrikes_(fStrikes), cfMaturities_(cfMaturities), cPrice_(cPrice),
-      fPrice_(fPrice) {
+      fPrice_(fPrice), indexIsInterpolated_(yii->interpolated()) {
 
         // data consistency checking, enough data?
         QL_REQUIRE(fStrikes_.size() > 1, "not enough floor strikes");

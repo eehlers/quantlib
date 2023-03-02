@@ -26,12 +26,13 @@
 #include <ql/math/functional.hpp>
 #include <ql/math/interpolations/bicubicsplineinterpolation.hpp>
 #include <ql/pricingengines/blackformula.hpp>
-#include <ql/experimental/barrieroption/doublebarrieroption.hpp>
-#include <ql/experimental/barrieroption/analyticdoublebarrierengine.hpp>
+#include <ql/instruments/doublebarrieroption.hpp>
+#include <ql/pricingengines/barrier/analyticdoublebarrierengine.hpp>
+#include <ql/pricingengines/barrier/fdhestondoublebarrierengine.hpp>
 #include <ql/experimental/barrieroption/binomialdoublebarrierengine.hpp>
-#include <ql/experimental/barrieroption/wulinyongdoublebarrierengine.hpp>
+#include <ql/experimental/barrieroption/suowangdoublebarrierengine.hpp>
 #include <ql/experimental/barrieroption/vannavolgadoublebarrierengine.hpp>
-#include <ql/experimental/finitedifferences/fdhestondoublebarrierengine.hpp>
+#include <ql/experimental/barrieroption/mcdoublebarrierengine.hpp>
 #include <ql/termstructures/yield/zerocurve.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
@@ -41,7 +42,6 @@
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
-#include <ql/experimental/barrieroption/mcdoublebarrierengine.hpp>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
@@ -316,7 +316,7 @@ void DoubleBarrierOptionTest::testEuropeanHaugValues() {
 
         // Wulin Suo/Yong Wang engine
         engine = ext::shared_ptr<PricingEngine>(
-                                     new WulinYongDoubleBarrierEngine(stochProcess));
+                                     new SuoWangDoubleBarrierEngine(stochProcess));
         opt.setPricingEngine(engine);
 
         calculated = opt.NPV();
@@ -365,8 +365,8 @@ void DoubleBarrierOptionTest::testEuropeanHaugValues() {
                         Handle<YieldTermStructure>(rTS),
                         Handle<YieldTermStructure>(qTS),
                         Handle<Quote>(spot),
-                        square<Real>()(vol->value()), 1.0,
-                        square<Real>()(vol->value()), 0.001, 0.0)), 251, 76, 3);
+                        squared(vol->value()), 1.0,
+                        squared(vol->value()), 0.001, 0.0)), 251, 76, 3);
 
             opt.setPricingEngine(engine);
             calculated = opt.NPV();
@@ -475,7 +475,7 @@ void DoubleBarrierOptionTest::testVannaVolgaDoubleBarrierValues() {
                              spot->value() * qTS->discount(value.t) / rTS->discount(value.t),
                              value.v * sqrt(value.t), rTS->discount(value.t));
             ext::shared_ptr<PricingEngine> vannaVolgaEngine =
-                ext::make_shared<VannaVolgaDoubleBarrierEngine<WulinYongDoubleBarrierEngine> >(
+                ext::make_shared<VannaVolgaDoubleBarrierEngine<SuoWangDoubleBarrierEngine> >(
                                 volAtmQuote,
                                 vol25PutQuote,
                                 vol25CallQuote,
@@ -621,7 +621,7 @@ void DoubleBarrierOptionTest::testMonteCarloDoubleBarrierWithAnalytical() {
     tolerance = 0.01;
 
     mcdoublebarrierengine = MakeMCDoubleBarrierEngine<PseudoRandom>(bsmProcess)
-        .withSteps(10000)
+        .withSteps(5000)
         .withAntitheticVariate()
         .withAbsoluteTolerance(tolerance)
         .withSeed(10);
@@ -650,7 +650,7 @@ test_suite* DoubleBarrierOptionTest::experimental(SpeedLevel speed) {
     auto* suite = BOOST_TEST_SUITE("DoubleBarrier_experimental");
     suite->add(QUANTLIB_TEST_CASE(&DoubleBarrierOptionTest::testVannaVolgaDoubleBarrierValues));
 
-    if (speed == Slow) {
+    if (speed <= Fast) {
         suite->add(QUANTLIB_TEST_CASE(&DoubleBarrierOptionTest::testMonteCarloDoubleBarrierWithAnalytical));
     }
 

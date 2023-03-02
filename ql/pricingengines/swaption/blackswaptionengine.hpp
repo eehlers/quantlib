@@ -252,7 +252,7 @@ namespace QuantLib {
             atmForward -= correction;
             results_.additionalResults["spreadCorrection"] = correction;
         } else {
-            results_.additionalResults["spreadCorrection"] = 0.0;
+            results_.additionalResults["spreadCorrection"] = Real(0.0);
         }
         results_.additionalResults["strike"] = strike;
         results_.additionalResults["atmForward"] = atmForward;
@@ -301,8 +301,7 @@ namespace QuantLib {
 
         Real stdDev = std::sqrt(variance);
         results_.additionalResults["stdDev"] = stdDev;
-        Option::Type w = (arguments_.type==VanillaSwap::Payer) ?
-                                                Option::Call : Option::Put;
+        Option::Type w = (arguments_.type==Swap::Payer) ? Option::Call : Option::Put;
         results_.value = Spec().value(w, strike, atmForward, stdDev, annuity, displacement);
         
         Time exerciseTime = vol_->timeFromReference(exerciseDate);
@@ -311,7 +310,7 @@ namespace QuantLib {
         results_.additionalResults["delta"] = Spec().delta(
             w, strike, atmForward, stdDev, annuity, displacement);
         results_.additionalResults["timeToExpiry"] = exerciseTime;
-        results_.additionalResults["impliedVolatility"] = stdDev / std::sqrt(exerciseTime);
+        results_.additionalResults["impliedVolatility"] = Real(stdDev / std::sqrt(exerciseTime));
     }
 
     }  // namespace detail

@@ -35,6 +35,7 @@ namespace QuantLib {
 
     void MultiplicativePriceSeasonality::validate() const
     {
+        // NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
         switch (this->frequency()) {
             case Semiannual:        //2
             case EveryFourthMonth:  //3
@@ -56,6 +57,7 @@ namespace QuantLib {
                         << ", only semi-annual through daily permitted.");
             break;
         }
+        // NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
     }
 
 
@@ -89,7 +91,7 @@ namespace QuantLib {
     MultiplicativePriceSeasonality::MultiplicativePriceSeasonality(const Date& seasonalityBaseDate, const Frequency frequency,
                                                                    const std::vector<Rate>& seasonalityFactors)
     {
-        set(seasonalityBaseDate, frequency, seasonalityFactors);
+        MultiplicativePriceSeasonality::set(seasonalityBaseDate, frequency, seasonalityFactors);
     }
 
     void MultiplicativePriceSeasonality::set(const Date& seasonalityBaseDate, const Frequency frequency,
@@ -101,6 +103,7 @@ namespace QuantLib {
             seasonalityFactors_[i] = seasonalityFactors[i];
         }
         seasonalityBaseDate_ = seasonalityBaseDate;
+        // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
         validate();
     }
 
@@ -124,8 +127,7 @@ namespace QuantLib {
         // curveBaseDate and effective fixing date. This means that we should retrieve
         // the input seasonality adjustments when we look at I_{SA}(t) / I_{NSA}(t).
         Date curveBaseDate = iTS.baseDate();
-        Date effectiveFixingDate = iTS.indexIsInterpolated() ? d : 
-            inflationPeriod(d, iTS.frequency()).first;
+        Date effectiveFixingDate = inflationPeriod(d, iTS.frequency()).first;
         
         return seasonalityCorrection(r, effectiveFixingDate, iTS.dayCounter(), curveBaseDate, true);
     }
@@ -202,7 +204,8 @@ namespace QuantLib {
         if (isZeroRate) {
             Rate factorBase = this->seasonalityFactor(curveBaseDate);
             Real seasonalityAt = factorAt / factorBase;
-            Time timeFromCurveBase = dc.yearFraction(curveBaseDate, atDate);
+            std::pair<Date,Date> p = inflationPeriod(atDate,frequency());
+            Time timeFromCurveBase = dc.yearFraction(curveBaseDate, p.first);
             f = std::pow(seasonalityAt, 1/timeFromCurveBase);
         }
         else {

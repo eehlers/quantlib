@@ -53,7 +53,10 @@ namespace QuantLib {
     class InflationCouponPricer: public virtual Observer,
                                  public virtual Observable {
     public:
+      QL_DEPRECATED_DISABLE_WARNING
+      InflationCouponPricer() = default;
       ~InflationCouponPricer() override = default;
+      QL_DEPRECATED_ENABLE_WARNING
       //! \name Interface
       //@{
       virtual Real swapletPrice() const = 0;
@@ -70,8 +73,12 @@ namespace QuantLib {
       void update() override { notifyObservers(); }
       //@}
     protected:
-        Handle<YieldTermStructure> rateCurve_;
-        Date paymentDate_;
+      /*! \deprecated Don't use this data member.  If you need it,
+                      provide it in your derived class.
+                      Deprecated in version 1.29.
+      */
+      QL_DEPRECATED Handle<YieldTermStructure> rateCurve_;
+      Date paymentDate_;
     };
 
 
@@ -85,10 +92,6 @@ namespace QuantLib {
     */
     class YoYInflationCouponPricer : public InflationCouponPricer {
       public:
-        /*! \deprecated Use one of the other constructors.
-                        Deprecated in version 1.19.
-        */
-        QL_DEPRECATED
         YoYInflationCouponPricer() = default;
 
         explicit YoYInflationCouponPricer(Handle<YieldTermStructure> nominalTermStructure);
@@ -147,10 +150,6 @@ namespace QuantLib {
     //! Black-formula pricer for capped/floored yoy inflation coupons
     class BlackYoYInflationCouponPricer : public YoYInflationCouponPricer {
       public:
-        /*! \deprecated Use one of the other constructors.
-                        Deprecated in version 1.19.
-        */
-        QL_DEPRECATED
         BlackYoYInflationCouponPricer()
         : YoYInflationCouponPricer(Handle<YoYOptionletVolatilitySurface>(),
                                    Handle<YieldTermStructure>()) {}
@@ -171,10 +170,6 @@ namespace QuantLib {
     //! Unit-Displaced-Black-formula pricer for capped/floored yoy inflation coupons
     class UnitDisplacedBlackYoYInflationCouponPricer : public YoYInflationCouponPricer {
       public:
-        /*! \deprecated Use one of the other constructors.
-                        Deprecated in version 1.19.
-        */
-        QL_DEPRECATED
         UnitDisplacedBlackYoYInflationCouponPricer()
         : YoYInflationCouponPricer(Handle<YoYOptionletVolatilitySurface>(),
                                    Handle<YieldTermStructure>()) {}
@@ -195,10 +190,6 @@ namespace QuantLib {
     //! Bachelier-formula pricer for capped/floored yoy inflation coupons
     class BachelierYoYInflationCouponPricer : public YoYInflationCouponPricer {
       public:
-        /*! \deprecated Use one of the other constructors.
-                        Deprecated in version 1.19.
-        */
-        QL_DEPRECATED
         BachelierYoYInflationCouponPricer()
         : YoYInflationCouponPricer(Handle<YoYOptionletVolatilitySurface>(),
                                    Handle<YieldTermStructure>()) {}

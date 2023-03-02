@@ -54,18 +54,16 @@ namespace QuantLib {
         Size size() const override;
         void setTime(Time t1, Time t2) override;
 
-        Disposable<Array> apply(const Array& r) const override;
-        Disposable<Array> apply_mixed(const Array& r) const override;
+        Array apply(const Array& r) const override;
+        Array apply_mixed(const Array& r) const override;
 
-        Disposable<Array> apply_direction(Size direction, const Array& r) const override;
-        Disposable<Array> solve_splitting(Size direction, const Array& r, Real s) const override;
-        Disposable<Array> preconditioner(const Array& r, Real s) const override;
+        Array apply_direction(Size direction, const Array& r) const override;
+        Array solve_splitting(Size direction, const Array& r, Real s) const override;
+        Array preconditioner(const Array& r, Real s) const override;
 
-#if !defined(QL_NO_UBLAS_SUPPORT)
-        Disposable<std::vector<SparseMatrix> > toMatrixDecomp() const override;
-#endif
+        std::vector<SparseMatrix> toMatrixDecomp() const override;
       private:
-        Disposable<Array> integro(const Array& r) const;
+        Array integro(const Array& r) const;
 
         const ext::shared_ptr<FdmMesher> mesher_;
         const ext::shared_ptr<ExtOUWithJumpsProcess> process_;
@@ -78,23 +76,7 @@ namespace QuantLib {
 
         const TripleBandLinearOp dyMap_;
 
-#if defined(QL_NO_UBLAS_SUPPORT)
-        class IntegroIntegrand {
-          public:
-            IntegroIntegrand(const ext::shared_ptr<LinearInterpolation>& i,
-                             const FdmBoundaryConditionSet& bcSet,
-                             Real y, Real eta);
-            Real operator()(Real u) const;
-            
-          private:
-            const Real y_, eta_;
-            const FdmBoundaryConditionSet& bcSet_;
-            const ext::shared_ptr<LinearInterpolation>& interpl_;
-        };
-            
-#else
         SparseMatrix integroPart_;
-#endif
     };
 }
 

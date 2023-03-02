@@ -93,7 +93,7 @@
 
 #include <ql/types.hpp>
 #include <ql/version.hpp>
-#include <boost/test/unit_test.hpp>
+#include <boost/test/included/unit_test.hpp>
 #include <iomanip>
 #include <iostream>
 #include <list>
@@ -109,11 +109,8 @@
 /* Use BOOST_MSVC instead of _MSC_VER since some other vendors (Metrowerks,
    for example) also #define _MSC_VER
 */
-#ifdef BOOST_MSVC
+#if !defined(BOOST_ALL_NO_LIB) && defined(BOOST_MSVC)
 #  include <ql/auto_link.hpp>
-#  define BOOST_LIB_NAME boost_unit_test_framework
-#  include <boost/config/auto_link.hpp>
-#  undef BOOST_LIB_NAME
 #endif
 
 #include "utilities.hpp"
@@ -215,11 +212,7 @@ namespace {
 
     void printResults() {
         std::string header = "Benchmark Suite "
-        #ifdef BOOST_MSVC
-        QL_LIB_NAME;
-        #else
         "QuantLib " QL_VERSION;
-        #endif
 
         std::cout << std::endl
                   << std::string(56,'-') << std::endl;
@@ -250,12 +243,6 @@ namespace {
                   << " mflops" << std::endl;
     }
 }
-
-#if defined(QL_ENABLE_SESSIONS)
-namespace QuantLib {
-    ThreadKey sessionId() { return {}; }
-}
-#endif
 
 test_suite* init_unit_test_suite(int, char*[]) {
     bm.emplace_back("AmericanOption::FdAmericanGreeks", &AmericanOptionTest::testFdAmericanGreeks,

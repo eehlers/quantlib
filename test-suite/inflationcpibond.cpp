@@ -65,10 +65,8 @@ namespace inflation_cpi_bond_test {
             Date maturity = datum.date;
             Handle<Quote> quote(ext::shared_ptr<Quote>(
                                 new SimpleQuote(datum.rate/100.0)));
-            ext::shared_ptr<Helper> h(
-                      new ZeroCouponInflationSwapHelper(quote, observationLag,
-                                                        maturity, calendar,
-                                                        bdc, dc, ii, yTS));
+            ext::shared_ptr<Helper> h(new ZeroCouponInflationSwapHelper(
+                quote, observationLag, maturity, calendar, bdc, dc, ii, CPI::AsIndex, yTS));
             instruments.push_back(h);
         }
         return instruments;
@@ -76,7 +74,7 @@ namespace inflation_cpi_bond_test {
 
 
     struct CommonVars {
-
+    
         Calendar calendar;
         BusinessDayConvention convention;
         Date evaluationDate;
@@ -101,7 +99,7 @@ namespace inflation_cpi_bond_test {
             Date today(25, November, 2009);
             evaluationDate = calendar.adjust(today);
             Settings::instance().evaluationDate() = evaluationDate;
-            dayCounter = ActualActual();
+            dayCounter = ActualActual(ActualActual::ISDA);
 
             Date from(20, July, 2007);
             Date to(20, November, 2009);
@@ -111,8 +109,7 @@ namespace inflation_cpi_bond_test {
                 .withCalendar(UnitedKingdom())
                 .withConvention(ModifiedFollowing);
 
-            bool interp = false;
-            ii = ext::make_shared<UKRPI>(interp, cpiTS);
+            ii = ext::make_shared<UKRPI>(cpiTS);
 
             Real fixData[] = {
                 206.1, 207.3, 208.0, 208.9, 209.7, 210.9,
@@ -159,8 +156,7 @@ namespace inflation_cpi_bond_test {
             cpiTS.linkTo(ext::shared_ptr<ZeroInflationTermStructure>(
                   new PiecewiseZeroInflationCurve<Linear>(
                          evaluationDate, calendar, dayCounter, observationLag,
-                         ii->frequency(),ii->interpolated(), baseZeroRate,
-                         helpers)));
+                         ii->frequency(), baseZeroRate, helpers)));
         }
 
         // teardown
@@ -209,11 +205,7 @@ void InflationCPIBondTest::testCleanPrice() {
 
     ext::shared_ptr<DiscountingBondEngine> engine(
                                  new DiscountingBondEngine(common.yTS));
-    ext::shared_ptr<InflationCouponPricer> pricer =
-        ext::make_shared<CPICouponPricer>(common.yTS);
-
     bond.setPricingEngine(engine);
-    setCouponPricer(bond.cashflows(), pricer);
 
     Real storedPrice = 383.01816406;
     Real calculated = bond.cleanPrice();

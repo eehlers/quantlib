@@ -140,28 +140,28 @@ namespace QuantLib {
             results_.value = 0.0;
             results_.additionalResults["VanillaPrice"] = adaptVanDelta_? bsPriceWithSmile_ : vanillaOption;
             results_.additionalResults["BarrierInPrice"] = adaptVanDelta_? bsPriceWithSmile_ : vanillaOption;
-            results_.additionalResults["BarrierOutPrice"] = 0.0;
+            results_.additionalResults["BarrierOutPrice"] = Real(0.0);
         }
         //spot > barrier up&in vanilla
         else if(x0Quote->value() >= arguments_.barrier && arguments_.barrierType == Barrier::UpIn){
             results_.value = adaptVanDelta_? bsPriceWithSmile_ : vanillaOption;
             results_.additionalResults["VanillaPrice"] = adaptVanDelta_? bsPriceWithSmile_ : vanillaOption;
             results_.additionalResults["BarrierInPrice"] = adaptVanDelta_? bsPriceWithSmile_ : vanillaOption;
-            results_.additionalResults["BarrierOutPrice"] = 0.0;
+            results_.additionalResults["BarrierOutPrice"] = Real(0.0);
         }
         //spot < barrier down&out 0
         else if(x0Quote->value() <= arguments_.barrier && arguments_.barrierType == Barrier::DownOut){
             results_.value = 0.0;
             results_.additionalResults["VanillaPrice"] = adaptVanDelta_? bsPriceWithSmile_ : vanillaOption;
             results_.additionalResults["BarrierInPrice"] = adaptVanDelta_? bsPriceWithSmile_ : vanillaOption;
-            results_.additionalResults["BarrierOutPrice"] = 0.0;
+            results_.additionalResults["BarrierOutPrice"] = Real(0.0);
         }
         //spot < barrier down&in vanilla
         else if(x0Quote->value() <= arguments_.barrier && arguments_.barrierType == Barrier::DownIn){
             results_.value = adaptVanDelta_? bsPriceWithSmile_ : vanillaOption;
             results_.additionalResults["VanillaPrice"] = adaptVanDelta_? bsPriceWithSmile_ : vanillaOption;
             results_.additionalResults["BarrierInPrice"] = adaptVanDelta_? bsPriceWithSmile_ : vanillaOption;
-            results_.additionalResults["BarrierOutPrice"] = 0.0;
+            results_.additionalResults["BarrierOutPrice"] = Real(0.0);
         }
         else{
 
@@ -317,7 +317,7 @@ namespace QuantLib {
 
             //touch probability
             CumulativeNormalDistribution cnd;
-            Real mu = domesticTS_->zeroRate(T_, Continuous) - foreignTS_->zeroRate(T_, Continuous) - pow(atmVol_->value(), 2.0)/2.0;
+            Real mu = domesticTS_->zeroRate(T_, Continuous).rate() - foreignTS_->zeroRate(T_, Continuous).rate() - pow(atmVol_->value(), 2.0)/2.0;
             Real h2 = (log(arguments_.barrier/x0Quote->value()) + mu*T_)/(atmVol_->value()*sqrt(T_));
             Real h2Prime = (log(x0Quote->value()/arguments_.barrier) + mu*T_)/(atmVol_->value()*sqrt(T_));
             Real probTouch = 0.0;

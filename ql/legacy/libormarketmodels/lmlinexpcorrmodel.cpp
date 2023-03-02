@@ -29,11 +29,10 @@ namespace QuantLib {
      factors_((factors != Null<Size>()) ? factors : size) {
         arguments_[0] = ConstantParameter(rho, BoundaryConstraint(-1.0, 1.0));
         arguments_[1] = ConstantParameter(beta, PositiveConstraint());
-        generateArguments();
+        LmLinearExponentialCorrelationModel::generateArguments();
     }
 
-    Disposable<Matrix> LmLinearExponentialCorrelationModel::correlation(
-                                                   Time, const Array&) const {
+    Matrix LmLinearExponentialCorrelationModel::correlation(Time, const Array&) const {
         Matrix tmp(corrMatrix_);
         return tmp;
     }
@@ -52,8 +51,7 @@ namespace QuantLib {
     }
 
 
-    Disposable<Matrix> LmLinearExponentialCorrelationModel::pseudoSqrt(
-                                                   Time, const Array&) const {
+    Matrix LmLinearExponentialCorrelationModel::pseudoSqrt(Time, const Array&) const {
         Matrix tmp(pseudoSqrt_);
         return tmp;
     }

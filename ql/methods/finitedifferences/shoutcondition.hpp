@@ -33,29 +33,16 @@
 namespace QuantLib {
 
     //! Shout option condition
-    /*! A shout option is an option where the holder has the right to
-        lock in a minimum value for the payoff at one (shout) time
-        during the option's life. The minimum value is the option's
-        intrinsic value at the shout time.
+    /*! \deprecated Use the new finite-differences framework instead.
+                    Deprecated in version 1.27.
     */
-    class ShoutCondition : public StandardStepCondition {
+    class QL_DEPRECATED ShoutCondition : public StandardStepCondition {
       public:
         ShoutCondition(const Array& intrinsicValues,
                        Time resTime,
                        Rate rate)
         : resTime_(resTime), rate_(rate),
           impl_(new ArrayImpl(intrinsicValues)) {}
-
-        /*! \deprecated Use the other constructor.
-                        Deprecated in version 1.19.
-        */
-        QL_DEPRECATED
-        ShoutCondition(Option::Type type,
-                       Real strike,
-                       Time resTime,
-                       Rate rate)
-        : resTime_(resTime), rate_(rate),
-          impl_(new PayoffImpl(type, strike)) {}
 
         void applyTo(Array& a, Time t) const override {
             DiscountFactor B = std::exp(-rate_ * (t - resTime_));
@@ -90,16 +77,6 @@ namespace QuantLib {
             explicit ArrayImpl(Array a) : intrinsicValues_(std::move(a)) {}
 
             Real getValue(const Array&, int i) override { return intrinsicValues_[i]; }
-        };
-
-        class PayoffImpl : public Impl {
-          private:
-            ext::shared_ptr<const Payoff> payoff_;
-          public:
-            PayoffImpl(Option::Type type, Real strike)
-            : payoff_(new PlainVanillaPayoff(type, strike)) {};
-
-            Real getValue(const Array& a, int i) override { return (*payoff_)(std::exp(a[i])); }
         };
     };
 

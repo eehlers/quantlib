@@ -31,7 +31,6 @@
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/termstructures/volatility/swaption/swaptionvolstructure.hpp>
 #include <ql/models/calibrationhelper.hpp>
-#include <ql/utilities/disposable.hpp>
 
 namespace QuantLib {
 
@@ -60,13 +59,13 @@ namespace QuantLib {
         Settlement::Method settlementMethod() const {
             return settlementMethod_;
         }
-        VanillaSwap::Type type() const { return swap_->type(); }
+        Swap::Type type() const { return swap_->type(); }
 
         const ext::shared_ptr<NonstandardSwap> &underlyingSwap() const {
             return swap_;
         }
         //@}
-        Disposable<std::vector<ext::shared_ptr<BlackCalibrationHelper> > >
+        std::vector<ext::shared_ptr<BlackCalibrationHelper>>
         calibrationBasket(const ext::shared_ptr<SwapIndex>& standardSwapBase,
                           const ext::shared_ptr<SwaptionVolatilityStructure>& swaptionVolatility,
                           BasketGeneratingEngine::CalibrationBasketType basketType =
